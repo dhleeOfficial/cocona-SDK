@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/CubiFrameworkAndroid.iml" filepath="$PROJECT_DIR$/CubiFrameworkAndroid.iml" />
+      <module fileurl="file://$PROJECT_DIR$/frameworktestapp/frameworktestapp.iml" filepath="$PROJECT_DIR$/frameworktestapp/frameworktestapp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/smartcameraengine/smartcameraengine.iml" filepath="$PROJECT_DIR$/smartcameraengine/smartcameraengine.iml" />
+    </modules>
+  </component>
+</project>

@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.cubi.frameworktestapp.widget.PortraitFrameLayout
+        android:id="@+id/wrap_view"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0">
+
+    </com.cubi.frameworktestapp.widget.PortraitFrameLayout>
+
+
+    <Button
+        android:id="@+id/btn_flash"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="FLASH"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/wrap_view" />
+
+
+    <Button
+        android:id="@+id/btn_record"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerInParent="true"
+        android:text="@string/app_record"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent" />
+
+    <Button
+        android:id="@+id/btn_timelapse"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TIME LAPSE"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/wrap_view" />
+
+    <Button
+        android:id="@+id/btn_pause"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="PAUSE"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btn_timelapse" />
+
+    <Button
+        android:id="@+id/btn_slowmotion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SLOW MOTION"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btn_pause" />
+
+    <Button
+        android:id="@+id/btn_normalspeed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="NORMAL SPEED"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btn_slowmotion" />
+
+    <Button
+        android:id="@+id/btn_flash"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="FLASH"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btn_normalspeed" />
+
+    <Button
+        android:id="@+id/btn_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SWITCH"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btn_flash" />
+
+    <Button
+        android:id="@+id/btn_brighter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="BRIGHTER"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btn_switch" />
+
+    <Button
+        android:id="@+id/btn_darker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="DARKER"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btn_brighter" />
+    <Button
+        android:id="@+id/btn_event"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="EVENTMODE"
+        app:layout_constraintStart_toStartOf="@+id/wrap_view"
+        app:layout_constraintTop_toBottomOf="@+id/btn_flash" />
+
+    <Button
+        android:id="@+id/btn_travel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TRAVELMODE"
+        app:layout_constraintStart_toStartOf="@+id/wrap_view"
+        app:layout_constraintTop_toBottomOf="@+id/btn_event" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
