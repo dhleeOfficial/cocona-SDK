@@ -1,27 +1,25 @@
 package com.cubi.smartcameraengine;
 
+import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraManager;
 import android.opengl.GLSurfaceView;
 import android.os.Handler;
 import android.util.Log;
 import android.util.Size;
-import android.content.Context;
 
+import com.cubi.smartcameraengine.capture.DelegateInterface;
 import com.cubi.smartcameraengine.capture.MediaAudioEncoder;
 import com.cubi.smartcameraengine.capture.MediaEncoder;
 import com.cubi.smartcameraengine.capture.MediaMuxerCaptureWrapper;
 import com.cubi.smartcameraengine.capture.MediaVideoEncoder;
 import com.cubi.smartcameraengine.egl.GlPreviewRenderer;
 import com.cubi.smartcameraengine.egl.filter.GlFilter;
+import com.cubi.smartcameraengine.objectdetection.OverlayView;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 
 public class CameraRecorder {
     private GlPreviewRenderer glPreviewRenderer;
@@ -29,15 +27,15 @@ public class CameraRecorder {
     private static final String TAG = "CameraRecorder";
 
     public static boolean started = false;
-    public static boolean isEvent = false;
+//    public static boolean isEvent = false;
     private CameraHandler cameraHandler = null;
     private GLSurfaceView glSurfaceView;
 
     private boolean flashSupport = false;
 
     private MediaMuxerCaptureWrapper muxer;
-    private final int fileWidth;
-    private final int fileHeight;
+    private int fileWidth;
+    private int fileHeight;
 
     private final int cameraWidth;
     private final int cameraHeight;
@@ -46,21 +44,20 @@ public class CameraRecorder {
     private final boolean flipVertical;
     private final boolean mute;
     private final CameraManager cameraManager;
-    private final boolean isLandscapeDevice;
-    private final int degrees;
+    public enum Orientation{
+        PORTRAIT, LEFT, RIGHT, UPSIDEDOWN;
+    };
+    public Orientation orientation;
+    private int degrees;
     private final boolean recordNoFilter;
     public static int fastSlowMode=0;
     public static Context setContext;
     public static String videoPath;
     public static String txtPath;
+    public static int recordingMode = 0;
 
-
-
-
-    public static final int NORMAL=0;
-    public static final int TIMELAPSE=1;
-    public static final int SLOW=2;
-    public static final int PAUSE=3;
+    public DelegateInterface delegate = null;
+    public static OverlayView overlay;
 
 
 
@@ -71,15 +68,14 @@ public class CameraRecorder {
             final int fileHeight,
             final int cameraWidth,
             final int cameraHeight,
-//            final LensFacing lensFacing,
             LensFacing lensFacing,
             final boolean flipHorizontal,
             final boolean flipVertical,
             final boolean mute,
             final CameraManager cameraManager,
-            final boolean isLandscapeDevice,
-            final int degrees,
-            final boolean recordNoFilter
+            final boolean recordNoFilter,
+            final OverlayView overlay,
+            final Context setContext
     ) {
 
 
@@ -97,9 +93,10 @@ public class CameraRecorder {
         this.flipVertical = flipVertical;
         this.mute = mute;
         this.cameraManager = cameraManager;
-        this.isLandscapeDevice = isLandscapeDevice;
-        this.degrees = degrees;
         this.recordNoFilter = recordNoFilter;
+        this.overlay = overlay;
+        this.setContext = setContext;
+        AutoEditing.loadTFLite(CameraRecorder.setContext);
 
         // create preview Renderer
         if (null == glPreviewRenderer) {
@@ -114,6 +111,15 @@ public class CameraRecorder {
         });
     }
 
+    public void setFileSize(int fileWidth_, int fileHeight_){
+        fileWidth=fileWidth_;
+        fileHeight=fileHeight_;
+    }
+
+
+    public void setDelegate(DelegateInterface delegate) {
+        this.delegate = delegate;
+    }
 
     private synchronized void startPreview(SurfaceTexture surfaceTexture) {
         if (cameraHandler == null) {
@@ -138,14 +144,10 @@ public class CameraRecorder {
                         @Override
                         public void run() {
                             if (glPreviewRenderer != null) {
+                                degrees=0;
                                 glPreviewRenderer.setAngle(degrees);
-                                glPreviewRenderer.onStartPreview(previewWidth, previewHeight, isLandscapeDevice);
+                                glPreviewRenderer.onStartPreview(previewWidth, previewHeight, orientation);
                             }
-//                            if(CameraRecorder.fastSlowMode==3){
-//                                glSurfaceView.onPause();
-//                            } else{
-//                                glSurfaceView.onResume();
-//                            }
                         }
                     });
 
@@ -226,6 +228,11 @@ public class CameraRecorder {
         }
     }
 
+    public void setOrientation(Orientation orientation_){
+        orientation=orientation_;
+    }
+
+
     public boolean isFlashSupport() {
         return flashSupport;
     }
@@ -240,6 +247,10 @@ public class CameraRecorder {
             // just request stop prviewing
             cameraHandler.stopPreview(false);
         }
+    }
+
+    public Orientation getOrientation(){
+        return orientation;
     }
 
     /**
@@ -264,6 +275,11 @@ public class CameraRecorder {
                 if (glPreviewRenderer != null) {
                     glPreviewRenderer.setVideoEncoder(null);
                 }
+                Log.d(TAG, "============ encode stopped ==========");
+                if(delegate != null) {
+                    delegate.onCall(videoPath, txtPath);
+                }
+                Log.i("delegatelog", "!!!!!!!!!!onCall!!!!!!!!!!");
             }
         }
     };
@@ -271,6 +287,7 @@ public class CameraRecorder {
     /**
      * Start data processing
      */
+
     public void start(final String filePath) {
         if (started) return;
         if(CameraRecorder.fastSlowMode==3){
@@ -284,11 +301,19 @@ public class CameraRecorder {
             @Override
             public void run() {
                 try {
-                    muxer = new MediaMuxerCaptureWrapper(filePath);
+                    int degrees=0;
+                    if(orientation == Orientation.PORTRAIT){
+                        degrees=0;
+                    } else if(orientation == Orientation.RIGHT){
+                        degrees=270;
+                    } else if(orientation == Orientation.UPSIDEDOWN){
+                        degrees=180;
+                    } else if(orientation == Orientation.LEFT){
+                        degrees=90;
+                    }
+                    muxer = new MediaMuxerCaptureWrapper(filePath,degrees);
 
                     // for video capturing
-                    // ここにcamera width , heightもわたす。
-                    // 差分をいろいろと吸収する。
                     new MediaVideoEncoder(
                             muxer,
                             mediaEncoderListener,
@@ -296,6 +321,7 @@ public class CameraRecorder {
                             fileHeight,
                             flipHorizontal,
                             flipVertical,
+                            orientation,
                             glSurfaceView.getMeasuredWidth(),
                             glSurfaceView.getMeasuredHeight(),
                             recordNoFilter,
@@ -382,17 +408,26 @@ public class CameraRecorder {
 //        return started;
 //    }
 
-    public static void setEvent(boolean isEventMode) {
-        isEvent = isEventMode;
+    public static void setRecordingMode(int mode) {
+        recordingMode = mode;
     }
-
-    public void contextSet(Context context) { setContext = context; }
 
     private void notifyOnDone() {
         if (cameraRecordListener == null) return;
         cameraRecordListener.onRecordComplete();
 
     }
+    @Deprecated
+    public void frameSet(OverlayView overlayview) {
+        Log.i("DEPRECATED","This function is deprecated");
+    }
+
+    @Deprecated
+    public void contextSet(Context context) {
+        Log.i("DEPRECATED","This function is deprecated");
+    }
+
+
 
     private void notifyOnError(Exception e) {
         if (cameraRecordListener == null) return;

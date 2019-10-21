@@ -11,9 +11,6 @@ import javax.microedition.khronos.egl.EGLDisplay;
 import static javax.microedition.khronos.egl.EGL10.EGL_NONE;
 import static javax.microedition.khronos.egl.EGL10.EGL_NO_CONTEXT;
 
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 
 public class DefaultContextFactory implements GLSurfaceView.EGLContextFactory {
 

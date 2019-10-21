@@ -1,7 +1,5 @@
 package com.cubi.smartcameraengine.capture;
 
-import android.graphics.Bitmap;
-import android.media.Image;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
@@ -15,19 +13,13 @@ import com.cubi.smartcameraengine.egl.filter.GlFilter;
 
 import java.io.IOException;
 
-import javax.microedition.khronos.egl.EGL10;
-import javax.microedition.khronos.opengles.GL10;
-
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 
 public class MediaVideoEncoder extends MediaEncoder {
     private static final String TAG = "MediaVideoEncoder";
 
     private static final String MIME_TYPE = "video/avc";
     // parameters for recording
-    private static final int FRAME_RATE = 5;
+    private static final int FRAME_RATE = 30;
     private static int bit_rate=3000000;
     private static final float BPP = 0.25f;
 
@@ -40,8 +32,9 @@ public class MediaVideoEncoder extends MediaEncoder {
                              final MediaEncoderListener listener,
                              final int fileWidth,
                              final int fileHeight,
-                             final boolean flipHorizontal,
-                             final boolean flipVertical,
+                             boolean flipHorizontal,
+                             boolean flipVertical,
+                             CameraRecorder.Orientation orientation,
                              final float viewWidth,
                              final float viewHeight,
                              final boolean recordNoFilter,
@@ -97,7 +90,8 @@ public class MediaVideoEncoder extends MediaEncoder {
         format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
         format.setInteger(MediaFormat.KEY_BIT_RATE, calcBitRate(fileWidth, fileHeight));
         format.setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE);
-        format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 3);
+        format.setFloat(MediaFormat.KEY_I_FRAME_INTERVAL, (float)0.5);
+//        format.setFloat(MediaFormat.KEY_I_FRAME_INTERVAL, 3);
         Log.i(TAG, "format: " + format);
 
         mediaCodec = MediaCodec.createEncoderByType(MIME_TYPE);

@@ -10,9 +10,6 @@ import java.util.HashMap;
 
 import static android.opengl.GLES20.GL_FLOAT;
 
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 
 public class GlFilter {
     public static final String DEFAULT_ATTRIB_POSITION = "aPosition";
@@ -46,7 +43,6 @@ public class GlFilter {
                     "gl_FragColor = texture2D(sTexture, vTextureCoord);\n" +
                     "}\n";
 
-    // 傾きには関係があった。
     private static final float[] VERTICES_DATA = new float[]{
             // X, Y, Z, U, V
             -1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
@@ -92,7 +88,6 @@ public class GlFilter {
         vertexShader = EglUtil.loadShader(vertexShaderSource, GLES20.GL_VERTEX_SHADER);
         fragmentShader = EglUtil.loadShader(fragmentShaderSource, GLES20.GL_FRAGMENT_SHADER);
         program = EglUtil.createProgram(vertexShader, fragmentShader);
-        // 違うぶぶん。VBOを使用すると高速になるらしい。バッファは作っていない。
         vertexBufferName = EglUtil.createBuffer(VERTICES_DATA);
 
         getHandle("aPosition");
@@ -109,7 +104,6 @@ public class GlFilter {
         // do nothing
     }
 
-    // 違う部分。DeleteShaderとかはしていない。
     public void release() {
         GLES20.glDeleteProgram(program);
         program = 0;
@@ -123,7 +117,6 @@ public class GlFilter {
         handleMap.clear();
     }
 
-    //  リセットは行っていない。
     //    GLES20.glViewport(0, 0, out.width(), out.height());
     //
     //    GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);

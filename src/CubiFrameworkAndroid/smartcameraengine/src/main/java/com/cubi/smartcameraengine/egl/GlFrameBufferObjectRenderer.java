@@ -15,10 +15,6 @@ import static android.opengl.GLES20.GL_COLOR_BUFFER_BIT;
 import static android.opengl.GLES20.GL_DEPTH_BUFFER_BIT;
 import static android.opengl.GLES20.GL_FRAMEBUFFER;
 
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
-
 public abstract class GlFrameBufferObjectRenderer implements GLSurfaceView.Renderer {
 
     private GLES20FramebufferObject framebufferObject;

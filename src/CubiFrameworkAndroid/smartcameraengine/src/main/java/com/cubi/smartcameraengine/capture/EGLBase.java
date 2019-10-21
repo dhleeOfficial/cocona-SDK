@@ -8,9 +8,6 @@ import android.opengl.EGLSurface;
 import android.os.Build;
 import android.util.Log;
 
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 
 public class EGLBase {
     private static final boolean DEBUG = false;    // TODO set false on release
@@ -220,7 +217,7 @@ public class EGLBase {
             attribList[offset++] = EGL14.EGL_DEPTH_SIZE;
             attribList[offset++] = 16;
         }
-        if (isRecordable && (Build.VERSION.SDK_INT >= 18)) {// MediaCodecの入力用Surfaceの場合
+        if (isRecordable && (Build.VERSION.SDK_INT >= 18)) {
             attribList[offset++] = EGL_RECORDABLE_ANDROID;
             attribList[offset++] = 1;
         }

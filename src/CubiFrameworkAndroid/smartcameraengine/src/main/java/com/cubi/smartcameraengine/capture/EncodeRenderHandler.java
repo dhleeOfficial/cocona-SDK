@@ -17,9 +17,6 @@ import static android.opengl.GLES20.GL_COLOR_BUFFER_BIT;
 import static android.opengl.GLES20.GL_DEPTH_BUFFER_BIT;
 import static android.opengl.GLES20.GL_FRAMEBUFFER;
 
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 
 public class EncodeRenderHandler implements Runnable {
     private static final String TAG = "CameraRecorder";
@@ -154,8 +151,8 @@ public class EncodeRenderHandler implements Runnable {
             // square対策
             Matrix.scaleM(MVPMatrix,
                     0,
-                    XMatrixScale, // ここをマイナスの値にするとflipする
-                    YMatrixScale, // 見た目との歪みもここで調整すればいけると思う。
+                    XMatrixScale,
+                    YMatrixScale,
                     1);
             this.aspectRatio = aspectRatio;
             requestDraw++;

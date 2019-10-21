@@ -1,11 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AndroidLayouts">
+    <shared>
+      <config />
+    </shared>
+  </component>
   <component name="AndroidLogFilters">
     <option name="TOOL_WINDOW_LOG_LEVEL" value="debug" />
     <option name="TOOL_WINDOW_CONFIGURED_FILTER" value="Show only selected application" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7555c11e-6f79-417b-91f8-f57e2b7f210e" name="Default Changelist" comment="" />
+    <list default="true" id="7667df6d-ab1a-4353-9f80-23c638e90644" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/../AndroidFrameworkBinaryExample/frameworktestapp/lib/smartcameraengine.aar" beforeDir="false" afterPath="$PROJECT_DIR$/../AndroidFrameworkBinaryExample/frameworktestapp/lib/smartcameraengine.aar" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../AndroidFrameworkBinaryExample/frameworktestapp/src/main/java/com/cubi/frameworktestapp/BaseCameraActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/../AndroidFrameworkBinaryExample/frameworktestapp/src/main/java/com/cubi/frameworktestapp/BaseCameraActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../AndroidFrameworkBinaryExample/frameworktestapp/src/main/java/com/cubi/frameworktestapp/PortrateActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/../AndroidFrameworkBinaryExample/frameworktestapp/src/main/java/com/cubi/frameworktestapp/PortrateActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../AndroidFrameworkBinaryExample/smartcameraengine/smartcameraengine.aar" beforeDir="false" afterPath="$PROJECT_DIR$/../AndroidFrameworkBinaryExample/smartcameraengine/smartcameraengine.aar" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smartcameraengine/out.map" beforeDir="false" afterPath="$PROJECT_DIR$/smartcameraengine/out.map" afterDir="false" />
+    </list>
     <ignored path="$PROJECT_DIR$/build/classes/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -17,6 +28,11 @@
     <option name="isMigrated" value="true" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="R39M307Y3EL" />
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+  </component>
   <component name="ExternalProjectsManager">
     <system id="GRADLE">
       <state>
@@ -24,73 +40,43 @@
       </state>
     </system>
   </component>
+  <component name="FavoritesManager">
+    <favorites_list name="CubiFrameworkAndroid" />
+  </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/smartcameraengine/build/outputs/aar/tmp-release/com/cubi/smartcameraengine/CameraRecorder.class">
-          <provider selected="true" editor-type-id="text-editor" />
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/AutoEditing.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="105">
-              <caret line="48" column="13" selection-start-line="48" selection-start-column="13" selection-end-line="48" selection-end-column="13" />
+            <state relative-caret-position="2595">
+              <caret line="173" column="56" selection-start-line="173" selection-start-column="56" selection-end-line="173" selection-end-column="56" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/build.gradle">
-          <provider selected="true" editor-type-id="text-editor" />
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/frameworktestapp/build.gradle">
+        <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraRecorder.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="480">
-              <caret line="32" column="44" selection-start-line="32" selection-start-column="27" selection-end-line="32" selection-end-column="44" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/openCVLibrary346/build.gradle">
-          <provider selected="true" editor-type-id="text-editor" />
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/MainActivity.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="120">
-              <caret line="12" column="13" selection-start-line="12" selection-start-column="13" selection-end-line="12" selection-end-column="13" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/BaseCameraActivity.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="876">
-              <caret line="452" lean-forward="true" selection-start-line="452" selection-end-line="452" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/PortrateActivity.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="60">
-              <caret line="6" column="13" selection-start-line="6" selection-start-column="13" selection-end-line="6" selection-end-column="13" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/LandscapeActivity.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="345">
-              <caret line="25" lean-forward="true" selection-start-line="25" selection-end-line="25" />
+            <state relative-caret-position="232">
+              <caret line="191" column="29" selection-start-line="191" selection-start-column="29" selection-end-line="191" selection-end-column="29" />
+              <folding>
+                <element signature="e#3710#3711#0" expanded="true" />
+                <element signature="e#3770#3771#0" expanded="true" />
+                <element signature="e#3979#3980#0" expanded="true" />
+                <element signature="e#4019#4020#0" expanded="true" />
+                <element signature="e#6868#6869#0" expanded="true" />
+                <element signature="e#6900#6901#0" expanded="true" />
+                <element signature="e#7589#7590#0" expanded="true" />
+                <element signature="e#7629#7630#0" expanded="true" />
+                <element signature="e#7669#7670#0" expanded="true" />
+                <element signature="e#7704#7705#0" expanded="true" />
+                <element signature="e#8056#8057#0" expanded="true" />
+                <element signature="e#8090#8091#0" expanded="true" />
+                <element signature="e#13442#13443#0" expanded="true" />
+                <element signature="e#13478#13479#0" expanded="true" />
+                <element signature="e#13815#13816#0" expanded="true" />
+                <element signature="e#13880#13881#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -98,27 +84,96 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraHandler.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1380">
-              <caret line="106" column="53" selection-start-line="106" selection-start-column="53" selection-end-line="106" selection-end-column="53" />
+            <state relative-caret-position="336">
+              <caret line="129" column="28" selection-start-line="129" selection-start-column="28" selection-end-line="129" selection-end-column="28" />
+              <folding>
+                <element signature="e#2029#2030#0" expanded="true" />
+                <element signature="e#2081#2082#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraThread.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="277">
+              <caret line="238" column="6" lean-forward="true" selection-start-line="238" selection-start-column="6" selection-end-line="238" selection-end-column="6" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraRecorderBuilder.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="120">
+              <caret line="64" column="58" lean-forward="true" selection-start-line="64" selection-start-column="42" selection-end-line="64" selection-end-column="58" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/objectdetection/MultiBoxTracker.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="15">
+              <caret line="22" column="13" selection-start-line="22" selection-start-column="13" selection-end-line="22" selection-end-column="13" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/BaseCameraActivity.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="174">
+              <caret line="148" column="95" selection-start-line="148" selection-start-column="91" selection-end-line="148" selection-end-column="95" />
             </state>
           </provider>
         </entry>
       </file>
     </leaf>
   </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>rotation</find>
-      <find>degrees</find>
+      <find>preview</find>
+      <find>OnStartPreviewListener</find>
+      <find>imagereader</find>
+      <find>image in</find>
+      <find>startpreview</find>
+      <find>surfaceT</find>
+      <find>surfaceTexture</find>
+      <find>setonframe</find>
+      <find>surfacetexture</find>
+      <find>encode(</find>
+      <find>surface</find>
+      <find>start</find>
+      <find>surfaceview</find>
+      <find>view</find>
+      <find>previewsize</find>
+      <find>dequeue</find>
+      <find>draw</find>
+      <find>draw(</find>
+      <find>requestStop</find>
+      <find>camerat</find>
+      <find>onframeavailable</find>
+      <find>onstart</find>
+      <find>interval</find>
+      <find>fastslow</find>
+      <find>drain</find>
       <find>bitrate</find>
-      <find>BitRate</find>
-      <find>stop</find>
-      <find>당</find>
-      <find>setrecord</find>
+      <find>KEY_I_FRAME_INTERVAL</find>
+      <find>zoom</find>
+      <find>setzoom</find>
+      <find>requestbuilder.se</find>
     </findStrings>
     <dirStrings>
-      <dir>$PROJECT_DIR$/smartcameraengine/src/main/java</dir>
-      <dir>$PROJECT_DIR$/frameworktestapp</dir>
+      <dir>$PROJECT_DIR$/smartcameraengine</dir>
     </dirStrings>
   </component>
   <component name="Git.Settings">
@@ -127,51 +182,124 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraThread.java" />
-        <option value="$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraRecorder.java" />
-        <option value="$PROJECT_DIR$/frameworktestapp/build.gradle" />
+        <option value="$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/capture/AutoEditingResultCallback.java" />
+        <option value="$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/AutoEditingResultCallback.java" />
+        <option value="$PROJECT_DIR$/smartcameraengine/proguard-rules.pro" />
         <option value="$PROJECT_DIR$/smartcameraengine/build.gradle" />
+        <option value="$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/capture/DelegateInterface.java" />
+        <option value="$PROJECT_DIR$/frameworktestapp/build.gradle" />
+        <option value="$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/AutoEditing.java" />
+        <option value="$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/DelegateImpl.java" />
+        <option value="$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/BaseCameraActivity.java" />
+        <option value="$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/PortrateActivity.java" />
+        <option value="$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/capture/MediaEncoder.java" />
+        <option value="$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraRecorder.java" />
+        <option value="$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/egl/GlPreviewRenderer.java" />
+        <option value="$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/capture/MediaVideoEncoder.java" />
+        <option value="$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/MainActivity.java" />
+        <option value="$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraThread.java" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds" fullScreen="true">
-    <option name="width" value="1680" />
+    <option name="width" value="834" />
     <option name="height" value="1050" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
-    <navigator proportions="" version="1">
+    <navigator currentView="ProjectPane" proportions="" version="1">
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="PackagesPane" />
       <pane id="Scope" />
-      <pane id="ProjectPane" />
-      <pane id="AndroidView">
+      <pane id="AndroidView" />
+      <pane id="PackagesPane" />
+      <pane id="ProjectPane">
         <subPane>
           <expand>
             <path>
-              <item name="CubiFrameworkAndroid" type="1abcf292:AndroidViewProjectNode" />
-              <item name="frameworktestapp" type="feadf853:AndroidModuleNode" />
+              <item name="CubiFrameworkAndroid" type="b2602c69:ProjectViewProjectNode" />
+              <item name="CubiFrameworkAndroid" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
             </path>
             <path>
-              <item name="CubiFrameworkAndroid" type="1abcf292:AndroidViewProjectNode" />
-              <item name="frameworktestapp" type="feadf853:AndroidModuleNode" />
-              <item name="java" type="edd41e36:AndroidSourceTypeNode" />
+              <item name="CubiFrameworkAndroid" type="b2602c69:ProjectViewProjectNode" />
+              <item name="CubiFrameworkAndroid" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="frameworktestapp" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
             </path>
             <path>
-              <item name="CubiFrameworkAndroid" type="1abcf292:AndroidViewProjectNode" />
-              <item name="frameworktestapp" type="feadf853:AndroidModuleNode" />
-              <item name="java" type="edd41e36:AndroidSourceTypeNode" />
-              <item name="frameworktestapp" type="cbb59c9e:AndroidPsiDirectoryNode" />
+              <item name="CubiFrameworkAndroid" type="b2602c69:ProjectViewProjectNode" />
+              <item name="CubiFrameworkAndroid" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="frameworktestapp" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
-              <item name="CubiFrameworkAndroid" type="1abcf292:AndroidViewProjectNode" />
-              <item name="smartcameraengine" type="feadf853:AndroidModuleNode" />
+              <item name="CubiFrameworkAndroid" type="b2602c69:ProjectViewProjectNode" />
+              <item name="CubiFrameworkAndroid" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="frameworktestapp" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="main" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
-              <item name="CubiFrameworkAndroid" type="1abcf292:AndroidViewProjectNode" />
-              <item name="Gradle Scripts" type="ae0cef3a:AndroidBuildScriptsGroupNode" />
+              <item name="CubiFrameworkAndroid" type="b2602c69:ProjectViewProjectNode" />
+              <item name="CubiFrameworkAndroid" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="frameworktestapp" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="main" type="462c0819:PsiDirectoryNode" />
+              <item name="java" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="CubiFrameworkAndroid" type="b2602c69:ProjectViewProjectNode" />
+              <item name="CubiFrameworkAndroid" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="frameworktestapp" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="main" type="462c0819:PsiDirectoryNode" />
+              <item name="java" type="462c0819:PsiDirectoryNode" />
+              <item name="frameworktestapp" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="CubiFrameworkAndroid" type="b2602c69:ProjectViewProjectNode" />
+              <item name="CubiFrameworkAndroid" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="smartcameraengine" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+            </path>
+            <path>
+              <item name="CubiFrameworkAndroid" type="b2602c69:ProjectViewProjectNode" />
+              <item name="CubiFrameworkAndroid" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="smartcameraengine" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="CubiFrameworkAndroid" type="b2602c69:ProjectViewProjectNode" />
+              <item name="CubiFrameworkAndroid" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="smartcameraengine" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="main" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="CubiFrameworkAndroid" type="b2602c69:ProjectViewProjectNode" />
+              <item name="CubiFrameworkAndroid" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="smartcameraengine" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="main" type="462c0819:PsiDirectoryNode" />
+              <item name="java" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="CubiFrameworkAndroid" type="b2602c69:ProjectViewProjectNode" />
+              <item name="CubiFrameworkAndroid" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="smartcameraengine" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="main" type="462c0819:PsiDirectoryNode" />
+              <item name="java" type="462c0819:PsiDirectoryNode" />
+              <item name="smartcameraengine" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="CubiFrameworkAndroid" type="b2602c69:ProjectViewProjectNode" />
+              <item name="CubiFrameworkAndroid" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="smartcameraengine" type="8a07ba80:GradleTreeStructureProvider$GradleModuleDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="main" type="462c0819:PsiDirectoryNode" />
+              <item name="java" type="462c0819:PsiDirectoryNode" />
+              <item name="smartcameraengine" type="462c0819:PsiDirectoryNode" />
+              <item name="objectdetection" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -180,10 +308,14 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="DeviceAndSnapshotComboBoxAction.selectedDevice" value="33007f8ca43114af" />
-    <property name="DeviceAndSnapshotComboBoxAction.selectionTime" value="2019-10-01T22:51:40.271Z" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/build.gradle" />
+    <property name="project.structure.last.edited" value="Dependencies" />
+    <property name="project.structure.proportion" value="0.17" />
+    <property name="project.structure.side.proportion" value="0.2" />
+    <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
+  </component>
+  <component name="PsdUISettings">
+    <option name="LAST_EDITED_BUILD_TYPE" value="release" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -264,174 +396,261 @@
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="7555c11e-6f79-417b-91f8-f57e2b7f210e" name="Default Changelist" comment="" />
-      <created>1569570620871</created>
+      <changelist id="7667df6d-ab1a-4353-9f80-23c638e90644" name="Default Changelist" comment="" />
+      <created>1570342475533</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1569570620871</updated>
+      <updated>1570342475533</updated>
     </task>
     <servers />
   </component>
+  <component name="TodoView">
+    <todo-panel id="selected-file">
+      <is-autoscroll-to-source value="true" />
+    </todo-panel>
+    <todo-panel id="all">
+      <are-packages-shown value="true" />
+      <is-autoscroll-to-source value="true" />
+    </todo-panel>
+  </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1680" height="1050" extended-state="0" />
-    <editor active="true" />
     <layout>
       <window_info id="Captures" order="0" side_tool="true" weight="0.25" />
-      <window_info active="true" content_ui="combo" id="Project" order="1" sideWeight="0.49779737" visible="true" weight="0.32967034" />
-      <window_info id="Structure" order="2" side_tool="true" />
-      <window_info id="Favorites" order="3" side_tool="true" />
-      <window_info id="Build Variants" order="4" sideWeight="0.50220263" side_tool="true" visible="true" weight="0.32967034" />
+      <window_info active="true" content_ui="combo" id="Project" order="1" sideWeight="0.4723032" visible="true" weight="0.2905983" />
+      <window_info id="Structure" order="2" sideWeight="0.50151974" side_tool="true" weight="0.32967034" />
+      <window_info id="Favorites" order="3" sideWeight="0.50151974" side_tool="true" weight="0.32967034" />
+      <window_info id="Build Variants" order="4" sideWeight="0.5276968" side_tool="true" visible="true" weight="0.2905983" />
       <window_info id="Image Layers" order="5" />
       <window_info id="Designer" order="6" />
       <window_info id="Resources Explorer" order="7" />
       <window_info id="Capture Tool" order="8" />
       <window_info anchor="bottom" id="Version Control" order="0" />
-      <window_info anchor="bottom" id="Logcat" order="1" sideWeight="0.4993895" weight="0.32959184" />
+      <window_info anchor="bottom" id="Logcat" order="1" sideWeight="0.6495727" weight="0.32857144" />
       <window_info anchor="bottom" id="TODO" order="2" />
-      <window_info anchor="bottom" id="Find" order="3" />
-      <window_info anchor="bottom" id="Terminal" order="4" />
-      <window_info anchor="bottom" id="Event Log" order="5" sideWeight="0.502442" side_tool="true" visible="true" weight="0.30510205" />
-      <window_info anchor="bottom" id="Build" order="6" sideWeight="0.497558" visible="true" weight="0.30510205" />
-      <window_info anchor="bottom" id="Android Profiler" order="7" />
-      <window_info anchor="bottom" id="Run" order="8" sideWeight="0.497558" weight="0.32959184" />
-      <window_info anchor="bottom" id="Debug" order="9" />
-      <window_info anchor="right" id="Device File Explorer" order="0" side_tool="true" />
+      <window_info anchor="bottom" id="Find" order="3" sideWeight="0.498779" weight="0.32857144" />
+      <window_info anchor="bottom" id="Terminal" order="4" sideWeight="0.498779" weight="0.32959184" />
+      <window_info anchor="bottom" id="Event Log" order="5" sideWeight="0.51526254" side_tool="true" visible="true" weight="0.3" />
+      <window_info anchor="bottom" id="Build" order="6" sideWeight="0.4847375" visible="true" weight="0.3" />
+      <window_info anchor="bottom" id="Android Profiler" order="7" sideWeight="0.4993895" weight="0.36632654" />
+      <window_info anchor="bottom" id="Run" order="8" sideWeight="0.47496948" weight="0.39693877" />
+      <window_info anchor="bottom" id="Debug" order="9" sideWeight="0.495116" weight="0.32959184" />
+      <window_info anchor="right" id="Device File Explorer" order="0" side_tool="true" weight="0.32967034" />
       <window_info anchor="right" id="Capture Analysis" order="1" />
       <window_info anchor="right" id="Gradle" order="2" />
       <window_info anchor="right" id="Theme Preview" order="3" />
       <window_info anchor="right" id="Palette&#9;" order="4" />
+      <window_info anchor="right" id="Preview" order="5" weight="0.32967034" />
     </layout>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraThread.java">
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/proguard-rules.pro" />
+    <entry file="file://$PROJECT_DIR$/settings.gradle" />
+    <entry file="file://$PROJECT_DIR$/gradle.properties" />
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/library.pro" />
+    <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/res/layout/activity_landscape.xml" />
+    <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/res/layout/activity_main.xml" />
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/capture/DelegateInterface.java" />
+    <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/java/lang/Object.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="5670">
-          <caret line="388" column="20" selection-start-line="388" selection-start-column="20" selection-end-line="388" selection-end-column="20" />
+        <state relative-caret-position="4545">
+          <caret line="333" column="29" selection-start-line="333" selection-start-column="29" selection-end-line="333" selection-end-column="29" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/Resolution.java">
+    <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/hardware/camera2/CaptureRequest.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="120">
-          <caret line="8" column="13" selection-start-line="8" selection-start-column="13" selection-end-line="8" selection-end-column="13" />
+        <state relative-caret-position="660">
+          <caret line="80" column="19" selection-start-line="80" selection-start-column="19" selection-end-line="80" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/hardware/camera2/CameraCaptureSession.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="8250">
+          <caret line="572" column="24" selection-start-line="572" selection-start-column="24" selection-end-line="572" selection-end-column="24" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/DelegateImpl.java" />
+    <entry file="file://$PROJECT_DIR$/frameworktestapp/build.gradle" />
+    <entry file="file://$PROJECT_DIR$/build.gradle" />
+    <entry file="file://$PROJECT_DIR$/openCVLibrary346/src/main/java/org/opencv/android/CameraBridgeViewBase.java" />
+    <entry file="file://$PROJECT_DIR$/openCVLibrary346/src/main/java/org/opencv/android/CameraGLSurfaceView.java" />
+    <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/media/ImageReader.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="209">
+          <caret line="57" column="13" selection-start-line="57" selection-start-column="13" selection-end-line="57" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/hardware/camera2/CameraDevice.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="197">
+          <caret line="445" column="25" selection-start-line="445" selection-start-column="25" selection-end-line="445" selection-end-column="25" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/egl/GLES20ConfigChooser.java" />
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/egl/GLES20ContextFactory.java" />
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/egl/GLES20FramebufferObject.java" />
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/egl/GlPreview.java" />
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/capture/EglSurface.java" />
+    <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/androidx.appcompat/appcompat/1.0.0/1deaac9c124b19a14ebaf64780e7087d561541bd/appcompat-1.0.0-sources.jar!/androidx/appcompat/app/AppCompatActivity.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1620">
+          <caret line="153" column="40" selection-start-line="153" selection-start-column="36" selection-end-line="153" selection-end-column="40" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/hardware/camera2/params/StreamConfigurationMap.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="269">
+          <caret line="459" selection-start-line="459" selection-end-line="459" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/app/Activity.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="209">
+          <caret line="7571" selection-start-line="7571" selection-end-line="7571" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/LandscapeActivity.java" />
+    <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/view/SurfaceView.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="135">
+          <caret line="60" column="5" lean-forward="true" selection-start-line="60" selection-start-column="5" selection-end-line="60" selection-end-column="5" />
+          <folding>
+            <element signature="e#0#3161#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$USER_HOME$/Library/Android/sdk/platforms/android-28/android.jar!/android/view/SurfaceView.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="293">
+          <caret line="61" column="16" selection-start-line="61" selection-start-column="16" selection-end-line="61" selection-end-column="16" />
+          <folding>
+            <element signature="e#1681#1682#0" expanded="true" />
+            <element signature="e#1732#1733#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/graphics/SurfaceTexture.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="180">
+          <caret line="84" column="21" selection-start-line="84" selection-start-column="21" selection-end-line="84" selection-end-column="21" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/media/MediaMuxer.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="187">
+          <caret line="653" column="16" selection-start-line="653" selection-start-column="16" selection-end-line="653" selection-end-column="16" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/egl/GlSurfaceTexture.java" />
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/capture/MediaMuxerCaptureWrapper.java" />
+    <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/PortrateActivity.java" />
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraRecordListener.java" />
+    <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/opengl/GLSurfaceView.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="187">
+          <caret line="514" column="16" selection-start-line="514" selection-start-column="16" selection-end-line="514" selection-end-column="16" />
+          <folding>
+            <element signature="e#19977#19978#0" expanded="true" />
+            <element signature="e#20018#20019#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/capture/EncodeRenderHandler.java" />
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/egl/GlPreviewRenderer.java" />
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/capture/MediaVideoEncoder.java" />
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/build.gradle" />
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/capture/MediaEncoder.java" />
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/capture/MediaAudioEncoder.java" />
+    <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/res/layout/activity_portrate.xml" />
+    <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/MainActivity.java" />
+    <entry file="file://$USER_HOME$/Library/Android/sdk/sources/android-28/android/view/Surface.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="351">
+          <caret line="327" column="40" selection-start-line="327" selection-start-column="40" selection-end-line="327" selection-end-column="40" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/AutoEditing.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2595">
+          <caret line="173" column="56" selection-start-line="173" selection-start-column="56" selection-end-line="173" selection-end-column="56" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/objectdetection/MultiBoxTracker.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="15">
+          <caret line="22" column="13" selection-start-line="22" selection-start-column="13" selection-end-line="22" selection-end-column="13" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraRecorder.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3825">
-          <caret line="278" column="29" selection-start-line="278" selection-start-column="29" selection-end-line="278" selection-end-column="29" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/capture/MediaVideoEncoder.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1140">
-          <caret line="92" column="9" selection-start-line="92" selection-start-column="9" selection-end-line="92" selection-end-column="9" />
+        <state relative-caret-position="232">
+          <caret line="191" column="29" selection-start-line="191" selection-start-column="29" selection-end-line="191" selection-end-column="29" />
           <folding>
-            <element signature="e#7593#7594#0" expanded="true" />
-            <element signature="e#7627#7628#0" expanded="true" />
+            <element signature="e#3710#3711#0" expanded="true" />
+            <element signature="e#3770#3771#0" expanded="true" />
+            <element signature="e#3979#3980#0" expanded="true" />
+            <element signature="e#4019#4020#0" expanded="true" />
+            <element signature="e#6868#6869#0" expanded="true" />
+            <element signature="e#6900#6901#0" expanded="true" />
+            <element signature="e#7589#7590#0" expanded="true" />
+            <element signature="e#7629#7630#0" expanded="true" />
+            <element signature="e#7669#7670#0" expanded="true" />
+            <element signature="e#7704#7705#0" expanded="true" />
+            <element signature="e#8056#8057#0" expanded="true" />
+            <element signature="e#8090#8091#0" expanded="true" />
+            <element signature="e#13442#13443#0" expanded="true" />
+            <element signature="e#13478#13479#0" expanded="true" />
+            <element signature="e#13815#13816#0" expanded="true" />
+            <element signature="e#13880#13881#0" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/capture/MediaMuxerCaptureWrapper.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="225">
-          <caret line="21" column="20" selection-start-line="21" selection-start-column="20" selection-end-line="21" selection-end-column="20" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/capture/MediaEncoder.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1350">
-          <caret line="107" column="31" selection-start-line="107" selection-start-column="31" selection-end-line="107" selection-end-column="31" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/LensFacing.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="120">
-          <caret line="8" column="12" selection-start-line="8" selection-start-column="12" selection-end-line="8" selection-end-column="12" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraRecorderBuilder.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1380">
-          <caret line="101" column="36" selection-start-line="101" selection-start-column="28" selection-end-line="101" selection-end-column="36" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/smartcameraengine/build.gradle">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="288">
-          <caret line="22" column="3" lean-forward="true" selection-start-line="22" selection-start-column="3" selection-end-line="22" selection-end-column="3" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/smartcameraengine/build/outputs/aar/tmp-release/com/cubi/smartcameraengine/AutoEditing.class">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="945">
-          <caret line="90" column="69" selection-start-line="90" selection-start-column="61" selection-end-line="90" selection-end-column="69" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/smartcameraengine/build/outputs/aar/tmp-release/com/cubi/smartcameraengine/CameraRecorder.class">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/AutoEditing.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="105">
-          <caret line="48" column="13" selection-start-line="48" selection-start-column="13" selection-end-line="48" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/build.gradle">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/frameworktestapp/build.gradle">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="480">
-          <caret line="32" column="44" selection-start-line="32" selection-start-column="27" selection-end-line="32" selection-end-column="44" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/openCVLibrary346/build.gradle">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/MainActivity.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="120">
-          <caret line="12" column="13" selection-start-line="12" selection-start-column="13" selection-end-line="12" selection-end-column="13" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraHandler.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1380">
-          <caret line="106" column="53" selection-start-line="106" selection-start-column="53" selection-end-line="106" selection-end-column="53" />
+        <state relative-caret-position="336">
+          <caret line="129" column="28" selection-start-line="129" selection-start-column="28" selection-end-line="129" selection-end-column="28" />
+          <folding>
+            <element signature="e#2029#2030#0" expanded="true" />
+            <element signature="e#2081#2082#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/BaseCameraActivity.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="876">
-          <caret line="452" lean-forward="true" selection-start-line="452" selection-end-line="452" />
+        <state relative-caret-position="174">
+          <caret line="148" column="95" selection-start-line="148" selection-start-column="91" selection-end-line="148" selection-end-column="95" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/PortrateActivity.java">
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraThread.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="60">
-          <caret line="6" column="13" selection-start-line="6" selection-start-column="13" selection-end-line="6" selection-end-column="13" />
+        <state relative-caret-position="277">
+          <caret line="238" column="6" lean-forward="true" selection-start-line="238" selection-start-column="6" selection-end-line="238" selection-end-column="6" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/frameworktestapp/src/main/java/com/cubi/frameworktestapp/LandscapeActivity.java">
+    <entry file="file://$PROJECT_DIR$/smartcameraengine/src/main/java/com/cubi/smartcameraengine/CameraRecorderBuilder.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="345">
-          <caret line="25" lean-forward="true" selection-start-line="25" selection-end-line="25" />
+        <state relative-caret-position="120">
+          <caret line="64" column="58" lean-forward="true" selection-start-line="64" selection-start-column="42" selection-end-line="64" selection-end-column="58" />
         </state>
       </provider>
     </entry>

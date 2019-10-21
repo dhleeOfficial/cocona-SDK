@@ -1,8 +1,5 @@
 package com.cubi.smartcameraengine.egl.filter;
 
-/**
- * Created by sudamasayuki on 2017/05/18.
- */
 
 public class GlGrayScaleFilter extends GlFilter {
 

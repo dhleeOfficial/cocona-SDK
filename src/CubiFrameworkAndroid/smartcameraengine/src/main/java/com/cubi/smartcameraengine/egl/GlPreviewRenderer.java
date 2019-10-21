@@ -7,6 +7,7 @@ import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.os.Handler;
 
+import com.cubi.smartcameraengine.CameraRecorder;
 import com.cubi.smartcameraengine.Resolution;
 import com.cubi.smartcameraengine.capture.MediaVideoEncoder;
 import com.cubi.smartcameraengine.egl.filter.GlFilter;
@@ -20,9 +21,6 @@ import static android.opengl.GLES20.GL_NEAREST;
 import static android.opengl.GLES20.GL_TEXTURE_2D;
 import static android.opengl.GLES20.glClearColor;
 
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 
 public class GlPreviewRenderer extends GlFrameBufferObjectRenderer implements SurfaceTexture.OnFrameAvailableListener {
 
@@ -38,7 +36,6 @@ public class GlPreviewRenderer extends GlFrameBufferObjectRenderer implements Su
     private float[] MMatrix = new float[16];
     private float[] VMatrix = new float[16];
     private float[] STMatrix = new float[16];
-
 
     private final GLSurfaceView glView;
 
@@ -74,10 +71,9 @@ public class GlPreviewRenderer extends GlFrameBufferObjectRenderer implements Su
         Matrix.setIdentityM(STMatrix, 0);
     }
 
-    public void onStartPreview(float cameraPreviewWidth, float cameraPreviewHeight, boolean isLandscapeDevice) {
-        // 傾き、サイズ調整
+    public void onStartPreview(float cameraPreviewWidth, float cameraPreviewHeight, CameraRecorder.Orientation orientation) {
         Matrix.setIdentityM(MMatrix, 0);
-        Matrix.rotateM(MMatrix, 0, -angle, 0.0f, 0.0f, 1.0f);
+        Matrix.rotateM(MMatrix, 0, 0, 0.0f, 0.0f, 1.0f);
 
 //        Log.d("CameraRecorder ", "angle" + angle);
 //        Log.d("CameraRecorder ", "getMeasuredHeight " + glView.getMeasuredHeight());
@@ -86,40 +82,22 @@ public class GlPreviewRenderer extends GlFrameBufferObjectRenderer implements Su
 //        Log.d("CameraRecorder ", "cameraPreviewHeight " + cameraPreviewHeight);
 
 
-        if (isLandscapeDevice) {
+        // Portlate
+        // View 1920 1080 Camera 1280 720 OK
+        // View 1920 1080 Camera 800 600 OK
+        // View 1440 1080 Camera 800 600 OK
+        // View 1080 1080 Camera 1280 720 Need Scale
+        // View 1080 1080 Camera 800 600 Need Scale
 
-            if (glView.getMeasuredWidth() == glView.getMeasuredHeight()) {
 
-                float scale = Math.max(cameraPreviewWidth / cameraPreviewHeight,
-                        cameraPreviewHeight / cameraPreviewWidth);
-                Matrix.scaleM(MMatrix, 0, 1f * scale, 1f * scale, 1);
-
-            } else {
-                float scale = Math.max(
-                        (float) glView.getMeasuredHeight() / cameraPreviewWidth,
-                        (float) glView.getMeasuredWidth() / cameraPreviewHeight);
-                Matrix.scaleM(MMatrix, 0, 1f * scale, 1f * scale, 1);
-            }
-
+        float viewAspect = (float) glView.getMeasuredHeight() / glView.getMeasuredWidth();
+        float cameraAspect = cameraPreviewWidth / cameraPreviewHeight;
+        if (viewAspect >= cameraAspect) {
+            Matrix.scaleM(MMatrix, 0, 1f, 1f, 1);
         } else {
-            // Portlate
-            // View 1920 1080 Camera 1280 720 OK
-            // View 1920 1080 Camera 800 600 OK
-            // View 1440 1080 Camera 800 600 OK
-            // View 1080 1080 Camera 1280 720 Need Scale
-            // View 1080 1080 Camera 800 600 Need Scale
-
-
-            float viewAspect = (float) glView.getMeasuredHeight() / glView.getMeasuredWidth();
-            float cameraAspect = cameraPreviewWidth / cameraPreviewHeight;
-            if (viewAspect >= cameraAspect) {
-                Matrix.scaleM(MMatrix, 0, 1f, 1f, 1);
-            } else {
-                float adjust = cameraAspect / viewAspect;
-                Matrix.scaleM(MMatrix, 0, 1f * adjust, 1f * adjust, 1);
-            }
+            float adjust = cameraAspect / viewAspect;
+            Matrix.scaleM(MMatrix, 0, 1f * adjust, 1f * adjust, 1);
         }
-
     }
 
     public void setGlFilter(final GlFilter filter) {
@@ -153,7 +131,7 @@ public class GlPreviewRenderer extends GlFrameBufferObjectRenderer implements Su
         GLES20.glGenTextures(args.length, args, 0);
         texName = args[0];
 
-        // SurfaceTextureを生成
+        // SurfaceTexture
         previewTexture = new GlSurfaceTexture(texName);
         previewTexture.setOnFrameAvailableListener(this);
 
@@ -185,7 +163,6 @@ public class GlPreviewRenderer extends GlFrameBufferObjectRenderer implements Su
             @Override
             public void run() {
                 if (surfaceCreateListener != null) {
-                    // ここでカメラオープンを
                     surfaceCreateListener.onCreated(previewTexture.getSurfaceTexture());
                 }
             }
@@ -207,7 +184,6 @@ public class GlPreviewRenderer extends GlFrameBufferObjectRenderer implements Su
     @Override
     public void onDrawFrame(GLES20FramebufferObject fbo) {
 
-        // ここのタイミングで以前指定したscaleを
         if (drawScale != gestureScale) {
 
             float tempScale = 1 / drawScale;
@@ -247,6 +223,7 @@ public class GlPreviewRenderer extends GlFrameBufferObjectRenderer implements Su
         Matrix.multiplyMM(MVPMatrix, 0, ProjMatrix, 0, MVPMatrix, 0);
 
         previewShader.draw(texName, MVPMatrix, STMatrix, aspectRatio);
+
 
 
         if (glFilter != null) {

@@ -13,10 +13,6 @@ import static android.opengl.GLES20.GL_COLOR_BUFFER_BIT;
 import static android.opengl.GLES20.GL_FRAMEBUFFER;
 
 
-/**
- * Created by sudamasayuki on 2017/05/16.
- */
-
 public class GlFilterGroup extends GlFilter {
 
     private final Collection<GlFilter> filters;

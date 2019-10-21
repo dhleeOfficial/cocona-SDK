@@ -2,18 +2,12 @@ package com.cubi.smartcameraengine;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.hardware.camera2.CameraManager;
 import android.opengl.GLSurfaceView;
-import android.util.Log;
-import android.view.Surface;
 
 import com.cubi.smartcameraengine.egl.filter.GlFilter;
-
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
+import com.cubi.smartcameraengine.objectdetection.OverlayView;
 
 public class CameraRecorderBuilder {
 
@@ -24,15 +18,16 @@ public class CameraRecorderBuilder {
     private Resources resources;
     private Activity activity;
     private CameraRecordListener cameraRecordListener;
-    private int fileWidth = 720;
-    private int fileHeight = 1280;
+    private int fileWidth = 1920;
+    private int fileHeight = 1080;
     private boolean flipVertical = false;
     private boolean flipHorizontal = false;
     private boolean mute = false;
     private boolean recordNoFilter = false;
-    private int cameraWidth = 1280;
-    private int cameraHeight = 720;
+    private int cameraWidth = 1920;
+    private int cameraHeight = 1080;
     private GlFilter glFilter;
+    private OverlayView overlay;
 
     public CameraRecorderBuilder(Activity activity, GLSurfaceView glSurfaceView) {
         this.activity = activity;
@@ -67,6 +62,11 @@ public class CameraRecorderBuilder {
         return this;
     }
 
+    public CameraRecorderBuilder frameSet(OverlayView view) {
+        this.overlay = view;
+        return this;
+    }
+
     public CameraRecorderBuilder flipHorizontal(boolean flip) {
         this.flipHorizontal = flip;
         return this;
@@ -93,15 +93,6 @@ public class CameraRecorderBuilder {
         }
 
         CameraManager cameraManager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
-        boolean isLandscapeDevice = resources.getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
-
-        int degrees = 0;
-        if (isLandscapeDevice) {
-            int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-            Log.d("CameraRecorder", "Surface.ROTATION_90 = " + Surface.ROTATION_90 + " rotation = " + rotation);
-            degrees = 90 * (rotation - 2);
-        }
-
         CameraRecorder cameraRecorder = new CameraRecorder(
                 cameraRecordListener,
                 glSurfaceView,
@@ -114,9 +105,9 @@ public class CameraRecorderBuilder {
                 flipVertical,
                 mute,
                 cameraManager,
-                isLandscapeDevice,
-                degrees,
-                recordNoFilter
+                recordNoFilter,
+                overlay,
+                activity
         );
 
         cameraRecorder.setFilter(glFilter);

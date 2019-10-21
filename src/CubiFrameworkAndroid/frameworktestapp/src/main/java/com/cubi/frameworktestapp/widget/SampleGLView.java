@@ -6,10 +6,6 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
-
 public class SampleGLView extends GLSurfaceView implements View.OnTouchListener {
 
     public SampleGLView(Context context) {

@@ -2,9 +2,6 @@ package com.cubi.smartcameraengine.egl.filter;
 
 import static android.opengl.GLES20.glUniform1f;
 
-/**
- * Created by sudamasayuki on 2017/05/18.
- */
 
 public class GlBilateralFilter extends GlFilter {
 

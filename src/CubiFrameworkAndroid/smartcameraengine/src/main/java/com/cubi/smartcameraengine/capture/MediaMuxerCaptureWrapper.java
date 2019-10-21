@@ -8,9 +8,6 @@ import android.util.Log;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 
 public class MediaMuxerCaptureWrapper {
     private static final String TAG = "MediaMuxerWrapper";
@@ -26,10 +23,11 @@ public class MediaMuxerCaptureWrapper {
     /**
      * Constructor
      */
-    public MediaMuxerCaptureWrapper(final String filePath) throws IOException {
+    public MediaMuxerCaptureWrapper(final String filePath, int degrees) throws IOException {
         mediaMuxer = new MediaMuxer(filePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
         encoderCount = startedCount = 0;
         isStarted = false;
+        mediaMuxer.setOrientationHint(degrees);
 
     }
 

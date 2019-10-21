@@ -1,27 +1,15 @@
 package com.cubi.smartcameraengine.capture;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.media.Image;
 import android.media.MediaCodec;
 import android.media.MediaFormat;
 import android.util.Log;
-import android.graphics.ImageFormat;
-import android.media.ImageReader;
-import com.cubi.smartcameraengine.AutoEditing;
+
 import com.cubi.smartcameraengine.CameraRecorder;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 
-import javax.microedition.khronos.egl.EGL10;
-import javax.microedition.khronos.egl.EGLContext;
-import javax.microedition.khronos.opengles.GL10;
-
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 
 public abstract class MediaEncoder implements Runnable {
     private static final String TAG = "MediaEncoder";
@@ -206,11 +194,6 @@ public abstract class MediaEncoder implements Runnable {
      */
     protected void release() {
         Log.d(TAG, "release:");
-        try {
-            listener.onStopped(this);
-        } catch (final Exception e) {
-            Log.e(TAG, "failed onStopped", e);
-        }
         isCapturing = false;
         if (mediaCodec != null) {
             try {
@@ -232,13 +215,17 @@ public abstract class MediaEncoder implements Runnable {
             }
         }
         bufferInfo = null;
+        try {
+            listener.onStopped(this);
+        } catch (final Exception e) {
+            Log.e(TAG, "failed onStopped", e);
+        }
     }
 
     protected void signalEndOfInputStream() {
         Log.d(TAG, "sending EOS to encoder");
         // signalEndOfInputStream is only avairable for video encoding with surface
         // and equivalent sending a empty buffer with BUFFER_FLAG_END_OF_STREAM flag.
-//        encode(null, 0, getPTSUs());
         encode(null, 0, 0);
     }
 
@@ -271,7 +258,6 @@ public abstract class MediaEncoder implements Runnable {
                 } else {
                     mediaCodec.queueInputBuffer(inputBufferIndex, 0, length,
                             presentationTimeUs, 0);
-
                 }
                 break;
             }
@@ -286,8 +272,6 @@ public abstract class MediaEncoder implements Runnable {
                 final ByteBuffer inputBuffer = mediaCodec.getInputBuffer(inputBufferIndex);
                 inputBuffer.clear();
                 if (buffer != null) {
-//                    inputBuffer.put(buffer);
-//                    inputBuffer.put(Util.EMPTY_BYTE_ARRAY);
                     if(length!=0){
                         inputBuffer.put(new byte[length]);
                     } else{
@@ -361,7 +345,7 @@ public abstract class MediaEncoder implements Runnable {
                 // unexpected status
                 Log.w(TAG, "drain:unexpected result from encoder#dequeueOutputBuffer: " + encoderStatus);
             } else {
-                Log.d("drain started","drain");
+//                Log.d("drain started","drain");
 
                 final ByteBuffer encodedData = mediaCodec.getOutputBuffer(encoderStatus);
                 if (encodedData == null) {
@@ -387,16 +371,7 @@ public abstract class MediaEncoder implements Runnable {
                     // write encoded data to muxer(need to adjust presentationTimeUs.
 //                    bufferInfo.presentationTimeUs = getPTSUs();
                     bufferInfo.presentationTimeUs = getPTSUs();
-//                    if(CameraRecorder.fastSlowMode==3){
-//                        bufferInfo.size=0;
-//                    }
-//                    if(CameraRecorder.fastSlowMode!=3){
-//                        muxer.writeSampleData(trackIndex, encodedData, bufferInfo);
-//                    }
                     muxer.writeSampleData(trackIndex, encodedData, bufferInfo);
-
-
-//                    prevOutputPTSUs = bufferInfo.presentationTimeUs;
                 }
                 // return buffer to encoder
                 mediaCodec.releaseOutputBuffer(encoderStatus, false);

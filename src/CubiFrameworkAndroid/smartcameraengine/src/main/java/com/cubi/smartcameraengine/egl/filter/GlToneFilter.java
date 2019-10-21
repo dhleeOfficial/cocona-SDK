@@ -2,9 +2,6 @@ package com.cubi.smartcameraengine.egl.filter;
 
 import android.opengl.GLES20;
 
-/**
- * Created by sudamasayuki on 2017/05/18.
- */
 
 public class GlToneFilter extends GlThreex3TextureSamplingFilter {
 

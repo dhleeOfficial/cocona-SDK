@@ -2,9 +2,6 @@ package com.cubi.smartcameraengine.egl;
 
 import android.graphics.SurfaceTexture;
 
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 
 public class GlSurfaceTexture implements SurfaceTexture.OnFrameAvailableListener {
 

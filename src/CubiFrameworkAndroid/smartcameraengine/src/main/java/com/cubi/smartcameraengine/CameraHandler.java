@@ -4,11 +4,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
-import android.util.TimeUtils;
 
-/**
- * Created by sudamasayuki on 2018/03/13.
- */
 
 public class CameraHandler extends Handler {
     private static final boolean DEBUG = false; // TODO set false on release
@@ -81,7 +77,6 @@ public class CameraHandler extends Handler {
     }
 
     void adjustBrightness(double brightness) { this.thread.setExposure (brightness); }
-
     /**
      * message handler for camera thread
      */

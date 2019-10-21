@@ -15,9 +15,6 @@ import static javax.microedition.khronos.egl.EGL10.EGL_RED_SIZE;
 import static javax.microedition.khronos.egl.EGL10.EGL_RENDERABLE_TYPE;
 import static javax.microedition.khronos.egl.EGL10.EGL_STENCIL_SIZE;
 
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 
 public class DefaultConfigChooser implements GLSurfaceView.EGLConfigChooser {
 
@@ -90,7 +87,6 @@ public class DefaultConfigChooser implements GLSurfaceView.EGLConfigChooser {
 
     @Override
     public EGLConfig chooseConfig(final EGL10 egl, final EGLDisplay display) {
-        // 要求されている仕様から使用可能な構成の数を抽出します。
         final int[] num_config = new int[1];
         if (!egl.eglChooseConfig(display, configSpec, null, 0, num_config)) {
             throw new IllegalArgumentException("eglChooseConfig failed");
@@ -100,7 +96,6 @@ public class DefaultConfigChooser implements GLSurfaceView.EGLConfigChooser {
             throw new IllegalArgumentException("No configs match configSpec");
         }
 
-        // 実際の構成を抽出します。
         final EGLConfig[] configs = new EGLConfig[config_size];
         if (!egl.eglChooseConfig(display, configSpec, configs, config_size, num_config)) {
             throw new IllegalArgumentException("eglChooseConfig#2 failed");

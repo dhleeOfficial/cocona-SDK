@@ -1,8 +1,5 @@
 package com.cubi.smartcameraengine.egl.filter;
 
-/**
- * Created by sudamasayuki on 2018/03/16.
- */
 
 public class GlSepiaFilter extends GlFilter {
     private static final String FRAGMENT_SHADER =

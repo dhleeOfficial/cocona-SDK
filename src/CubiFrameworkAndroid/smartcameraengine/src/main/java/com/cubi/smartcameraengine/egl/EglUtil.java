@@ -21,9 +21,6 @@ import static android.opengl.GLES20.GL_TEXTURE_WRAP_T;
 import static android.opengl.GLES20.GL_TRUE;
 import static android.opengl.GLES20.glCreateProgram;
 
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 
 public class EglUtil {
     private EglUtil() {

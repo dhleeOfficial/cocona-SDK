@@ -15,9 +15,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 public class MediaAudioEncoder extends MediaEncoder {
     private static final String TAG = "MediaAudioEncoder";
 
@@ -113,15 +110,6 @@ public class MediaAudioEncoder extends MediaEncoder {
                         audioRecord = new AudioRecord(
                                 source, SAMPLE_RATE,
                                 AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, buffer_size);
-//                        if(CameraRecorder.fastSlowMode==0){
-//                            audioRecord = new AudioRecord(
-//                                    source, SAMPLE_RATE,
-//                                    AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, buffer_size);
-//                        }else{
-//                            audioRecord = new AudioRecord(
-//                                    source, SAMPLE_RATE,
-//                                    AudioFormat.CHANNEL_INVALID, AudioFormat.ENCODING_INVALID, buffer_size);
-//                        }
 
                         if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED)
                             audioRecord = null;
@@ -135,9 +123,6 @@ public class MediaAudioEncoder extends MediaEncoder {
                         if (isCapturing) {
                             Log.v(TAG, "AudioThread:start audio recording");
                             ByteBuffer buf = ByteBuffer.allocateDirect(SAMPLES_PER_FRAME);
-//                            if(CameraRecorder.fastSlowMode!=0){
-//                                buf= ByteBuffer.wrap(Util.EMPTY_BYTE_ARRAY);
-//                            }
                             int readBytes=0;
                             audioRecord.startRecording();
                             try {
@@ -145,13 +130,6 @@ public class MediaAudioEncoder extends MediaEncoder {
                                     // read audio data from internal mic
                                     buf.clear();
                                     readBytes = audioRecord.read(buf, SAMPLES_PER_FRAME);
-//                                    if(CameraRecorder.fastSlowMode!=0){
-//                                        buf= ByteBuffer.wrap(new byte[1]);
-//                                    }
-//                                    if(CameraRecorder.fastSlowMode!=0){
-//                                        audioRecord=null;
-//                                        audioRecord.read(buf, SAMPLES_PER_FRAME);
-//                                    }
 
                                     if (readBytes > 0) {
                                         // set audio data to encoder
@@ -162,7 +140,6 @@ public class MediaAudioEncoder extends MediaEncoder {
                                             encode(buf, readBytes, getPTSUs());
                                         } else if (CameraRecorder.fastSlowMode==1){
                                             encode1(buf, Integer.valueOf(readBytes/4), getPTSUs());
-//                                            encode1(Util.EMPTY_BYTE_ARRAY, Integer.valueOf(readBytes/4), 0);
                                         } else if (CameraRecorder.fastSlowMode==2) {
                                             encode1(buf, readBytes * 3, getPTSUs());
                                         } else if(CameraRecorder.fastSlowMode==3){

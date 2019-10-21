@@ -2,9 +2,6 @@ package com.cubi.smartcameraengine;
 
 import android.hardware.camera2.CameraCharacteristics;
 
-/**
- * Created by sudamasayuki on 2018/03/16.
- */
 
 public enum LensFacing {
     FRONT(CameraCharacteristics.LENS_FACING_FRONT),

@@ -12,9 +12,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
 
-/**
- * Created by sudamasayuki on 2017/05/16.
- */
+
 public class GlToneCurveFilter extends GlFilter {
 
     private final static String FRAGMENT_SHADER =

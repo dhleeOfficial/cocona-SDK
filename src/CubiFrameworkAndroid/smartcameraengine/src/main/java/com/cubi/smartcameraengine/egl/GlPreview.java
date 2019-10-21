@@ -10,9 +10,6 @@ import static android.opengl.GLES20.GL_TEXTURE0;
 import static android.opengl.GLES20.GL_TEXTURE_2D;
 import static android.opengl.GLES20.GL_TRIANGLE_STRIP;
 
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 
 public class GlPreview extends GlFilter {
 

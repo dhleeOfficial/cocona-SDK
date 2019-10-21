@@ -1,7 +1,12 @@
 package com.cubi.smartcameraengine;
 
 import android.annotation.SuppressLint;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.ImageFormat;
+import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -12,36 +17,39 @@ import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.Image;
+import android.media.ImageReader;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.os.SystemClock;
+import android.os.Trace;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
-import android.graphics.ImageFormat;
-import android.media.ImageReader;
-import android.media.Image;
-import android.content.Context;
 
-import com.google.android.exoplayer2.analytics.AnalyticsListener;
+import com.cubi.smartcameraengine.objectdetection.Classifier;
+import com.cubi.smartcameraengine.objectdetection.ImageUtils;
+import com.cubi.smartcameraengine.objectdetection.MultiBoxTracker;
+import com.cubi.smartcameraengine.objectdetection.OverlayView;
+import com.cubi.smartcameraengine.objectdetection.TFLiteObjectDetectionAPIModel;
 
-import java.lang.reflect.Parameter;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 
-/**
- * Created by sudamasayuki on 2018/03/13.
- */
 
 public class CameraThread extends Thread {
 
 
     private static final String TAG = "CameraThread";
     public static float zoom=0;
-
 
     private final Object readyFence = new Object();
     private CameraHandler handler;
@@ -68,7 +76,41 @@ public class CameraThread extends Thread {
 
     protected AutoEditing autoEditing = new AutoEditing();
 
-    boolean isFirst = true;
+    private boolean isFirst = true;
+    private boolean startEvent = true;
+    private boolean previewStarted = false;
+    private boolean isRect = false;
+
+    private ImageReader previewReader;
+
+    private boolean isProcessingFrame = false;
+
+
+    private long timestamp = 0;
+    private OverlayView trackingOverlay;
+    private boolean computingDetection = false;
+    private Bitmap rgbFrameBitmap;
+    private Bitmap croppedBitmap = null;
+    private Matrix frameToCropTransform;
+    private Matrix cropToFrameTransform;
+
+    private static final float MINIMUM_CONFIDENCE_TF_OD_API = 0.5f;
+    private MultiBoxTracker tracker;
+
+    private static final int TF_OD_API_INPUT_SIZE = 300;
+    private static final boolean TF_OD_API_IS_QUANTIZED = false;
+    private static final String TF_OD_API_MODEL_FILE = "detect.tflite";
+    private static final String TF_OD_API_LABELS_FILE = "file:///android_asset/labelmap.txt";
+    private Classifier detector;
+    private static final boolean MAINTAIN_ASPECT = false;
+
+    private byte[][] yuvBytes = new byte[3][];
+    private int[] rgbBytes =new int[1920 * 1080];
+    private int yRowStride;
+    private Runnable imageConverter;
+    private HandlerThread handlerThread;
+    private Handler backgroundHandler;
+    private Matrix matrix;
 
 
 
@@ -86,6 +128,10 @@ public class CameraThread extends Thread {
         this.surfaceTexture = surfaceTexture;
         this.cameraManager = cameraManager;
         this.lensFacing = lensFacing;
+
+        handlerThread = new HandlerThread("background_running");
+        handlerThread.start();
+        backgroundHandler = new Handler(handlerThread.getLooper());
 
     }
 
@@ -106,6 +152,7 @@ public class CameraThread extends Thread {
             Log.d(TAG, "cameraDeviceCallback onOpened");
             CameraThread.this.cameraDevice = camera;
             createCaptureSession();
+            previewStarted = true;
         }
 
         @Override
@@ -143,11 +190,10 @@ public class CameraThread extends Thread {
 //        requestBuilder.set(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE, CameraMetadata.CONTROL_VIDEO_STABILIZATION_MODE_ON);
 //        requestBuilder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CameraMetadata.LENS_OPTICAL_STABILIZATION_MODE_ON);
 
-//        requestBuilder.set(CaptureRequest.SCALER_CROP_REGION, new Rect(zoom,zoom,2000-zoom,3500-zoom));
-
 
         requestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO);
 
+        //찍는 FPS 변경
 //        requestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(60, 60));
 
 
@@ -198,11 +244,14 @@ public class CameraThread extends Thread {
     final void startPreview(final int width, final int height) {
         Log.v(TAG, "startPreview:");
 
+//        previewWidth = width;
+//        previewHeight = height;
+
         try {
 
             if (cameraManager == null) return;
             for (String cameraId : cameraManager.getCameraIdList()) {
-                Log.d("!!!!!!",cameraId);
+                Log.d("CAMERAID", cameraId);
                 CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId);
                 //zoom을 위한 화면 크기 조사
                 arraySize = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
@@ -228,6 +277,7 @@ public class CameraThread extends Thread {
                     HandlerThread thread = new HandlerThread("OpenCamera");
                     thread.start();
                     Handler backgroundHandler = new Handler(thread.getLooper());
+                    newTracker();
 
                     cameraManager.openCamera(cameraId, cameraDeviceCallback, backgroundHandler);
                     mCameraId = cameraId;
@@ -237,13 +287,11 @@ public class CameraThread extends Thread {
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
-
     }
 
     private void createCaptureSession() {
         surfaceTexture.setDefaultBufferSize(cameraSize.getWidth(), cameraSize.getHeight());
         Surface surface = new Surface(surfaceTexture);
-
         try {
             requestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
         } catch (CameraAccessException e) {
@@ -251,26 +299,94 @@ public class CameraThread extends Thread {
         }
 
         requestBuilder.addTarget(surface);
-        final ImageReader previewReader = ImageReader.newInstance(
-                cameraSize.getWidth(), cameraSize.getHeight(), ImageFormat.YUV_420_888, 2);
+
+        previewReader = ImageReader.newInstance(cameraSize.getWidth(), cameraSize.getHeight(), ImageFormat.YUV_420_888, 2);
+        HandlerThread thread = new HandlerThread("Inference");
+        thread.start();
+        Handler inferenceHandler = new Handler(thread.getLooper());
 
         previewReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
             @Override
             public void onImageAvailable(ImageReader imageReader) {
-                Image image = previewReader.acquireNextImage();
-                try {
-                    if (CameraRecorder.isEvent) {
-                        processAutoEditing(image);
+                final Image image = imageReader.acquireNextImage();
+
+                if (isRect && CameraRecorder.recordingMode != 0) {
+                    if (tracker != null) {
+                        trackingOverlay.postInvalidate();
+                        tracker.clearRect();
+                        trackingOverlay.postInvalidate();
                     }
-                } finally {
-                    image.close();
+                    isRect = false;
+                }
+
+                try {
+
+                    if (CameraRecorder.recordingMode == 0) {
+
+
+                        if (image == null) {
+                            return;
+                        }
+
+                        if (isProcessingFrame) {
+                            image.close();
+                            return;
+                        }
+
+
+                        isProcessingFrame = true;
+                        Trace.beginSection("imageAvailable");
+
+
+
+                        final Image.Plane[] planes = image.getPlanes();
+                        fillBytes(planes, yuvBytes);
+                        yRowStride = planes[0].getRowStride();
+                        final int uvRowStride = planes[1].getRowStride();
+                        final int uvPixelStride = planes[1].getPixelStride();
+
+                        imageConverter =
+                                new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        ImageUtils.convertYUV420ToARGB8888(
+                                                yuvBytes[0],
+                                                yuvBytes[1],
+                                                yuvBytes[2],
+                                                cameraSize.getWidth(),
+                                                cameraSize.getHeight(),
+                                                yRowStride,
+                                                uvRowStride,
+                                                uvPixelStride,
+                                                rgbBytes);
+                                    }
+                                };
+
+                        processImage(image);
+
+                        isProcessingFrame = false;
+
+                    }
+
+                    if (CameraRecorder.recordingMode == 1) {
+                        if (image != null) {
+                            processAutoEditing(image);
+                            image.close();
+                        }
+                    }
+                }
+                finally {
+                    if(image != null) {
+                        image.close();
+                    }
                 }
             }
-        }, handler);
+        }, inferenceHandler);
         requestBuilder.addTarget(previewReader.getSurface());
 
 
         try {
+//            cameraDevice.createCaptureSession(Arrays.asList(surface/*, previewReader.getSurface()*/), cameraCaptureSessionCallback, null);
             cameraDevice.createCaptureSession(Arrays.asList(surface, previewReader.getSurface()), cameraCaptureSessionCallback, null);
         } catch (CameraAccessException e) {
             e.printStackTrace();
@@ -299,6 +415,7 @@ public class CameraThread extends Thread {
      * stop camera preview
      */
     void stopPreview() {
+        previewStarted = false;
         Log.v(TAG, "stopPreview:");
         isFlashTorch = false;
         if (requestBuilder != null) {
@@ -311,6 +428,7 @@ public class CameraThread extends Thread {
                 e.printStackTrace();
             }
         }
+        tracker = null;
     }
 
     public void setExposure(double exposureAdjustment) {
@@ -378,7 +496,6 @@ public class CameraThread extends Thread {
     }
 
 
-    // フラッシュ切り替え
     void switchFlashMode() {
         if (!flashSupport) return;
 
@@ -431,43 +548,243 @@ public class CameraThread extends Thread {
     }
 
     void switchLensFacing(){
-        if(lensFacing==LensFacing.FRONT){
-            lensFacing=LensFacing.BACK;
-        } else{
-            lensFacing=LensFacing.FRONT;
+        if(previewStarted == true){
+            if(lensFacing==LensFacing.FRONT){
+                lensFacing=LensFacing.BACK;
+            } else{
+                lensFacing=LensFacing.FRONT;
+            }
+            stopPreview();
+            startPreview(cameraSize.getWidth(),cameraSize.getHeight());
         }
-        stopPreview();
-        startPreview(4032,3024);
-
     }
 
     interface OnStartPreviewListener {
         void onStart(Size previewSize, boolean flashSupport);
     }
 
-
     private void processAutoEditing(Image image){
 
         long curTime = System.nanoTime() / 1000L;
-        if (isFirst){
-//            autoEditing.setFilepath(CameraRecorder.filepath);
-            autoEditing.loadTFLite(CameraRecorder.setContext);
-            autoEditing.setStartVideoTimeStamp(curTime);
-            isFirst = false;
-        }
-        autoEditing.setPresentVideoTimeStamp(curTime);
-        if (autoEditing.verifyNeedToSaveImageTime()) {
-            autoEditing.appendImages(image);
-        }
 
-        if (!CameraRecorder.started) {
+        if (CameraRecorder.started) {
+
+            if (startEvent) {
+                matrix = new Matrix();
+                matrix.postRotate(90);
+                autoEditing = new AutoEditing();
+                autoEditing.setStartVideoTimeStamp(curTime);
+                startEvent = false;
+            }
+
+            autoEditing.setPresentVideoTimeStamp(curTime);
+
+            if (autoEditing.verifyNeedToSaveImageTime()) {
+
+                final Image.Plane[] planes = image.getPlanes();
+                fillBytes(planes, yuvBytes);
+                yRowStride = planes[0].getRowStride();
+                final int uvRowStride = planes[1].getRowStride();
+                final int uvPixelStride = planes[1].getPixelStride();
+
+                ImageUtils.convertYUV420ToARGB8888(
+                        yuvBytes[0],
+                        yuvBytes[1],
+                        yuvBytes[2],
+                        cameraSize.getWidth(),
+                        cameraSize.getHeight(),
+                        yRowStride,
+                        uvRowStride,
+                        uvPixelStride,
+                        rgbBytes);
+
+                autoEditing.setTimestamp();
+
+                runInBackground(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+
+                                rgbFrameBitmap = Bitmap.createBitmap(cameraSize.getWidth(), cameraSize.getHeight(), Bitmap.Config.ARGB_8888);
+                                rgbFrameBitmap.setPixels(rgbBytes, 0, cameraSize.getWidth(), 0, 0, cameraSize.getWidth(), cameraSize.getHeight());
+                                croppedBitmap = Bitmap.createBitmap(rgbFrameBitmap, 0, 0, rgbFrameBitmap.getWidth(), rgbFrameBitmap.getHeight(), matrix, true);
+                                autoEditing.appendImages(croppedBitmap);
+                            }
+
+                        });
+            }
+        } else if (!startEvent) {
             autoEditing.saveFile();
-            CameraRecorder.setEvent(false);
-            isFirst = true;
-            autoEditing = new AutoEditing();
+            startEvent = true;
         }
 
     }
 
+    protected void processImage(Image image) {
+
+        if (isFirst) {
+            initObjectDetection ();
+            isFirst = false;
+        }
+
+
+
+        ++timestamp;
+        final long currTimestamp = timestamp;
+        trackingOverlay.postInvalidate();
+
+        if (computingDetection) {
+            image.close();
+            isProcessingFrame = false;
+            return;
+        }
+        computingDetection = true;
+
+        rgbFrameBitmap = Bitmap.createBitmap(cameraSize.getWidth(), cameraSize.getHeight(), Bitmap.Config.ARGB_8888);
+        rgbFrameBitmap.setPixels(getRgbBytes(), 0, cameraSize.getWidth(), 0, 0, cameraSize.getWidth(), cameraSize.getHeight());
+        image.close();
+        isProcessingFrame = false;
+
+
+        runInBackground(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        int count = 0;
+                        long starttime = SystemClock.uptimeMillis();
+
+//                            Matrix matrix = new Matrix();
+//                            matrix.postRotate(90);
+//
+//                            rotatedBitmap = rgbFrameBitmap = Bitmap.createBitmap(rgbFrameBitmap, 0, 0,
+//                                    rgbFrameBitmap.getWidth(), rgbFrameBitmap.getHeight(), matrix, true);
+
+                        croppedBitmap = Bitmap.createScaledBitmap(rgbFrameBitmap, TF_OD_API_INPUT_SIZE, TF_OD_API_INPUT_SIZE, true);
+
+                        float minimumConfidence = MINIMUM_CONFIDENCE_TF_OD_API;
+
+                        final List<Classifier.Recognition> results = detector.recognizeImage(croppedBitmap);
+
+                        final List<Classifier.Recognition> mappedRecognitions =
+                                new LinkedList<Classifier.Recognition>();
+                        for (final Classifier.Recognition result : results) {
+                            RectF location = result.getLocation();
+                            if (location != null && result.getConfidence() >= minimumConfidence) {
+                                count++;
+                                location = rectRotate90(location);
+                                cropToFrameTransform.mapRect(location);
+                                result.setLocation(location);
+                                mappedRecognitions.add(result);
+                            }
+                        }
+                        if (tracker != null) {
+                            if (count == 0 || CameraRecorder.recordingMode != 0) {
+//                                Log.i("CLEAR", "RECTS");
+                                tracker.clearRect();
+                                isRect = false;
+                            } else {
+                                isRect = true;
+                                tracker.trackResults(mappedRecognitions, currTimestamp);
+                            }
+                        }
+
+                        long detecttime = SystemClock.uptimeMillis() - starttime;
+                        Log.i("DETECTTIME", String.format("%d ms",detecttime));
+                        trackingOverlay.postInvalidate();
+                        computingDetection = false;
+                    }
+                });
+        }
+
+
+
+    protected synchronized void runInBackground(final Runnable r) {
+        if (backgroundHandler != null) {
+            backgroundHandler.post(r);
+        }
+    }
+
+    protected void fillBytes(final Image.Plane[] planes, final byte[][] yuvBytes) {
+        for (int i = 0; i < planes.length; ++i) {
+            final ByteBuffer buffer = planes[i].getBuffer();
+            if (yuvBytes[i] == null) {
+                yuvBytes[i] = new byte[buffer.capacity()];
+            }
+            buffer.get(yuvBytes[i]);
+        }
+    }
+
+    protected int[] getRgbBytes() {
+        imageConverter.run();
+        return rgbBytes;
+    }
+
+    protected RectF rectRotate90 (RectF location) {
+        RectF rotated;
+        if (lensFacing==LensFacing.FRONT){
+            rotated = new RectF(TF_OD_API_INPUT_SIZE - location.bottom, TF_OD_API_INPUT_SIZE - location.right, TF_OD_API_INPUT_SIZE - location.top, TF_OD_API_INPUT_SIZE - location.left);
+
+        } else {
+            rotated = new RectF(TF_OD_API_INPUT_SIZE - location.bottom, location.left, TF_OD_API_INPUT_SIZE - location.top, location.right);
+        }
+
+        return rotated;
+    }
+
+    protected void initObjectDetection () {
+        newTracker();
+
+        int cropSize = TF_OD_API_INPUT_SIZE;
+
+        try {
+            detector =
+                    TFLiteObjectDetectionAPIModel.create(
+                            CameraRecorder.setContext.getAssets(),
+                            CameraRecorder.setContext,
+                            TF_OD_API_MODEL_FILE,
+                            TF_OD_API_LABELS_FILE,
+                            TF_OD_API_INPUT_SIZE,
+                            TF_OD_API_IS_QUANTIZED);
+            cropSize = TF_OD_API_INPUT_SIZE;
+        } catch (final IOException e) {
+            e.printStackTrace();
+        }
+
+        DisplayMetrics metrics = CameraRecorder.setContext.getResources().getDisplayMetrics();
+        float ratio = ((float)metrics.heightPixels / (float)metrics.widthPixels);
+
+        frameToCropTransform =
+                ImageUtils.getTransformationMatrix(
+                        cameraSize.getWidth(), (int)(cameraSize.getWidth()*ratio),
+                        cropSize, cropSize,
+                        0, MAINTAIN_ASPECT);
+        cropToFrameTransform = new Matrix();
+        frameToCropTransform.invert(cropToFrameTransform);
+
+        trackingOverlay = CameraRecorder.overlay;
+        trackingOverlay.addCallback(
+                new OverlayView.DrawCallback() {
+                    @Override
+                    public void drawCallback(final Canvas canvas) {
+                        if (tracker != null) {
+                            tracker.draw(canvas);
+                        }
+//                            if (isDebug()) {
+//                                tracker.drawDebug(canvas);
+//                            }
+                    }
+                });
+
+    }
+
+    protected void newTracker() {
+        if (tracker == null){
+
+            tracker = new MultiBoxTracker(CameraRecorder.setContext);
+            tracker.setFrameConfiguration(cameraSize.getWidth(), cameraSize.getHeight(), 0);
+
+        }
+
+    }
 }
 

@@ -19,9 +19,6 @@ import static android.opengl.GLES20.GL_TEXTURE_2D;
 import static android.opengl.GLES20.GL_TEXTURE_BINDING_2D;
 import static android.opengl.GLES20.GL_UNSIGNED_BYTE;
 
-/**
- * Created by sudamasayuki on 2018/03/14.
- */
 
 public class GLES20FramebufferObject {
     private int width;

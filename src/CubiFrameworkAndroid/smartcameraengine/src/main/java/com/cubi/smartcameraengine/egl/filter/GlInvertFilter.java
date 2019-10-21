@@ -1,8 +1,5 @@
 package com.cubi.smartcameraengine.egl.filter;
 
-/**
- * Created by sudamasayuki on 2017/05/18.
- */
 
 public class GlInvertFilter extends GlFilter {
     private static final String FRAGMENT_SHADER =
