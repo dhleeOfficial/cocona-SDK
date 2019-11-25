@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/filter_off"
+        android:title="@string/filter_off"/>
+    <item
+        android:id="@+id/filter_mono"
+        android:title="@string/filter_mono"/>
+    <item
+        android:id="@+id/filter_negative"
+        android:title="@string/filter_negative"/>
+    <item
+        android:id="@+id/filter_solarize"
+        android:title="@string/filter_solarize"/>
+    <item
+        android:id="@+id/filter_sepia"
+        android:title="@string/filter_sepia"/>
+    <item
+        android:id="@+id/filter_posterize"
+        android:title="@string/filter_posterize"/>
+    <item
+        android:id="@+id/filter_whiteboard"
+        android:title="@string/filter_whiteboard"/>
+    <item
+        android:id="@+id/filter_blackboard"
+        android:title="@string/filter_blackboard"/>
+    <item
+        android:id="@+id/filter_aqua"
+        android:title="@string/filter_aqua"/>
+</menu>

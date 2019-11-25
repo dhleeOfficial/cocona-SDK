@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">My Application</string>
+    <string name="main_tv">CubiCamera</string>
+    <string name="main_btn">Start</string>
+    <string name="filter_off">OFF</string>
+    <string name="filter_mono">MONO</string>
+    <string name="filter_negative">NEGATIVE</string>
+    <string name="filter_solarize">SOLARIZE</string>
+    <string name="filter_sepia">SEPIA</string>
+    <string name="filter_posterize">POSTERIZE</string>
+    <string name="filter_whiteboard">WHITEBOARD</string>
+    <string name="filter_blackboard">BLACKBOARD</string>
+    <string name="filter_aqua">AQUA</string>
+</resources>

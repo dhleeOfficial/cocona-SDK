@@ -1,0 +1,214 @@
+package com.example.myapplication.Activity;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.app.Activity;
+import android.graphics.PointF;
+import android.os.Bundle;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.TextureView;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.PopupMenu;
+import android.widget.Toast;
+import android.widget.ToggleButton;
+
+import framework.Engine.CameraEngine;
+import framework.Enum.Exposure;
+import framework.Enum.Filter;
+import framework.Enum.LensFacing;
+import com.example.myapplication.R;
+
+public class CameraActivity extends AppCompatActivity {
+    private TextureView tv;
+    private ToggleButton flash;
+    private ToggleButton lens;
+    private ToggleButton record;
+
+    private Button zoom;
+    private Button bright;
+    private Button dark;
+    private Button filter;
+
+    private CameraEngine engine;
+    private CameraEngine.Util engineUtil;
+
+    private final Activity myActivity = this;
+    private final long downTime = 3000;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        setContentView(R.layout.activity_camera);
+
+        engine = new CameraEngine(myActivity);
+        engine.startEngine();
+
+        engineUtil = new CameraEngine.Util();
+
+        tv = findViewById(R.id.textureView);
+        flash = findViewById(R.id.flashBtn);
+        lens = findViewById(R.id.lensBtn);
+        record = findViewById(R.id.recordBtn);
+        zoom = findViewById(R.id.zoomBtn);
+        bright = findViewById(R.id.brightBtn);
+        dark = findViewById(R.id.darkBtn);
+
+        filter = findViewById(R.id.filterBtn);
+
+        CompoundButton.OnCheckedChangeListener checkListener = new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    if (buttonView == flash) {
+                        engine.flash(isChecked);
+                    } else if (buttonView == lens) {
+                        if (isChecked == true) {
+                            engine.lensFacing(LensFacing.FRONT);
+                        } else {
+                            engine.lensFacing(LensFacing.BACK);
+                        }
+
+                    } else if (buttonView == record) {
+                        engine.record(isChecked);
+                    }
+            }
+        };
+
+        flash.setOnCheckedChangeListener(checkListener);
+        lens.setOnCheckedChangeListener(checkListener);
+        record.setOnCheckedChangeListener(checkListener);
+
+        Button.OnClickListener clickListener = new Button.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (v == zoom) {
+                    Toast.makeText(CameraActivity.this, "Please Touch Screen", Toast.LENGTH_LONG);
+                } else if (v == bright) {
+                    engine.exposure(Exposure.BRIGHT);
+                } else if (v == dark) {
+                    engine.exposure(Exposure.DARK);
+                } else if (v == filter) {
+                    PopupMenu popupMenu = new PopupMenu(CameraActivity.this, filter);
+                    popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                        @Override
+                        public boolean onMenuItemClick(MenuItem item) {
+                            switch(item.getItemId()) {
+                                case R.id.filter_off : {
+                                    engine.filter(Filter.OFF);
+
+                                    return true;
+                                }
+                                case R.id.filter_mono : {
+                                    engine.filter(Filter.MONO);
+
+                                    return true;
+                                }
+                                case R.id.filter_negative : {
+                                    engine.filter(Filter.NEGATIVE);
+
+                                    return true;
+                                }
+                                case R.id.filter_solarize : {
+                                    engine.filter(Filter.SOLARIZE);
+
+                                    return true;
+                                }
+                                case R.id.filter_sepia : {
+                                    engine.filter(Filter.SEPIA);
+
+                                    return true;
+                                }
+                                case R.id.filter_posterize : {
+                                    engine.filter(Filter.POSTERIZE);
+
+                                    return true;
+                                }
+                                case R.id.filter_whiteboard : {
+                                    engine.filter(Filter.WHITEBOARD);
+
+                                    return true;
+                                }
+                                case R.id.filter_blackboard : {
+                                    engine.filter(Filter.BLACKBOARD);
+
+                                    return true;
+                                }
+                                case R.id.filter_aqua : {
+                                    engine.filter(Filter.AQUA);
+
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }
+                    });
+                    MenuInflater menuInflater = popupMenu.getMenuInflater();
+
+                    menuInflater.inflate(R.menu.filter_menu, popupMenu.getMenu());
+                    popupMenu.show();
+                }
+            }
+        };
+
+        zoom.setOnClickListener(clickListener);
+        bright.setOnClickListener(clickListener);
+        dark.setOnClickListener(clickListener);
+        filter.setOnClickListener(clickListener);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        engine.startPreview(tv);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        engine.stopPreview();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        engine.stopEngine();
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (event.getPointerCount() == 2) {
+            engine.zoom(engineUtil.getFingerSpacing(event));
+
+            return true;
+        } else if (event.getPointerCount() == 1) {
+            long startTime = 0;
+            long endTime = 0;
+            final int mask = event.getActionMasked();
+            PointF pointF = new PointF(event.getX(), event.getY());
+
+            if (mask == MotionEvent.ACTION_DOWN) {
+                startTime = event.getEventTime();
+            } else if (mask == MotionEvent.ACTION_UP) {
+                endTime = event.getEventTime();
+            }
+
+            if (endTime - startTime > downTime) {
+                engine.lockFocus(pointF);
+            } else {
+                engine.areaFocus(pointF);
+            }
+            return true;
+        }
+        return false;
+    }
+}
