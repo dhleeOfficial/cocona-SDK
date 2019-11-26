@@ -8,11 +8,22 @@ import android.content.pm.PackageManager;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-public class PermissionManager {
-    public static final int REQUEST_CAMERA = 0;
-    private Context ct;
+import java.util.ArrayList;
 
-    private PermissionManager() {}
+public class PermissionManager {
+    public static final int REQUEST_PERMISSIONS = 0;
+
+    private Context ct;
+    private ArrayList<String> needPermissionList;
+
+    private PermissionManager() {
+        needPermissionList = new ArrayList<String>();
+
+        needPermissionList.add(Manifest.permission.CAMERA);
+        needPermissionList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        needPermissionList.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+        needPermissionList.add(Manifest.permission.RECORD_AUDIO);
+    }
 
     private static class InstanceHolder {
         private static final PermissionManager inst = new PermissionManager();
@@ -34,22 +45,24 @@ public class PermissionManager {
 
     public boolean checkStart() {
         if (this.ct != null) {
-            // ContextCompat.checkSelfPermission
-            // Self check function
-            // return value : PackageManager.PERMISSION_DENIED or GRANTED
-            if (ContextCompat.checkSelfPermission(this.ct, Manifest.permission.CAMERA) == PackageManager.PERMISSION_DENIED) {
-                // ActivityCompat.shouldShowRequestPermissionRationale
-                // Define why need to that Permission
-                // true = Refuse by user
-                if (ActivityCompat.shouldShowRequestPermissionRationale((Activity) this.ct, Manifest.permission.CAMERA) == false) {
-                    // ActivityCompat.requestPermissions
-                    // Request permission and Process callback
-                    ActivityCompat.requestPermissions((Activity) this.ct, new String[] {Manifest.permission.CAMERA}, REQUEST_CAMERA);
+            ArrayList<String> permissions = new ArrayList<String>();
+
+            for (String perm : needPermissionList) {
+                if (ContextCompat.checkSelfPermission(this.ct, perm) == PackageManager.PERMISSION_DENIED) {
+                    permissions.add(perm);
                 }
-            } else {
-                return true;
+            }
+
+            int size = permissions.size();
+
+            if (size > 0) {
+                String[] permArray = new String[size];
+
+                permissions.toArray(permArray);
+                ActivityCompat.requestPermissions((Activity) this.ct, permArray, REQUEST_PERMISSIONS);
             }
         }
+
         return false;
     }
 }

@@ -44,12 +44,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch(requestCode) {
-            case PermissionManager.REQUEST_CAMERA : {
+            case PermissionManager.REQUEST_PERMISSIONS : {
                 if ((grantResults.length > 0) && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                     this.changeCameraActivity();
-                    Toast.makeText(this, "permission permitted", Toast.LENGTH_LONG).show();
                 } else {
-                    Toast.makeText(this, "permission denied", Toast.LENGTH_LONG).show();
+                    // RE-INVOKE PERMISSION
                 }
             }
             break;
