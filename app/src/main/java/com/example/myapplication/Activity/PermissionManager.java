@@ -60,6 +60,10 @@ public class PermissionManager {
 
                 permissions.toArray(permArray);
                 ActivityCompat.requestPermissions((Activity) this.ct, permArray, REQUEST_PERMISSIONS);
+
+                return true;
+            } else if (size == 0) {
+                return true;
             }
         }
 
