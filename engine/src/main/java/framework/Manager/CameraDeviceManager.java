@@ -257,7 +257,12 @@ public class CameraDeviceManager extends HandlerThread {
             this.textureView = textureView;
         }
 
-        textureView.setSurfaceTextureListener(textureListener);
+        if(this.textureView.isAvailable()){
+            initCamera(this.textureView.getWidth(),this.textureView.getHeight());
+        } else {
+            textureView.setSurfaceTextureListener(textureListener);
+        }
+
     }
 
     private synchronized void stopPreview() {
