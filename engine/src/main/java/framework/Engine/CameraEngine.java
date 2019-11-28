@@ -5,15 +5,18 @@ import android.graphics.PointF;
 import android.os.Handler;
 import android.view.MotionEvent;
 import android.view.TextureView;
+import android.view.View;
 
 import framework.Enum.Exposure;
 import framework.Enum.Filter;
 import framework.Enum.LensFacing;
+import framework.Enum.TouchType;
 import framework.Manager.CameraDeviceManager;
 import framework.Message.ThreadMessage;
 
 public class CameraEngine {
     private Context context;
+    private View subject;
 
     private CameraDeviceManager cameraDeviceManager;
     private Handler cameraHandler;
@@ -21,20 +24,70 @@ public class CameraEngine {
     public static class Util {
         public Util() {}
 
+        // Using Double TouchEvent
         public static float getFingerSpacing(MotionEvent event) {
             float x = event.getX(0) - event.getX(1);
             float y = event.getY(0) - event.getY(1);
 
             return (float) Math.sqrt((x * x) +  (y * y));
         }
+
+        // Using Single TouchEvent
+        public static class SingleTouchEventHandler {
+            private TouchType recentTouchType = TouchType.NOTHANDLE;
+
+            private long startTouchTime = 0;
+            private long endTouchTime = 0;
+
+            private float dx = 100f;
+            private float dy = 100f;
+            private int dT = 3000;
+
+            private float prevX = 0;
+            private float prevY = 0;
+
+            public SingleTouchEventHandler() {}
+
+            public TouchType getTouchTypeFromTouchEvent(MotionEvent event) {
+                final int mask = event.getActionMasked();
+
+                if (mask == MotionEvent.ACTION_DOWN) {
+                    startTouchTime = event.getEventTime();
+                    prevX = event.getX();
+                    prevY = event.getY();
+
+                    recentTouchType = TouchType.NOTHANDLE;
+                } else if (mask == MotionEvent.ACTION_MOVE) {
+                    float curY = event.getY();
+
+                    if (Math.abs(curY - prevY) > dy) {
+                        recentTouchType = TouchType.EXPOSURECHANGE;
+                    }
+
+                } else if (mask == MotionEvent.ACTION_UP) {
+                    if (recentTouchType == TouchType.NOTHANDLE) {
+                        endTouchTime = event.getEventTime();
+
+                        if (endTouchTime - startTouchTime > dT) {
+                            recentTouchType = TouchType.LOCKFOCUS;
+                        } else {
+                            recentTouchType = TouchType.AREAFOCUS;
+                        }
+                    }
+                }
+
+                return recentTouchType;
+            }
+        }
     }
 
-    public CameraEngine(Context context) {
+    public CameraEngine(Context context, View subject) {
         this.context = context;
+        this.subject = subject;
     }
 
     public void startEngine() {
-        cameraDeviceManager = new CameraDeviceManager(context);
+        cameraDeviceManager = new CameraDeviceManager(context, subject);
         cameraDeviceManager.start();
     }
 

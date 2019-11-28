@@ -14,6 +14,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.PopupMenu;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
@@ -21,10 +22,14 @@ import framework.Engine.CameraEngine;
 import framework.Enum.Exposure;
 import framework.Enum.Filter;
 import framework.Enum.LensFacing;
+import framework.Enum.TouchType;
+
 import com.example.myapplication.R;
 
 public class CameraActivity extends AppCompatActivity {
     private TextureView tv;
+    private RelativeLayout rl;
+
     private ToggleButton flash;
     private ToggleButton lens;
     private ToggleButton record;
@@ -36,6 +41,7 @@ public class CameraActivity extends AppCompatActivity {
 
     private CameraEngine engine;
     private CameraEngine.Util engineUtil;
+    private CameraEngine.Util.SingleTouchEventHandler touchEventHandler;
 
     private final Activity myActivity = this;
     private final long downTime = 3000;
@@ -48,10 +54,13 @@ public class CameraActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_camera);
 
-        engine = new CameraEngine(myActivity);
+        rl = findViewById(R.id.relativeLayout);
+
+        engine = new CameraEngine(myActivity, rl);
         engine.startEngine();
 
         engineUtil = new CameraEngine.Util();
+        touchEventHandler = new CameraEngine.Util.SingleTouchEventHandler();
 
         tv = findViewById(R.id.textureView);
         flash = findViewById(R.id.flashBtn);
@@ -191,24 +200,18 @@ public class CameraActivity extends AppCompatActivity {
 
             return true;
         } else if (event.getPointerCount() == 1) {
-            long startTime = 0;
-            long endTime = 0;
-            final int mask = event.getActionMasked();
-            PointF pointF = new PointF(event.getX(), event.getY());
+            TouchType touchType = touchEventHandler.getTouchTypeFromTouchEvent(event);
 
-            if (mask == MotionEvent.ACTION_DOWN) {
-                startTime = event.getEventTime();
-            } else if (mask == MotionEvent.ACTION_UP) {
-                endTime = event.getEventTime();
+            if (touchType == TouchType.AREAFOCUS) {
+                engine.areaFocus(new PointF(event.getX(), event.getY()));
+            } else if (touchType == TouchType.LOCKFOCUS) {
+                engine.lockFocus(new PointF(event.getX(), event.getY()));
+            } else if (touchType == TouchType.EXPOSURECHANGE) {
+                //TODO
             }
 
-            if (endTime - startTime > downTime) {
-                engine.lockFocus(pointF);
-            } else {
-                engine.areaFocus(pointF);
-            }
             return true;
         }
-        return false;
+        return super.onTouchEvent(event);
     }
 }
