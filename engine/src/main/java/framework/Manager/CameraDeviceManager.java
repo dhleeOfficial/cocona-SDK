@@ -1,5 +1,6 @@
 package framework.Manager;
 
+import android.app.Activity;
 import android.content.Context;
 
 import android.graphics.ImageFormat;
@@ -25,6 +26,7 @@ import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 
@@ -44,6 +46,9 @@ public class CameraDeviceManager extends HandlerThread {
     private final String TAG = "CameraDeviceManager";
 
     private Context context;
+    private View subject;
+    private Util.OverlayView overlayView;
+
     private Handler myHandler;
 
     private TextureView textureView;
@@ -158,12 +163,16 @@ public class CameraDeviceManager extends HandlerThread {
         return super.quit();
     }
 
-    public CameraDeviceManager(Context context) {
+    public CameraDeviceManager(Context context, View subject) {
         super("CameraDeviceManager");
 
         this.context = context;
+        this.subject = subject;
+
         this.isStarted = false;
         this.lensFacing = LensFacing.BACK;
+
+        this.overlayView = Util.createOverlayView(context, subject);
 
         imageProcessManager = new ImageProcessManager(this.context);
         imageProcessManager.start();
@@ -399,6 +408,22 @@ public class CameraDeviceManager extends HandlerThread {
     }
 
     private void areaFocus(PointF pointF) {
+        overlayView.setFocus(true, pointF);
+
+        new Handler().post(new Runnable() {
+            @Override
+            public void run() {
+                overlayView.postInvalidate();
+            }
+        });
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                overlayView.postInvalidate();
+            }
+        },500);
+
         try {
             CameraCharacteristics cc = cameraManager.getCameraCharacteristics(enableCameraId);
             Rect rect = cc.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
@@ -428,6 +453,7 @@ public class CameraDeviceManager extends HandlerThread {
             captureRequestBuilder.setTag("FOCUS_TAG");
 
             cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), captureCallback, backgroundHandler);
+
         } catch (CameraAccessException ce) {
             ce.printStackTrace();
         }
