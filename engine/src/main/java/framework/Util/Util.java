@@ -1,17 +1,6 @@
 package framework.Util;
 
-import android.content.Context;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.PointF;
-import android.util.AttributeSet;
 import android.util.Size;
-import android.view.MotionEvent;
-import android.view.View;
-import android.widget.RelativeLayout;
-
-import androidx.annotation.Nullable;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -33,51 +22,4 @@ public class Util {
             }
         });
     }
-
-    public static class OverlayView extends View {
-        private boolean isFocus = false;
-        private PointF touchPoint;
-
-        public OverlayView(Context context) {
-            super(context);
-            setBackgroundColor(Color.TRANSPARENT);
-        }
-
-        public OverlayView(Context context, @Nullable AttributeSet attrs) {
-            super(context, attrs);
-            setBackgroundColor(Color.TRANSPARENT);
-        }
-
-        public OverlayView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
-            super(context, attrs, defStyleAttr);
-            setBackgroundColor(Color.TRANSPARENT);
-        }
-
-        public void setFocus(boolean isFocus, PointF pointF) {
-            this.isFocus = isFocus;
-            this.touchPoint = pointF;
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            if (isFocus == true) {
-                Paint paint = new Paint();
-                paint.setColor(Color.WHITE);
-                paint.setStyle(Paint.Style.STROKE);
-                canvas.drawCircle(touchPoint.x, touchPoint.y, 80, paint);
-
-                isFocus = false;
-            } else {
-                super.onDraw(canvas);
-            }
-        }
-    };
-
-    public static OverlayView createOverlayView(Context context, View subject) {
-        OverlayView view = new OverlayView(context);
-        ((RelativeLayout)subject).addView(view);
-
-        return view;
-    }
-
 }

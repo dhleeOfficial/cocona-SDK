@@ -1,6 +1,5 @@
 package framework.Manager;
 
-import android.app.Activity;
 import android.content.Context;
 
 import android.graphics.ImageFormat;
@@ -27,6 +26,7 @@ import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.widget.RelativeLayout;
 
 import androidx.annotation.NonNull;
 
@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import framework.Util.IntenalOverlayView;
 import framework.Util.Util;
 
 public class CameraDeviceManager extends HandlerThread {
@@ -47,7 +48,7 @@ public class CameraDeviceManager extends HandlerThread {
 
     private Context context;
     private View subject;
-    private Util.OverlayView overlayView;
+    private IntenalOverlayView overlayView;
 
     private Handler myHandler;
 
@@ -172,7 +173,8 @@ public class CameraDeviceManager extends HandlerThread {
         this.isStarted = false;
         this.lensFacing = LensFacing.BACK;
 
-        this.overlayView = Util.createOverlayView(context, subject);
+        this.overlayView = new IntenalOverlayView(context);
+        ((RelativeLayout) subject).addView(this.overlayView);
 
         imageProcessManager = new ImageProcessManager(this.context);
         imageProcessManager.start();
@@ -410,6 +412,7 @@ public class CameraDeviceManager extends HandlerThread {
     private void areaFocus(PointF pointF) {
         overlayView.setFocus(true, pointF);
 
+        //FIXME
         new Handler().post(new Runnable() {
             @Override
             public void run() {
