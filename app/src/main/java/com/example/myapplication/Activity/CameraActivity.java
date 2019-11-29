@@ -44,7 +44,6 @@ public class CameraActivity extends AppCompatActivity {
     private CameraEngine.Util.SingleTouchEventHandler touchEventHandler;
 
     private final Activity myActivity = this;
-    private final long downTime = 3000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
