@@ -14,12 +14,7 @@ public class ThreadMessage {
         public static final int MSG_ENGINE_FILTER = 9;
     }
 
-    public class RecordMessage {
-        public static final int MSG_RECORD_STATUS = 0;
-    }
-
-    public class FFmpegMessage {
-        public static final int MSG_FFMPEG_START = 0;
-        public static final int MSG_FFMPEG_STOP = 1;
+    public class ODMessage {
+        public static final int MSG_OD_SETUP = 0;
     }
 }
