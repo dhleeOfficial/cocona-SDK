@@ -6,6 +6,8 @@ import android.graphics.ImageFormat;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
+import android.hardware.Sensor;
+import android.hardware.SensorManager;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -16,6 +18,8 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorEvent;
 import android.media.ImageReader;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -43,7 +47,7 @@ import java.util.concurrent.TimeUnit;
 import framework.Util.IntenalOverlayView;
 import framework.Util.Util;
 
-public class CameraDeviceManager extends HandlerThread {
+public class CameraDeviceManager extends HandlerThread implements SensorEventListener {
     private final String TAG = "CameraDeviceManager";
 
     private Context context;
@@ -84,9 +88,18 @@ public class CameraDeviceManager extends HandlerThread {
     // CURRENT STATUS FLAGS
     private boolean isStarted;
     private boolean isFlash;
+    private boolean isLocked = true;
     private LensFacing lensFacing;
 
     private Semaphore cameraLock = new Semaphore(1);
+
+    // SENSOR
+    float motionX = 0;
+    float motionY = 0;
+    float motionZ = 0;
+    private SensorManager sensorManager;
+    private Sensor sensor;
+
 
     private TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
         @Override
@@ -115,6 +128,30 @@ public class CameraDeviceManager extends HandlerThread {
             //Log.e(TAG, "onSurfaceTextureUpdated()");
         }
     };
+
+    public void onSensorChanged(SensorEvent event) {
+        if (!isLocked) {
+            if (Math.abs(event.values[0] - motionX) > 1
+                    || Math.abs(event.values[1] - motionY) > 1
+                    || Math.abs(event.values[2] - motionZ) > 1) {
+
+                Log.i(TAG, "Refocus");
+
+                try {
+                    autoFocus();
+                    isLocked = true;
+                } catch (RuntimeException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        motionX = event.values[0];
+        motionY = event.values[1];
+        motionZ = event.values[2];
+    }
+
+    public void onAccuracyChanged(Sensor arg0, int arg1) { }
 
     private CameraCaptureSession.CaptureCallback captureCallback =  new CameraCaptureSession.CaptureCallback() {
         @Override
@@ -176,6 +213,10 @@ public class CameraDeviceManager extends HandlerThread {
         this.overlayView = new IntenalOverlayView(context);
         ((RelativeLayout) subject).addView(this.overlayView);
 
+        sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
+
         imageProcessManager = new ImageProcessManager(this.context);
         imageProcessManager.start();
     }
@@ -231,11 +272,14 @@ public class CameraDeviceManager extends HandlerThread {
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_AREA_FOCUS : {
                         areaFocus((PointF) msg.obj);
+                        isLocked = false;
 
                         return true;
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_LOCK_FOCUS : {
-                        lockFocus((PointF) msg.obj);
+                        areaFocus((PointF) msg.obj);
+                        Log.i(TAG, "Focus Locked");
+                        isLocked = true;
 
                         return true;
                     }
@@ -444,16 +488,16 @@ public class CameraDeviceManager extends HandlerThread {
             cameraCaptureSession.stopRepeating();
 
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_MODE_OFF);
+            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             cameraCaptureSession.capture(captureRequestBuilder.build(), captureCallback, backgroundHandler);
 
             if ((cc.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF) >= 1) ==  true) {
                 captureRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{meteringRectangle});
             }
-            captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+//            captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
-            captureRequestBuilder.setTag("FOCUS_TAG");
+            captureRequestBuilder.setTag("FOCUS");
 
             cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), captureCallback, backgroundHandler);
 
@@ -462,14 +506,16 @@ public class CameraDeviceManager extends HandlerThread {
         }
     }
 
-    private void lockFocus(PointF pointF) {
-        // TODO
-        // 기본적으로, autofocus
-        // touch 발생 시, areafocus
+    private void autoFocus() {
 
-        // preview가 임의로 변경되었을 때, autofocus로 변경
-        // long touch 발생 시, lockfocus
-        // 이후, touch 발생 하면, autofocus로 변경
+        try {
+            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO);
+            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+            cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), captureCallback, backgroundHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+
     }
 
     private void filter(Filter filter) {

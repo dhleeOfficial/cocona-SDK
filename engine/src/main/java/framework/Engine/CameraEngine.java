@@ -41,7 +41,7 @@ public class CameraEngine {
 
             private float dx = 100f;
             private float dy = 100f;
-            private int dT = 3000;
+            private int dT = 800;
 
             private float prevX = 0;
             private float prevY = 0;
