@@ -28,9 +28,8 @@
         android:id="@+id/overlayView"
         android:layout_width="match_parent"
         android:layout_height="200dp"
-        android:background="@android:color/transparent"
-        android:layout_marginTop="530dp">
-<!--        tools:layout_marginTop="530dp">-->
+        android:background="@android:color/transparent">
+        <!--        tools:layout_marginTop="530dp">-->
         <!--        app:layout_constraintBottom_toBottomOf="parent"-->
         <!--        app:layout_constraintEnd_toEndOf="parent"-->
         <!--        app:layout_constraintHorizontal_bias="0.0"-->

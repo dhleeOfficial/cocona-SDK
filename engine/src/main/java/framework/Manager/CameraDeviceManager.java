@@ -38,6 +38,7 @@ import framework.Enum.Exposure;
 
 import framework.Enum.Filter;
 import framework.Enum.LensFacing;
+import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
 
 import java.util.Arrays;
@@ -73,9 +74,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private CameraCaptureSession cameraCaptureSession;
     private CaptureRequest.Builder captureRequestBuilder;
 
-    // RECORD
+    // OBJECT DETECTION
     private ImageReader imageReader;
-    private ImageProcessManager imageProcessManager;
+    private ObjectDetectionManager objectDetectionManager;
 
     //ZOOM
     private float spacing = 0f;
@@ -192,7 +193,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     public boolean quit() {
         //FIXME
         try {
-            imageProcessManager.join();
+            objectDetectionManager.join();
         } catch (InterruptedException ie) {
             ie.printStackTrace();
         }
@@ -217,8 +218,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
 
-        imageProcessManager = new ImageProcessManager(this.context);
-        imageProcessManager.start();
+        objectDetectionManager = new ObjectDetectionManager(this.context, this.overlayView);
+        objectDetectionManager.start();
     }
 
     @Override
@@ -367,11 +368,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     }
 
     private void record(boolean isRecord) {
-        Handler recordHandler = imageProcessManager.getHandler();
 
-        if (recordHandler != null) {
-            recordHandler.sendMessage(recordHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STATUS, 0, isRecord));
-        }
     }
 
     private void zoom(float spacing) {
@@ -552,6 +549,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                     previewSize = Util.getOptimalSize(Arrays.asList(scMap.getOutputSizes(SurfaceTexture.class)));
                 }
 
+                MessageObject.BoxMessageObject boxMessageObject = new MessageObject.BoxMessageObject(previewSize, 0, lensFacing);
+                objectDetectionManager.getHandler().sendMessage(objectDetectionManager.getHandler().obtainMessage(0, ThreadMessage.ODMessage.MSG_OD_SETUP, 0, boxMessageObject));
+
                 if (!cameraLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                     throw new RuntimeException("Time out");
                 }
@@ -623,7 +623,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             captureRequestBuilder.addTarget(sf);
 
             imageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
-            imageReader.setOnImageAvailableListener(imageProcessManager, imageProcessManager.getHandler());
+            imageReader.setOnImageAvailableListener(objectDetectionManager, objectDetectionManager.getHandler());
 
             captureRequestBuilder.addTarget(imageReader.getSurface());
 

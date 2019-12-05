@@ -6,6 +6,7 @@ import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 import android.os.Trace;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -45,9 +46,9 @@ public class ObjectDetectionModel implements Classifier {
 
     private ObjectDetectionModel() {}
 
-    private static MappedByteBuffer loadModelFile(Context context, String fileFd) {
+    private static MappedByteBuffer loadModelFile(AssetManager assetManager, String fileFd) {
         try {
-            AssetFileDescriptor assetFileDescriptor = context.getAssets().openFd(fileFd);
+            AssetFileDescriptor assetFileDescriptor = assetManager.openFd(fileFd);
             FileInputStream inputStream = new FileInputStream(assetFileDescriptor.getFileDescriptor());
             FileChannel fileChannel = inputStream.getChannel();
 
@@ -81,7 +82,7 @@ public class ObjectDetectionModel implements Classifier {
             bufferedReader.close();
 
             objectDetectionModel.inputSize = inputSize;
-            objectDetectionModel.tfLite = new Interpreter(loadModelFile(context, modelFileName));
+            objectDetectionModel.tfLite = new Interpreter(loadModelFile(assetManager, modelFileName));
             objectDetectionModel.isModelQuantized = isModelQuantized;
 
             int numBytesPerChannel = (isModelQuantized == true) ? 1 : 4;
