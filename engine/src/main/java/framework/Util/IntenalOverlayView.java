@@ -65,7 +65,6 @@ public class IntenalOverlayView extends View {
                 paint.setColor(Color.WHITE);
                 paint.setStyle(Paint.Style.STROKE);
                 canvas.drawCircle(touchPoint.x, touchPoint.y, 80, paint);
-                //canvas.drawRect(new RectF(200, 200, 400,400), paint);
 
                 isFocus = false;
             } else {

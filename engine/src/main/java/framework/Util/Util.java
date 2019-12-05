@@ -2,10 +2,14 @@ package framework.Util;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.ImageFormat;
 import android.graphics.Matrix;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
 import android.media.Image;
 import android.util.Size;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Comparator;
@@ -80,24 +84,6 @@ public class Util {
         }
     }
 
-//    public static void convertYUV420ToARGB8888(byte[] in, int width, int height, int[] out) {
-//        for (int i = 0, yp = 0; i < height; ++i) {
-//            int uvp = (width * height) + (i >> 1) * width;
-//            int u = 0;
-//            int v = 0;
-//
-//            for (int j = 0; j < width; ++j, ++yp) {
-//                int y = 0xff & in[yp];
-//
-//                if ((j & 1) == 0) {
-//                    v = 0xff & in[uvp++];
-//                    u = 0xff & in[uvp++];
-//                }
-//                out[yp] = YuvToRGB(y, u, v);
-//            }
-//        }
-//    }
-
     public static void convertYUV420ToARGB8888(
             byte[] yData,
             byte[] uData,
@@ -170,25 +156,41 @@ public class Util {
         return bytes;
     }
 
-    public static Bitmap convertImageToBitmap(Image image) {
-        if (image == null) {
-            return null;
+    public static Bitmap imageToBitmap(Image image, float rotationDegrees) {
+
+        assert (image.getFormat() == ImageFormat.NV21);
+
+        // NV21 is a plane of 8 bit Y values followed by interleaved  Cb Cr
+        ByteBuffer ib = ByteBuffer.allocate(image.getHeight() * image.getWidth() * 2);
+
+        ByteBuffer y = image.getPlanes()[0].getBuffer();
+        ByteBuffer cr = image.getPlanes()[1].getBuffer();
+        ByteBuffer cb = image.getPlanes()[2].getBuffer();
+        ib.put(y);
+        ib.put(cb);
+        ib.put(cr);
+
+        YuvImage yuvImage = new YuvImage(ib.array(),
+                ImageFormat.NV21, image.getWidth(), image.getHeight(), null);
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        yuvImage.compressToJpeg(new Rect(0, 0,
+                image.getWidth(), image.getHeight()), 50, out);
+        byte[] imageBytes = out.toByteArray();
+        Bitmap bm = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+        Bitmap bitmap = bm;
+
+        // On android the camera rotation and the screen rotation
+        // are off by 90 degrees, so if you are capturing an image
+        // in "portrait" orientation, you'll need to rotate the image.
+        if (rotationDegrees != 0) {
+            Matrix matrix = new Matrix();
+            matrix.postRotate(rotationDegrees);
+            Bitmap scaledBitmap = Bitmap.createScaledBitmap(bm,
+                    bm.getWidth(), bm.getHeight(), true);
+            bitmap = Bitmap.createBitmap(scaledBitmap, 0, 0,
+                    scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix, true);
         }
-
-        int width = image.getWidth();
-        int height = image.getHeight();
-
-        final Image.Plane[] planes = image.getPlanes();
-        ByteBuffer byteBuffer = planes[0].getBuffer();
-
-        int pixelStride = planes[0].getPixelStride();
-        int rowStride = planes[0].getRowStride();
-        int rowPadding = rowStride - (pixelStride * width);
-
-        Bitmap bitmap = Bitmap.createBitmap(width + rowPadding / pixelStride, height, Bitmap.Config.ARGB_8888);
-
-        bitmap.copyPixelsFromBuffer(byteBuffer);
-
-        return Bitmap.createBitmap(bitmap, 0, 0, width,height);
+        return bitmap;
     }
 }

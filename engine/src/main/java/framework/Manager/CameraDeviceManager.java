@@ -466,7 +466,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             public void run() {
                 overlayView.postInvalidate();
             }
-        },500);
+        }, 500);
 
         try {
             CameraCharacteristics cc = cameraManager.getCameraCharacteristics(enableCameraId);
