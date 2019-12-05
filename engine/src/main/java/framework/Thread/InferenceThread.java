@@ -1,6 +1,7 @@
 package framework.Thread;
 
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.media.Image;
 import android.util.Log;
@@ -24,6 +25,7 @@ public class InferenceThread implements Runnable {
     private LensFacing lensFacing;
     private BoxDrawer boxDrawer;
     private Classifier classifier;
+    private Matrix matrix;
 
     // SETTING INFO
     byte[][] yuvBytes;
@@ -70,6 +72,10 @@ public class InferenceThread implements Runnable {
         this.boxDrawer = boxDrawer;
     }
 
+    public void setMatrix(Matrix matrix) {
+        this.matrix = matrix;
+    }
+
     @Override
     public void run() {
         rgbBytes = new int[previewSize.getWidth() * previewSize.getHeight()];
@@ -90,6 +96,7 @@ public class InferenceThread implements Runnable {
 
             if ((location != null) && (recElement.getConfidence() >= MINIMUM_CONFIDENCE)) {
                 location = rotate(location);
+                matrix.mapRect(location);
                 recElement.setLocation(location);
                 result.add(recElement);
             }

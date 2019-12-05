@@ -114,7 +114,7 @@ public class BoxDrawer {
 
                 final String boxName = String.format("%s %.2f", boxElement.getTitle(), (100 * boxElement.getConfidence())) + "%";
                 final ClassifierDrawer classifierDrawer = new ClassifierDrawer();
-                final PointF boxTextPoint = new PointF(boxRect.left, boxRect.top);
+                final PointF boxTextPoint = new PointF(boxRect.left + 50.0f, boxRect.top);
                 final ClassifierDrawer.DrawInfo drawInfo = new ClassifierDrawer.DrawInfo(boxName, textSizePxValue, boxTextPaint, boxTextPoint);
 
                 classifierDrawer.draw(canvas, drawInfo);
@@ -139,6 +139,7 @@ public class BoxDrawer {
         boxTextPaint = new Paint();
 
         boxTextPaint.setColor(DEFAULT_BOX_TEXT_COLOR);
+        boxTextPaint.setTextSize(50.0f);
 
         textSizePxValue = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, DEFAULT_DIP, context.getResources().getDisplayMetrics());
     }

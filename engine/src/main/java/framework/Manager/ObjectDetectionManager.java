@@ -128,14 +128,11 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
         DisplayMetrics metrics = context.getResources().getDisplayMetrics();
         float ratio = (float) metrics.heightPixels / (float) metrics.widthPixels;
-
-        // FIXME
         Matrix transFrameToCrop = Util.getTransformationMatrix(new Size(previewSize.getWidth(), (int) (previewSize.getWidth()*ratio)),
                                                                new Size(INPUT_SIZE, INPUT_SIZE), 0, false);
 
         transCropToFrame = new Matrix();
         transFrameToCrop.invert(transCropToFrame);
-        //
 
         boxDrawer = new BoxDrawer(context, boxMessageObject.getSize(), boxMessageObject.getOrientation());
 
@@ -143,6 +140,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         inferenceThread.setLensFacing(boxMessageObject.getLensFacing());
         inferenceThread.setBoxDrawer(boxDrawer);
         inferenceThread.setCallback(this);
+        inferenceThread.setMatrix(transCropToFrame);
 
         intenalOverlayView.unRegisterAllDrawCallback();
         intenalOverlayView.registerDrawCallback(new IntenalOverlayView.DrawCallback() {
