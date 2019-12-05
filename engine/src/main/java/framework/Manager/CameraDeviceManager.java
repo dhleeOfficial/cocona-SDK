@@ -2,7 +2,6 @@ package framework.Manager;
 
 import android.content.Context;
 
-import android.graphics.Canvas;
 import android.graphics.ImageFormat;
 import android.graphics.PointF;
 import android.graphics.Rect;
@@ -577,7 +576,7 @@ public class CameraDeviceManager extends HandlerThread {
 
             captureRequestBuilder.addTarget(sf);
 
-            imageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.FLEX_RGBA_8888, 2);
+            imageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
             imageReader.setOnImageAvailableListener(objectDetectionManager, objectDetectionManager.getHandler());
 
             captureRequestBuilder.addTarget(imageReader.getSurface());

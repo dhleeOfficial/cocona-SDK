@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PointF;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
 import androidx.annotation.Nullable;
@@ -54,22 +55,22 @@ public class IntenalOverlayView extends View {
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
-        if (isFocus == true) {
-            Paint paint = new Paint();
-            paint.setColor(Color.WHITE);
-            paint.setStyle(Paint.Style.STROKE);
-            canvas.drawCircle(touchPoint.x, touchPoint.y, 80, paint);
-
-            isFocus = false;
-        }
-
+    public void draw(Canvas canvas) {
         if (drawCallbacks.isEmpty() == false) {
             for (final DrawCallback drawCallback : drawCallbacks) {
                 drawCallback.onDraw(canvas);
             }
-        }
+            if (isFocus == true) {
+                Paint paint = new Paint();
+                paint.setColor(Color.WHITE);
+                paint.setStyle(Paint.Style.STROKE);
+                canvas.drawCircle(touchPoint.x, touchPoint.y, 80, paint);
+                //canvas.drawRect(new RectF(200, 200, 400,400), paint);
 
-        super.onDraw(canvas);
+                isFocus = false;
+            } else {
+                super.draw(canvas);
+            }
+        }
     }
 }

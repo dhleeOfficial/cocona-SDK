@@ -13,6 +13,8 @@ import android.util.Size;
 
 import androidx.annotation.NonNull;
 
+import java.nio.ByteBuffer;
+
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
 import framework.ObjectDetection.BoxDrawer;
@@ -34,16 +36,20 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     private Classifier classifier;
     private Matrix transCropToFrame;
     private BoxDrawer boxDrawer;
+    private InferenceThread inferenceThread;
+
+    private Size previewSize;
 
     // STATUS
-    private boolean isDone = false;
+    private boolean isDone = true;
+    private boolean isReady = false;
+
+    private byte[][] yuvBytes = new byte[3][];
 
     public ObjectDetectionManager(Context context, IntenalOverlayView intenalOverlayView) {
         super("ObjectDetectionManager");
         this.context = context;
         this.intenalOverlayView = intenalOverlayView;
-
-        classifier = ObjectDetectionModel.create(context.getAssets(), context, MODEL_FILE, LABELS_FILE, INPUT_SIZE, false);
     }
 
     @Override
@@ -54,6 +60,9 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     @Override
     protected void onLooperPrepared() {
         super.onLooperPrepared();
+
+        classifier = ObjectDetectionModel.create(context.getAssets(), context, MODEL_FILE, LABELS_FILE, INPUT_SIZE, false);
+        inferenceThread = new InferenceThread(classifier, INPUT_SIZE);
 
         myHandler = new Handler(this.getLooper(), new Handler.Callback() {
             @Override
@@ -73,17 +82,27 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         Image image = null;
 
         try {
-            image = reader.acquireNextImage();
+            if (isReady == true) {
+                image = reader.acquireNextImage();
 
-            if (image != null) {
-                // TODO : CHECK RECORD
-                if (isDone == false) {
-                    InferenceThread inferenceThread = new InferenceThread(image);
-                    inferenceThread.start();
+                if (image != null) {
+                    // TODO : CHECK RECORD
+                    if (isDone == true) {
+                        Image.Plane[] planes = image.getPlanes();
+                        int yRowStride = planes[0].getRowStride();
+                        int uvRowStride = planes[1].getRowStride();
+                        int uvPixelStride = planes[1].getPixelStride();
+
+                        Util.convertImageToBytes(planes, yuvBytes);
+
+                        inferenceThread.setInfo(yuvBytes, yRowStride, uvRowStride, uvPixelStride);
+                        Thread t = new Thread(inferenceThread);
+                        t.start();
+
+                        isDone = false;
+                    }
                 }
-
             }
-
         } catch (NullPointerException ne) {
             ne.printStackTrace();
         } finally {
@@ -96,6 +115,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
     @Override
     public void onComplete() {
+        intenalOverlayView.postInvalidate();
         isDone = true;
     }
 
@@ -103,19 +123,26 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         return myHandler;
     }
 
-    private void setUpOD(MessageObject.BoxMessageObject boxMessageObject) {
-        Size previewSize = boxMessageObject.getSize();
+    private synchronized void setUpOD(MessageObject.BoxMessageObject boxMessageObject) {
+        previewSize = boxMessageObject.getSize();
+
         DisplayMetrics metrics = context.getResources().getDisplayMetrics();
         float ratio = (float) metrics.heightPixels / (float) metrics.widthPixels;
 
-        //FIXME
+        // FIXME
         Matrix transFrameToCrop = Util.getTransformationMatrix(new Size(previewSize.getWidth(), (int) (previewSize.getWidth()*ratio)),
                                                                new Size(INPUT_SIZE, INPUT_SIZE), 0, false);
 
         transCropToFrame = new Matrix();
         transFrameToCrop.invert(transCropToFrame);
+        //
 
         boxDrawer = new BoxDrawer(context, boxMessageObject.getSize(), boxMessageObject.getOrientation());
+
+        inferenceThread.setPreviewSize(previewSize);
+        inferenceThread.setLensFacing(boxMessageObject.getLensFacing());
+        inferenceThread.setBoxDrawer(boxDrawer);
+        inferenceThread.setCallback(this);
 
         intenalOverlayView.unRegisterAllDrawCallback();
         intenalOverlayView.registerDrawCallback(new IntenalOverlayView.DrawCallback() {
@@ -124,5 +151,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                 boxDrawer.draw(canvas);
             }
         });
+
+        isReady = true;
     }
 }

@@ -96,16 +96,17 @@ public class BoxDrawer {
     }
 
     public synchronized void draw(final Canvas canvas) {
-        boolean rotation = orientation % 180 == 90;
-        float multiplier = Math.min(canvas.getHeight() / (float) (rotation ? frameSize.getWidth() : frameSize.getHeight()),
-                                    canvas.getWidth() / (float) (rotation ? frameSize.getHeight() : frameSize.getWidth()));
-
-        Size transSize = new Size((int) (multiplier * (rotation ? frameSize.getHeight() : frameSize.getWidth())), (int) (multiplier * (rotation ? frameSize.getWidth() : frameSize.getHeight())));
-
-        matrixFromFrame = Util.getTransformationMatrix(frameSize, transSize, orientation, false);
-
         if (box.isEmpty() == false) {
-            for(final Classifier.Recognition boxElement : box) {
+            boolean rotation = orientation % 180 == 90;
+            float multiplier = Math.min(canvas.getHeight() / (float) (rotation ? frameSize.getWidth() : frameSize.getHeight()),
+                    canvas.getWidth() / (float) (rotation ? frameSize.getHeight() : frameSize.getWidth()));
+
+            Size transSize = new Size((int) (multiplier * (rotation ? frameSize.getHeight() : frameSize.getWidth())), (int) (multiplier * (rotation ? frameSize.getWidth() : frameSize.getHeight())));
+
+            matrixFromFrame = Util.getTransformationMatrix(frameSize, transSize, orientation, false);
+
+
+            for (final Classifier.Recognition boxElement : box) {
                 final RectF boxRect = new RectF(boxElement.getLocation());
 
                 matrixFromFrame.mapRect(boxRect);
