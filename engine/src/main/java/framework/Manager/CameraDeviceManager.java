@@ -46,17 +46,16 @@ import java.util.Arrays;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import framework.Util.IntenalOverlayView;
+import framework.Util.FocusOverlayView;
+import framework.Util.InferenceOverlayView;
 import framework.Util.Util;
 
 public class CameraDeviceManager extends HandlerThread implements SensorEventListener {
     private final String TAG = "CameraDeviceManager";
 
     private Context context;
-    private View subject;
-    private View focusSubject;
-    private IntenalOverlayView overlayView;
-    private IntenalOverlayView focusView;
+    private InferenceOverlayView overlayView;
+    private FocusOverlayView focusView;
 
     private Handler myHandler;
 
@@ -205,20 +204,19 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         return super.quit();
     }
 
-    public CameraDeviceManager(Context context, View subject, View focusSubject) {
+    public CameraDeviceManager(Context context, View inferenceLayout, View focusLayout) {
         super("CameraDeviceManager");
 
         this.context = context;
-        this.subject = subject;
 
         this.isStarted = false;
         this.lensFacing = LensFacing.BACK;
 
-        this.overlayView = new IntenalOverlayView(context);
-        ((RelativeLayout) subject).addView(this.overlayView);
+        this.overlayView = new InferenceOverlayView(context);
+        ((RelativeLayout) inferenceLayout).addView(this.overlayView);
 
-        this.focusView = new IntenalOverlayView(context);
-        ((RelativeLayout) focusSubject).addView(this.focusView);
+        this.focusView = new FocusOverlayView(context);
+        ((RelativeLayout) focusLayout).addView(this.focusView);
 
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -461,32 +459,32 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private void drawCircle(boolean removeCircle, PointF pointF){
 
         if (removeCircle) {
+
             focusView.setFocus(true, pointF, Color.WHITE);
 
-            //FIXME
             new Handler().post(new Runnable() {
                 @Override
                 public void run() {
                     focusView.postInvalidate();
                 }
             });
-
             new Handler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     focusView.postInvalidate();
                 }
             }, 300);
-        } else {
-            focusView.setFocus(true, pointF, Color.YELLOW);
 
-            //FIXME
+        } else {
+
+            focusView.setFocus(true, pointF, Color.YELLOW);
             new Handler().post(new Runnable() {
                 @Override
                 public void run() {
                     focusView.postInvalidate();
                 }
             });
+
         }
 
     }
