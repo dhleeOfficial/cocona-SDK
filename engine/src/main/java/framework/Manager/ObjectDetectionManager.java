@@ -13,15 +13,13 @@ import android.util.Size;
 
 import androidx.annotation.NonNull;
 
-import java.nio.ByteBuffer;
-
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
 import framework.ObjectDetection.BoxDrawer;
 import framework.ObjectDetection.Classifier;
 import framework.ObjectDetection.ObjectDetectionModel;
 import framework.Thread.InferenceThread;
-import framework.Util.IntenalOverlayView;
+import framework.Util.InferenceOverlayView;
 import framework.Util.Util;
 
 public class ObjectDetectionManager extends HandlerThread implements ImageReader.OnImageAvailableListener, InferenceThread.Callback {
@@ -31,7 +29,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
     private Handler myHandler;
     private Context context;
-    private IntenalOverlayView intenalOverlayView;
+    private InferenceOverlayView inferenceOverlayView;
 
     private Classifier classifier;
     private Matrix transCropToFrame;
@@ -46,10 +44,10 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
     private byte[][] yuvBytes = new byte[3][];
 
-    public ObjectDetectionManager(Context context, IntenalOverlayView intenalOverlayView) {
+    public ObjectDetectionManager(Context context, InferenceOverlayView inferenceOverlayView) {
         super("ObjectDetectionManager");
         this.context = context;
-        this.intenalOverlayView = intenalOverlayView;
+        this.inferenceOverlayView = inferenceOverlayView;
     }
 
     @Override
@@ -115,7 +113,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
     @Override
     public void onComplete() {
-        intenalOverlayView.postInvalidate();
+        inferenceOverlayView.postInvalidate();
         isDone = true;
     }
 
@@ -142,8 +140,8 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         inferenceThread.setCallback(this);
         inferenceThread.setMatrix(transCropToFrame);
 
-        intenalOverlayView.unRegisterAllDrawCallback();
-        intenalOverlayView.registerDrawCallback(new IntenalOverlayView.DrawCallback() {
+        inferenceOverlayView.unRegisterAllDrawCallback();
+        inferenceOverlayView.registerDrawCallback(new InferenceOverlayView.DrawCallback() {
             @Override
             public void onDraw(Canvas canvas) {
                 boxDrawer.draw(canvas);

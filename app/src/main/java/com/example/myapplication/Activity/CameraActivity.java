@@ -29,6 +29,7 @@ import com.example.myapplication.R;
 public class CameraActivity extends AppCompatActivity {
     private TextureView tv;
     private RelativeLayout rl;
+    private RelativeLayout fl;
 
     private ToggleButton flash;
     private ToggleButton lens;
@@ -54,8 +55,9 @@ public class CameraActivity extends AppCompatActivity {
         setContentView(R.layout.activity_camera);
 
         rl = findViewById(R.id.relativeLayout);
+        fl = findViewById(R.id.focusLayout);
 
-        engine = new CameraEngine(myActivity, rl);
+        engine = new CameraEngine(myActivity, rl, fl);
         engine.startEngine();
 
         engineUtil = new CameraEngine.Util();
