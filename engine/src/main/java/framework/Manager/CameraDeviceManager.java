@@ -2,6 +2,7 @@ package framework.Manager;
 
 import android.content.Context;
 
+import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.PointF;
 import android.graphics.Rect;
@@ -53,7 +54,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     private Context context;
     private View subject;
+    private View focusSubject;
     private IntenalOverlayView overlayView;
+    private IntenalOverlayView focusView;
 
     private Handler myHandler;
 
@@ -202,7 +205,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         return super.quit();
     }
 
-    public CameraDeviceManager(Context context, View subject) {
+    public CameraDeviceManager(Context context, View subject, View focusSubject) {
         super("CameraDeviceManager");
 
         this.context = context;
@@ -213,6 +216,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
         this.overlayView = new IntenalOverlayView(context);
         ((RelativeLayout) subject).addView(this.overlayView);
+
+        this.focusView = new IntenalOverlayView(context);
+        ((RelativeLayout) focusSubject).addView(this.focusView);
 
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -273,6 +279,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_AREA_FOCUS : {
                         areaFocus((PointF) msg.obj);
+                        drawCircle(true, (PointF) msg.obj);
                         isLocked = false;
 
                         return true;
@@ -280,6 +287,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                     case ThreadMessage.EngineMessage.MSG_ENGINE_LOCK_FOCUS : {
                         areaFocus((PointF) msg.obj);
                         Log.i(TAG, "Focus Locked");
+                        drawCircle(false, (PointF) msg.obj);
                         isLocked = true;
 
                         return true;
@@ -450,23 +458,41 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         }
     }
 
+    private void drawCircle(boolean removeCircle, PointF pointF){
+
+        if (removeCircle) {
+            focusView.setFocus(true, pointF, Color.WHITE);
+
+            //FIXME
+            new Handler().post(new Runnable() {
+                @Override
+                public void run() {
+                    focusView.postInvalidate();
+                }
+            });
+
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    focusView.postInvalidate();
+                }
+            }, 300);
+        } else {
+            focusView.setFocus(true, pointF, Color.YELLOW);
+
+            //FIXME
+            new Handler().post(new Runnable() {
+                @Override
+                public void run() {
+                    focusView.postInvalidate();
+                }
+            });
+        }
+
+    }
+
     private void areaFocus(PointF pointF) {
-        overlayView.setFocus(true, pointF);
 
-        //FIXME
-        new Handler().post(new Runnable() {
-            @Override
-            public void run() {
-                overlayView.postInvalidate();
-            }
-        });
-
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                overlayView.postInvalidate();
-            }
-        }, 500);
 
         try {
             CameraCharacteristics cc = cameraManager.getCameraCharacteristics(enableCameraId);

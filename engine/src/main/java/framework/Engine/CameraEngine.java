@@ -17,6 +17,7 @@ import framework.Message.ThreadMessage;
 public class CameraEngine {
     private Context context;
     private View subject;
+    private View focusSubject;
 
     private CameraDeviceManager cameraDeviceManager;
     private Handler cameraHandler;
@@ -81,13 +82,14 @@ public class CameraEngine {
         }
     }
 
-    public CameraEngine(Context context, View subject) {
+    public CameraEngine(Context context, View subject, View focusSubject) {
         this.context = context;
         this.subject = subject;
+        this.focusSubject = focusSubject;
     }
 
     public void startEngine() {
-        cameraDeviceManager = new CameraDeviceManager(context, subject);
+        cameraDeviceManager = new CameraDeviceManager(context, subject, focusSubject);
         cameraDeviceManager.start();
     }
 

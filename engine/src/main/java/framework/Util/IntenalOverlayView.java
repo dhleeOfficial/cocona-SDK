@@ -16,6 +16,7 @@ public class IntenalOverlayView extends View {
     private Context context;
     private boolean isFocus = false;
     private PointF touchPoint;
+    private int color = Color.WHITE;
 
     public interface DrawCallback {
         void onDraw(final Canvas canvas);
@@ -49,9 +50,10 @@ public class IntenalOverlayView extends View {
         drawCallbacks.clear();
     }
 
-    public void setFocus(boolean isFocus, PointF pointF) {
+    public void setFocus(boolean isFocus, PointF pointF, int color) {
         this.isFocus = isFocus;
         this.touchPoint = pointF;
+        this.color = color;
     }
 
     @Override
@@ -60,9 +62,10 @@ public class IntenalOverlayView extends View {
             for (final DrawCallback drawCallback : drawCallbacks) {
                 drawCallback.onDraw(canvas);
             }
+        } else {
             if (isFocus == true) {
                 Paint paint = new Paint();
-                paint.setColor(Color.WHITE);
+                paint.setColor(this.color);
                 paint.setStyle(Paint.Style.STROKE);
                 canvas.drawCircle(touchPoint.x, touchPoint.y, 80, paint);
 
