@@ -204,7 +204,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         return super.quit();
     }
 
-    public CameraDeviceManager(Context context, View inferenceLayout, View focusLayout) {
+    public CameraDeviceManager(Context context, View relativeLayout) {
         super("CameraDeviceManager");
 
         this.context = context;
@@ -213,10 +213,10 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         this.lensFacing = LensFacing.BACK;
 
         this.overlayView = new InferenceOverlayView(context);
-        ((RelativeLayout) inferenceLayout).addView(this.overlayView);
+        ((RelativeLayout) relativeLayout).addView(this.overlayView);
 
         this.focusView = new FocusOverlayView(context);
-        ((RelativeLayout) focusLayout).addView(this.focusView);
+        ((RelativeLayout) relativeLayout).addView(this.focusView);
 
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);

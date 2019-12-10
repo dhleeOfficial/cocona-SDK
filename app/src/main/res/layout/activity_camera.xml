@@ -19,12 +19,6 @@
         app:layout_constraintVertical_bias="0.0" />
 
     <RelativeLayout
-        android:id="@+id/focusLayout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@android:color/transparent"/>
-
-    <RelativeLayout
         android:id="@+id/relativeLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
