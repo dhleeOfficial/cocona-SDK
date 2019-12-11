@@ -17,4 +17,9 @@ public class ThreadMessage {
     public class ODMessage {
         public static final int MSG_OD_SETUP = 0;
     }
+
+    public class RecordMessage {
+        public static final int MSG_RECORD_START = 0;
+        public static final int MSG_RECORD_STOP = 1;
+    }
 }

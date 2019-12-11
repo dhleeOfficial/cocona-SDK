@@ -77,10 +77,14 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private CaptureRequest.Builder captureRequestBuilder;
 
     // OBJECT DETECTION
-    private ImageReader imageReader;
+    private ImageReader objectDetectionImageReader;
     private ObjectDetectionManager objectDetectionManager;
 
-    //ZOOM
+    // RECORD MANAGER
+    private ImageReader recordImageReader;
+    private RecordManager recordManager;
+
+    // ZOOM
     private float spacing = 0f;
     private float zoomLevel = 1f;
     private Rect zoomRect;
@@ -89,8 +93,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private double exposureLevel = 0.0;
 
     // CURRENT STATUS FLAGS
-    private boolean isStarted;
-    private boolean isFlash;
     private boolean isLocked = true;
     private LensFacing lensFacing;
 
@@ -107,20 +109,15 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-            Log.e(TAG, "onSurfaceTextureAvailable()");
-
             initCamera(width, height);
         }
 
         @Override
         public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-            Log.e(TAG, "onSurfaceTextureSizeChanged()");
         }
 
         @Override
         public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-            Log.e(TAG, "onSurfaceTextureDestroyed()");
-
             stopPreview();
 
             return true;
@@ -128,7 +125,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
         @Override
         public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-            //Log.e(TAG, "onSurfaceTextureUpdated()");
         }
     };
 
@@ -154,7 +150,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         motionZ = event.values[2];
     }
 
-    public void onAccuracyChanged(Sensor arg0, int arg1) { }
+    public void onAccuracyChanged(Sensor arg0, int arg1) {}
 
     private CameraCaptureSession.CaptureCallback captureCallback =  new CameraCaptureSession.CaptureCallback() {
         @Override
@@ -196,11 +192,13 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         //FIXME
         try {
             objectDetectionManager.join();
+            recordManager.join();
         } catch (InterruptedException ie) {
             ie.printStackTrace();
         }
 
         backgroundThread.quitSafely();
+
         return super.quit();
     }
 
@@ -209,7 +207,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
         this.context = context;
 
-        this.isStarted = false;
         this.lensFacing = LensFacing.BACK;
 
         this.overlayView = new InferenceOverlayView(context);
@@ -222,8 +219,13 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
 
+        // CREATE ObjectDetectionManager
         objectDetectionManager = new ObjectDetectionManager(this.context, this.overlayView);
         objectDetectionManager.start();
+
+        // CREATE RecordManager
+        recordManager = new RecordManager(this.context);
+        recordManager.start();
     }
 
     @Override
@@ -313,7 +315,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     /*
         CameraDeviceManager private function
-     */
+    */
+
     private synchronized void setUpPreview(final TextureView textureView) {
         if (this.textureView != textureView) {
             this.textureView = textureView;
@@ -324,7 +327,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         } else {
             textureView.setSurfaceTextureListener(textureListener);
         }
-
     }
 
     private synchronized void stopPreview() {
@@ -335,12 +337,10 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                 cameraDevice.close();
                 cameraDevice = null;
             }
-
             if (cameraCaptureSession != null) {
                 cameraCaptureSession.close();
                 cameraCaptureSession = null;
             }
-
         } catch (InterruptedException ie) {
             ie.printStackTrace();
         } finally {
@@ -350,7 +350,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     private void flash(boolean isFlash) {
         if ((cameraDevice != null) && (hasFlash == true)){
-            this.isFlash = isFlash;
             try {
                 if (isFlash == true) {
                     captureRequestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_TORCH);
@@ -368,13 +367,20 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private void lensFacing(LensFacing lensFacing) {
         this.lensFacing = lensFacing;
 
-        //TODO
         stopPreview();
         initCamera(previewSize.getWidth(), previewSize.getHeight());
     }
 
     private void record(boolean isRecord) {
+        Handler recordHandler = recordManager.getHandler();
 
+        if (recordHandler != null) {
+            if (isRecord == true) {
+                recordHandler.sendMessage(recordHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, previewSize));
+            } else {
+                recordHandler.sendMessage(recordHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
+            }
+        }
     }
 
     private void zoom(float spacing) {
@@ -404,6 +410,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                     }
                     zoomLevel = zoomLevel - delta;
                 }
+
                 float ratio = (float) 1 / zoomLevel;
                 int cropWidth = rect.width() - Math.round((float) rect.width() * ratio);
                 int cropHeight = rect.height() - Math.round((float) rect.height() * ratio);
@@ -411,6 +418,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                 zoomRect = new Rect(cropWidth / 2, cropHeight / 2, (rect.width() - cropWidth / 2), (rect.height() - cropHeight / 2));
                 captureRequestBuilder.set(CaptureRequest.SCALER_CROP_REGION, zoomRect);
             }
+
             this.spacing = spacing;
             cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
         } catch (CameraAccessException ce) {
@@ -457,9 +465,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     }
 
     private void drawCircle(boolean removeCircle, PointF pointF){
-
         if (removeCircle) {
-
             focusView.setFocus(true, pointF, Color.WHITE);
 
             new Handler().post(new Runnable() {
@@ -490,8 +496,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     }
 
     private void areaFocus(PointF pointF) {
-
-
         try {
             CameraCharacteristics cc = cameraManager.getCameraCharacteristics(enableCameraId);
             Rect rect = cc.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
@@ -515,20 +519,18 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             if ((cc.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF) >= 1) ==  true) {
                 captureRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{meteringRectangle});
             }
-//            captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
             captureRequestBuilder.setTag("FOCUS");
 
             cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), captureCallback, backgroundHandler);
-
         } catch (CameraAccessException ce) {
             ce.printStackTrace();
         }
     }
 
     private void autoFocus() {
-
         try {
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO);
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
@@ -536,7 +538,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
-
     }
 
     private void filter(Filter filter) {
@@ -646,12 +647,17 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
             captureRequestBuilder.addTarget(sf);
 
-            imageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
-            imageReader.setOnImageAvailableListener(objectDetectionManager, objectDetectionManager.getHandler());
+            objectDetectionImageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
+            objectDetectionImageReader.setOnImageAvailableListener(objectDetectionManager, objectDetectionManager.getHandler());
 
-            captureRequestBuilder.addTarget(imageReader.getSurface());
+            captureRequestBuilder.addTarget(objectDetectionImageReader.getSurface());
 
-            cameraDevice.createCaptureSession(Arrays.asList(sf, imageReader.getSurface()), captureStateCallback, backgroundHandler);
+            recordImageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
+            recordImageReader.setOnImageAvailableListener(recordManager, recordManager.getHandler());
+
+            captureRequestBuilder.addTarget(recordImageReader.getSurface());
+
+            cameraDevice.createCaptureSession(Arrays.asList(sf, objectDetectionImageReader.getSurface(), recordImageReader.getSurface()), captureStateCallback, backgroundHandler);
         } catch (CameraAccessException ce) {
             ce.printStackTrace();
         }

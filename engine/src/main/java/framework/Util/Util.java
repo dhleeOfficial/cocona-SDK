@@ -193,4 +193,42 @@ public class Util {
         }
         return bitmap;
     }
+
+    public static byte[] YUVtoByteArray(Image image) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        Image.Plane[] planes = image.getPlanes();
+        byte[] result = new byte[width * height * 3 / 2];
+        int stride = planes[0].getRowStride();
+
+        if (stride == width) {
+            planes[0].getBuffer().get(result, 0, width);
+        } else {
+            for (int row = 0; row < height; row++) {
+                planes[0].getBuffer().position(row * stride);
+                planes[0].getBuffer().get(result, row * width, width);
+            }
+        }
+
+        stride = planes[1].getRowStride();
+
+        byte[] rowBytesCb = new byte[stride];
+        byte[] rowBytesCr = new byte[stride];
+
+        for (int row = 0; row < height / 2; row++) {
+            int rowOffset = width * height + width / 2 * row;
+
+            planes[1].getBuffer().position(row * stride);
+            planes[1].getBuffer().get(rowBytesCb, 0, width / 2);
+            planes[2].getBuffer().position(row * stride);
+            planes[2].getBuffer().get(rowBytesCr, 0, width / 2);
+
+            for (int col = 0; col < width / 2; col++) {
+                result[rowOffset + col * 2] = rowBytesCr[col];
+                result[rowOffset + col * 2 + 1] = rowBytesCb[col];
+            }
+        }
+        return result;
+    }
 }

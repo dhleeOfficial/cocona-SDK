@@ -3,11 +3,8 @@ package framework.Thread;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.RectF;
-import android.media.Image;
-import android.util.Log;
 import android.util.Size;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -18,7 +15,7 @@ import framework.Util.Util;
 
 public class InferenceThread implements Runnable {
     private static final float MINIMUM_CONFIDENCE = 0.5f;
-    private final int INPUT_SIZE;
+    private static int INPUT_SIZE;
     private boolean isComplete = false;
 
     private Size previewSize;
@@ -32,8 +29,9 @@ public class InferenceThread implements Runnable {
     int yRowStride;
     int uvRowStride;
     int uvPixelStride;
-    int[] rgbBytes;
     //
+
+    byte[] temp;
 
     private Bitmap imageRGBBitmap;
     private Bitmap cropBitmap;
@@ -78,7 +76,7 @@ public class InferenceThread implements Runnable {
 
     @Override
     public void run() {
-        rgbBytes = new int[previewSize.getWidth() * previewSize.getHeight()];
+        int[] rgbBytes = new int[previewSize.getWidth() * previewSize.getHeight()];
 
         Util.convertYUV420ToARGB8888(yuvBytes[0], yuvBytes[1], yuvBytes[2], previewSize.getWidth(), previewSize.getHeight(),
                                      yRowStride, uvRowStride, uvPixelStride, rgbBytes);

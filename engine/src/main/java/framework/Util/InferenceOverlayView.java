@@ -20,18 +20,21 @@ public class InferenceOverlayView extends View {
 
     public InferenceOverlayView(Context context) {
         super(context);
+
         this.context = context;
         setBackgroundColor(Color.TRANSPARENT);
     }
 
     public InferenceOverlayView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
+
         this.context = context;
         setBackgroundColor(Color.TRANSPARENT);
     }
 
     public InferenceOverlayView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+
         this.context = context;
         setBackgroundColor(Color.TRANSPARENT);
     }

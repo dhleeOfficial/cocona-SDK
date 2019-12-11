@@ -46,6 +46,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
     public ObjectDetectionManager(Context context, InferenceOverlayView inferenceOverlayView) {
         super("ObjectDetectionManager");
+
         this.context = context;
         this.inferenceOverlayView = inferenceOverlayView;
     }
@@ -68,6 +69,8 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                 switch (msg.arg1) {
                     case ThreadMessage.ODMessage.MSG_OD_SETUP : {
                         setUpOD((MessageObject.BoxMessageObject) msg.obj);
+
+                        return true;
                     }
                 }
                 return false;
@@ -80,9 +83,8 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         Image image = null;
 
         try {
+            image = reader.acquireNextImage();
             if (isReady == true) {
-                image = reader.acquireNextImage();
-
                 if (image != null) {
                     // TODO : CHECK RECORD
                     if (isDone == true) {
@@ -94,6 +96,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                         Util.convertImageToBytes(planes, yuvBytes);
 
                         inferenceThread.setInfo(yuvBytes, yRowStride, uvRowStride, uvPixelStride);
+
                         Thread t = new Thread(inferenceThread);
                         t.start();
 
@@ -109,7 +112,6 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
             }
         }
     }
-
 
     @Override
     public void onComplete() {
