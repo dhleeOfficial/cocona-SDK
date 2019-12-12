@@ -8,41 +8,69 @@ import com.arthenica.mobileffmpeg.FFmpeg;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 
 public class FFmpegThread implements Runnable {
     private Context context;
-    private Callback callback;
+    private ArrayList<Callback> callbackList = new ArrayList<Callback>();
 
-    private String pipe;
-
-    public FFmpegThread(Context context, Callback callback) {
-        this.context = context;
-        this.callback = callback;
-    }
+    private String videoPipe;
+    private String audioPipe;
 
     public interface Callback {
-        void onReadyPipe(String pipe);
+        void onReadyPipe(String videoPipe, String audioPipe);
         void onOpenPipe();
         void onTerminatePipe();
     }
 
-    public void requestPipe() {
-        pipe = Config.registerNewFFmpegPipe(context);
+    // TODO : Singleton Instance
+    private FFmpegThread() {
+    }
 
-        callback.onReadyPipe(pipe);
+    private static class InstanceHolder {
+        private static final FFmpegThread inst = new FFmpegThread();
+    }
+
+    public static FFmpegThread getInstance() {
+        return InstanceHolder.inst;
+    }
+
+    public void setContext(Context context) {
+        this.context = context;
+    }
+
+    public void addCallback(Callback callback) {
+        callbackList.add(callback);
+    }
+
+    public void requestPipe() {
+        videoPipe = Config.registerNewFFmpegPipe(context);
+        audioPipe = Config.registerNewFFmpegPipe(context);
+
+        for (final Callback cb : callbackList) {
+            cb.onReadyPipe(videoPipe, audioPipe);
+        }
     }
 
     public void requestTerminate() {
         FFmpeg.cancel();
-        callback.onTerminatePipe();
+
+        for (final Callback cb : callbackList) {
+            cb.onTerminatePipe();
+        }
     }
 
     @Override
     public void run() {
-        callback.onOpenPipe();
-        String command = "-f h264" + " -i " + pipe + " -c copy " + "-f mp4 " + getOutputMediaFile().getPath();
+        for (final Callback cb : callbackList) {
+            cb.onOpenPipe();
+        }
+
+//        String command = "-f h264 -r 30 -i " + videoPipe + " -f m4a -i " + audioPipe + " -map 0:v 1:a" +
+//                " -muxdelay 0 -vsync 2 -max_muxing_queue_size 9999 -c copy -f mp4 " + getOutputMediaFile().getPath();
+        String command = "-f h264 -r 30 -i " + videoPipe + " -muxdelay 0 -vsync 2 -max_muxing_queue_size 9999 -c copy -f mp4 " + getOutputMediaFile().getPath();
         FFmpeg.execute(command);
     }
 

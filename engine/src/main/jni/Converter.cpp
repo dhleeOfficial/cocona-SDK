@@ -1,6 +1,7 @@
 //
-// Created by Aaron on 2019-12-09.
+// Created by Aaron on 2019-12-12.
 //
+
 #include <jni.h>
 #include <string.h>
 #include <android/log.h>
@@ -11,6 +12,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <Converter.h>
 
 uint8_t *buf;
 uint8_t *bbuf_yIn;
@@ -54,7 +56,7 @@ bool SPtoI420(const uint8_t *src, uint8_t *dst, int width, int height, bool isNV
 
 extern "C"
 JNIEXPORT jbyteArray JNICALL
-Java_framework_Manager_RecordManager_YUVtoBytes(JNIEnv *env, jobject instance,
+Java_framework_Manager_VideoManager_YUVtoBytes(JNIEnv *env, jobject instance,
                                                 jobject yPlane, jobject uPlane, jobject vPlane,
                                                 jint yPixelStride, jint yRowStride,
                                                 jint uPixelStride, jint uRowStride,

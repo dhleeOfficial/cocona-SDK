@@ -1,11 +1,11 @@
 package framework.Util;
 
-public class RecordImageData {
+public class RecordData {
     byte[] buffer;
     long presentationTimeUS;
     boolean isEOS;
 
-    public RecordImageData(byte[] buffer, long presentationTimeUS, boolean isEOS) {
+    public RecordData(byte[] buffer, long presentationTimeUS, boolean isEOS) {
         this.buffer = buffer.clone();
         this.presentationTimeUS = presentationTimeUS;
         this.isEOS = isEOS;

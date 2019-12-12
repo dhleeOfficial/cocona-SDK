@@ -46,6 +46,7 @@ import java.util.Arrays;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import framework.Thread.FFmpegThread;
 import framework.Util.FocusOverlayView;
 import framework.Util.InferenceOverlayView;
 import framework.Util.Util;
@@ -80,9 +81,12 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private ImageReader objectDetectionImageReader;
     private ObjectDetectionManager objectDetectionManager;
 
-    // RECORD MANAGER
+    // VIDEO MANAGER
     private ImageReader recordImageReader;
-    private RecordManager recordManager;
+    private VideoManager videoManager;
+
+    // AUDIO MANAGER
+    private AudioManager audioManager;
 
     // ZOOM
     private float spacing = 0f;
@@ -192,7 +196,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         //FIXME
         try {
             objectDetectionManager.join();
-            recordManager.join();
+            videoManager.join();
         } catch (InterruptedException ie) {
             ie.printStackTrace();
         }
@@ -223,9 +227,17 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         objectDetectionManager = new ObjectDetectionManager(this.context, this.overlayView);
         objectDetectionManager.start();
 
-        // CREATE RecordManager
-        recordManager = new RecordManager(this.context);
-        recordManager.start();
+        // CREATE Video & Audio Manager
+        FFmpegThread.getInstance().setContext(context);
+
+        videoManager = new VideoManager();
+        FFmpegThread.getInstance().addCallback(videoManager);
+
+        //audioManager = new AudioManager();
+        //FFmpegThread.getInstance().addCallback(audioManager);
+
+        videoManager.start();
+        //audioManager.start();
     }
 
     @Override
@@ -372,13 +384,16 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     }
 
     private void record(boolean isRecord) {
-        Handler recordHandler = recordManager.getHandler();
+        Handler videoHandler = videoManager.getHandler();
+//        Handler audioHandler = audioManager.getHandler();
 
-        if (recordHandler != null) {
+        if (/*(*/videoHandler != null/*) && (audioHandler != null)*/){
             if (isRecord == true) {
-                recordHandler.sendMessage(recordHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, previewSize));
+                videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, previewSize));
+                //audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, null));
             } else {
-                recordHandler.sendMessage(recordHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
+                videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
+                //audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
             }
         }
     }
@@ -653,7 +668,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             captureRequestBuilder.addTarget(objectDetectionImageReader.getSurface());
 
             recordImageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
-            recordImageReader.setOnImageAvailableListener(recordManager, recordManager.getHandler());
+            recordImageReader.setOnImageAvailableListener(videoManager, videoManager.getHandler());
 
             captureRequestBuilder.addTarget(recordImageReader.getSurface());
 

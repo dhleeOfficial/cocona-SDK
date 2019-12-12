@@ -1,6 +1,5 @@
 package framework.Manager;
 
-import android.content.Context;
 import android.media.Image;
 import android.media.ImageReader;
 import android.media.MediaCodec;
@@ -25,29 +24,27 @@ import java.util.Queue;
 
 import framework.Message.ThreadMessage;
 import framework.Thread.FFmpegThread;
-import framework.Util.RecordImageData;
+import framework.Util.RecordData;
 
-public class RecordManager extends HandlerThread implements ImageReader.OnImageAvailableListener, FFmpegThread.Callback {
-    private Context context;
+public class VideoManager extends HandlerThread implements ImageReader.OnImageAvailableListener, FFmpegThread.Callback {
     private Handler myHandler;
+    private Size previewSize;
 
-    // VIDEO FORMAT VALUE
-    private static final String MIME_TYPE = "video/avc";
+    // VIDEO
+    private static final String MIME_TYPE = MediaFormat.MIMETYPE_VIDEO_AVC;
     private static final int BIT_RATE = 2000000;
     private static final int FRAME_RATE = 30;
     private static final int IFRAME_INTERVAL = 10;
-    Queue<RecordImageData> dataQueue = new LinkedList<RecordImageData>();
 
-    MediaFormat mediaFormat;
-    MediaCodec mediaCodec;
-    MediaCodecInfo mediaCodecInfo;
+    MediaFormat videoFormat;
+    MediaCodec videoCodec;
+    MediaCodecInfo videoCodecInfo;
 
-    private Size previewSize;
+    Queue<RecordData> videoQueue = new LinkedList<RecordData>();
 
-    // FFMPEGTHREAD
-    private FFmpegThread fFmpegThread;
-    private Thread thread;
-    private String openPipe;
+    private Thread videoThread = null;
+
+    private String videoPipe;
     private boolean isOpenPipe = false;
 
     BufferedOutputStream bufferedOutputStream = null;
@@ -56,12 +53,19 @@ public class RecordManager extends HandlerThread implements ImageReader.OnImageA
     private boolean isStart = false;
     private boolean isEOS = false;
 
-    private MediaCodec.Callback codecCallback = new MediaCodec.Callback() {
+    static {
+        System.loadLibrary("image-convert");
+    }
+
+    public native byte[] YUVtoBytes(ByteBuffer y, ByteBuffer u, ByteBuffer v, int yPixelStride, int yRowStride,
+                                    int uPixelStride, int uRowStride, int vPixelStride, int vRowStride, int imgWidth, int imgHeight);
+
+    private MediaCodec.Callback videoCallback = new MediaCodec.Callback() {
         @Override
         public void onInputBufferAvailable(@NonNull MediaCodec codec, int index) {
             ByteBuffer in = codec.getInputBuffer(index);
 
-            RecordImageData data = dataQueue.poll();
+            final RecordData data = videoQueue.poll();
 
             if ((data != null) && (in != null)) {
                 in.clear();
@@ -95,7 +99,7 @@ public class RecordManager extends HandlerThread implements ImageReader.OnImageA
                 if (isOpenPipe == true) {
                     if (bufferedOutputStream == null) {
                         try {
-                            bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(openPipe));
+                            bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(videoPipe));
                         } catch (FileNotFoundException fe) {
                             fe.printStackTrace();
                         }
@@ -117,7 +121,7 @@ public class RecordManager extends HandlerThread implements ImageReader.OnImageA
                 if (info.flags == MediaCodec.BUFFER_FLAG_END_OF_STREAM) {
                     stopCodec();
                     isEOS = false;
-                    fFmpegThread.requestTerminate();
+                    FFmpegThread.getInstance().requestTerminate();
                 }
             }
         }
@@ -133,17 +137,8 @@ public class RecordManager extends HandlerThread implements ImageReader.OnImageA
         }
     };
 
-    static {
-        System.loadLibrary("image-convert");
-    }
-
-    public native byte[] YUVtoBytes(ByteBuffer y, ByteBuffer u, ByteBuffer v, int yPixelStride, int yRowStride,
-                                     int uPixelStride, int uRowStride, int vPixelStride, int vRowStride, int imgWidth, int imgHeight);
-
-    public RecordManager(Context context) {
-        super("RecordManager");
-
-        this.context = context;
+    public VideoManager() {
+        super("VideoManager");
     }
 
     @Override
@@ -156,9 +151,10 @@ public class RecordManager extends HandlerThread implements ImageReader.OnImageA
                 switch(msg.arg1) {
                     case ThreadMessage.RecordMessage.MSG_RECORD_START : {
                         initMediaFormat((Size) msg.obj);
-                        mediaCodecInfo = initMeidaCodeInfo();
+                        videoCodecInfo = initMeidaCodeInfo();
                         initMediaCodec();
-                        initFFmpegThread();
+
+                        FFmpegThread.getInstance().requestPipe();
 
                         isStart = true;
 
@@ -202,7 +198,7 @@ public class RecordManager extends HandlerThread implements ImageReader.OnImageA
                             image.getWidth(),
                             image.getHeight());
 
-                    dataQueue.add(new RecordImageData(buffer, image.getTimestamp(), isEOS));
+                    videoQueue.add(new RecordData(buffer, image.getTimestamp(), isEOS));
 
                     if (isEOS == true) {
                         isStart = false;
@@ -219,11 +215,13 @@ public class RecordManager extends HandlerThread implements ImageReader.OnImageA
     }
 
     @Override
-    public void onReadyPipe(String pipe) {
-        openPipe = pipe;
+    public void onReadyPipe(String videoPipe, String audioPipe) {
+        this.videoPipe = videoPipe;
 
-        thread = new Thread(fFmpegThread);
-        thread.start();
+        if (videoThread == null) {
+            videoThread = new Thread(FFmpegThread.getInstance());
+            videoThread.start();
+        }
     }
 
     @Override
@@ -233,10 +231,9 @@ public class RecordManager extends HandlerThread implements ImageReader.OnImageA
 
     @Override
     public void onTerminatePipe() {
-        thread.interrupt();
+        videoThread.interrupt();
+        videoThread = null;
 
-        fFmpegThread = null;
-        thread = null;
         isOpenPipe = false;
 
         try {
@@ -245,7 +242,6 @@ public class RecordManager extends HandlerThread implements ImageReader.OnImageA
         } catch (IOException ie) {
             ie.printStackTrace();
         }
-
     }
 
     public final Handler getHandler() {
@@ -255,11 +251,11 @@ public class RecordManager extends HandlerThread implements ImageReader.OnImageA
     private void initMediaFormat(Size size) {
         previewSize = size;
 
-        mediaFormat = MediaFormat.createVideoFormat(MIME_TYPE, previewSize.getWidth(), previewSize.getHeight());
-        mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible);;
-        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
-        mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE);
-        mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL);
+        videoFormat = MediaFormat.createVideoFormat(MIME_TYPE, previewSize.getWidth(), previewSize.getHeight());
+        videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible);;
+        videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
+        videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE);
+        videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL);
     }
 
     private MediaCodecInfo initMeidaCodeInfo() {
@@ -285,31 +281,24 @@ public class RecordManager extends HandlerThread implements ImageReader.OnImageA
     }
 
     private void initMediaCodec() {
-        mediaCodec = null;
+        videoCodec = null;
 
-        if (mediaCodecInfo != null) {
+        if (videoCodecInfo != null) {
             try {
-                mediaCodec = MediaCodec.createByCodecName(mediaCodecInfo.getName());
-                mediaCodec.setCallback(codecCallback);
-                mediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+                videoCodec = MediaCodec.createByCodecName(videoCodecInfo.getName());
+                videoCodec.setCallback(videoCallback);
+                videoCodec.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
 
-                mediaCodec.start();
+                videoCodec.start();
             } catch (IOException ie) {
                 ie.printStackTrace();
             }
         }
     }
 
-    private void initFFmpegThread() {
-        if (fFmpegThread == null) {
-            fFmpegThread = new FFmpegThread(context, this);
-            fFmpegThread.requestPipe();
-        }
-    }
-
     private void stopCodec() {
-        mediaCodec.stop();
-        mediaCodec.release();
-        mediaCodec = null;
+        videoCodec.stop();
+        videoCodec.release();
+        videoCodec = null;
     }
 }
