@@ -32,9 +32,9 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
 
     // VIDEO
     private static final String MIME_TYPE = MediaFormat.MIMETYPE_VIDEO_AVC;
-    private static final int BIT_RATE = 2000000;
+    private static final int BIT_RATE = 4000000;
     private static final int FRAME_RATE = 30;
-    private static final int IFRAME_INTERVAL = 10;
+    private static final float IFRAME_INTERVAL = 0.5f;
 
     MediaFormat videoFormat;
     MediaCodec videoCodec;
@@ -255,7 +255,8 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
         videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible);;
         videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
         videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE);
-        videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL);
+        //videoFormat.setInteger(MediaFormat.KEY_PROFILE, )
+        videoFormat.setFloat(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL);
     }
 
     private MediaCodecInfo initMeidaCodeInfo() {

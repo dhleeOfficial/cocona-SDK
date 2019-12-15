@@ -72,16 +72,17 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
         @Override
         public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index, @NonNull MediaCodec.BufferInfo info) {
             if (index >= 0) {
-                if (info.flags == MediaCodec.BUFFER_FLAG_CODEC_CONFIG) {
-                    //codec.releaseOutputBuffer(index, false);
-                    //return;
-                }
-
                 ByteBuffer out = codec.getOutputBuffer(index);
-                byte[] outBytes = new byte[info.size];
+
+                out.position(info.offset);
+                out.limit(info.offset + info.size);
+
+                byte[] outBytes = new byte[info.size + 7];
+
+                addADTSHeader(outBytes, outBytes.length);
 
                 if (out != null) {
-                    out.get(outBytes);
+                    out.get(outBytes, 7, info.size);
                 }
 
                 if (isOpenPipe == true) {
@@ -214,6 +215,19 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
         }
     }
 
+    private void addADTSHeader(byte[] header, int headerLen) {
+        int profile = MediaCodecInfo.CodecProfileLevel.AACObjectLC;
+        int sampleIndex = 4; // 44100
+
+        header[0] = (byte) 0xFF;
+        header[1] = (byte) 0xF9;
+        header[2] = (byte) (((profile - 1) << 6) + (sampleIndex << 2) +(CH_COUNT >> 2));
+        header[3] = (byte) (((CH_COUNT & 0x3) << 6) + (headerLen >> 11));
+        header[4] = (byte) ((headerLen & 0x7FF) >> 3);
+        header[5] = (byte) (((headerLen & 0x7) << 5) + 0x1F);
+        header[6] = (byte) 0xFC;
+    }
+
     private void stopCodec() {
         audioCodec.stop();
         audioCodec.release();
@@ -221,7 +235,6 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
     }
 
     private class AudioThread extends Thread {
-        private final int BUFFER_SIZE_FACTOR = 2;
         private final int CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO;
         private final int AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
         private final int[] SAMPLING_RATE = {44100, 11025, 16000, 22050, 8000};

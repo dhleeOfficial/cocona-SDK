@@ -233,11 +233,11 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         videoManager = new VideoManager();
         FFmpegThread.getInstance().addCallback(videoManager);
 
-        //audioManager = new AudioManager();
-        //FFmpegThread.getInstance().addCallback(audioManager);
+        audioManager = new AudioManager();
+        FFmpegThread.getInstance().addCallback(audioManager);
 
         videoManager.start();
-        //audioManager.start();
+        audioManager.start();
     }
 
     @Override
@@ -385,15 +385,15 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     private void record(boolean isRecord) {
         Handler videoHandler = videoManager.getHandler();
-//        Handler audioHandler = audioManager.getHandler();
+        Handler audioHandler = audioManager.getHandler();
 
-        if (/*(*/videoHandler != null/*) && (audioHandler != null)*/){
+        if ((videoHandler != null) && (audioHandler != null)){
             if (isRecord == true) {
                 videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, previewSize));
-                //audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, null));
+                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, null));
             } else {
                 videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
-                //audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
+                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
             }
         }
     }
