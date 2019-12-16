@@ -18,6 +18,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ShortBuffer;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -30,8 +32,8 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
 
     private static final String MIME_TYPE = MediaFormat.MIMETYPE_AUDIO_AAC;
     private static final int SAMPLE_RATE = 44100;
-    private static final int CH_COUNT = 1;
-    private static final int BIT_RATE = 128000;
+    private static final int CH_COUNT = 2;
+    private static final int BIT_RATE = 192000;
 
     AudioThread audioThread = null;
 
@@ -45,6 +47,9 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
     boolean isStart = false;
     boolean isOpenPipe = false;
     boolean isEOS = false;
+
+    //TEST
+    boolean isFirst = true;
 
     String audioPipe;
 
@@ -72,19 +77,6 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
         @Override
         public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index, @NonNull MediaCodec.BufferInfo info) {
             if (index >= 0) {
-                ByteBuffer out = codec.getOutputBuffer(index);
-
-                out.position(info.offset);
-                out.limit(info.offset + info.size);
-
-                byte[] outBytes = new byte[info.size + 7];
-
-                addADTSHeader(outBytes, outBytes.length);
-
-                if (out != null) {
-                    out.get(outBytes, 7, info.size);
-                }
-
                 if (isOpenPipe == true) {
                     if (bufferedOutputStream == null) {
                         try {
@@ -92,6 +84,19 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
                         } catch (FileNotFoundException fe) {
                             fe.printStackTrace();
                         }
+                    }
+
+                    ByteBuffer out = codec.getOutputBuffer(index);
+
+                    out.position(info.offset);
+                    out.limit(info.offset + info.size);
+
+                    byte[] outBytes = new byte[info.size + 7];
+
+                    addADTSHeader(outBytes, outBytes.length);
+
+                    if (out != null) {
+                        out.get(outBytes, 7, info.size);
                     }
 
                     if (bufferedOutputStream != null) {
@@ -159,15 +164,15 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
     @Override
     public void onReadyPipe(String videoPipe, String audioPipe) {
         this.audioPipe = audioPipe;
-
-        if (audioThread == null) {
-            audioThread = new AudioThread();
-            audioThread.start();
-        }
     }
 
     @Override
     public void onOpenPipe() {
+        //isOpenPipe = true;
+        if (audioThread == null) {
+            audioThread = new AudioThread();
+            audioThread.start();
+        }
         isOpenPipe = true;
     }
 
@@ -179,8 +184,10 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
         isOpenPipe = false;
 
         try {
-            bufferedOutputStream.close();
-            bufferedOutputStream = null;
+            if (bufferedOutputStream != null) {
+                bufferedOutputStream.close();
+                bufferedOutputStream = null;
+            }
         } catch (IOException ie) {
             ie.printStackTrace();
         }
@@ -191,12 +198,13 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
     }
 
     private void initMediaFormat() {
-        audioFormat = new MediaFormat();
+        audioFormat = MediaFormat.createAudioFormat(MIME_TYPE, SAMPLE_RATE, CH_COUNT);
 
         audioFormat.setString(MediaFormat.KEY_MIME, MIME_TYPE);
         audioFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
-        audioFormat.setInteger(MediaFormat.KEY_SAMPLE_RATE, SAMPLE_RATE);
-        audioFormat.setInteger(MediaFormat.KEY_CHANNEL_COUNT, CH_COUNT);
+        audioFormat.setInteger(MediaFormat.KEY_CHANNEL_MASK, AudioFormat.CHANNEL_IN_STEREO);
+        //audioFormat.setInteger(MediaFormat.KEY_SAMPLE_RATE, SAMPLE_RATE);
+        //audioFormat.setInteger(MediaFormat.KEY_CHANNEL_COUNT, CH_COUNT);
         audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
     }
 
@@ -219,12 +227,14 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
         int profile = MediaCodecInfo.CodecProfileLevel.AACObjectLC;
         int sampleIndex = 4; // 44100
 
-        header[0] = (byte) 0xFF;
-        header[1] = (byte) 0xF9;
-        header[2] = (byte) (((profile - 1) << 6) + (sampleIndex << 2) +(CH_COUNT >> 2));
-        header[3] = (byte) (((CH_COUNT & 0x3) << 6) + (headerLen >> 11));
-        header[4] = (byte) ((headerLen & 0x7FF) >> 3);
-        header[5] = (byte) (((headerLen & 0x7) << 5) + 0x1F);
+        header[0] = (byte) 0xFF; // Sync Word
+        header[1] = (byte) 0xF1; // MPEG-4, Layer (0), No CRC
+        header[2] = (byte) ((MediaCodecInfo.CodecProfileLevel.AACObjectLC - 1) << 6);
+        header[2] |= (((byte) sampleIndex) << 2);
+        header[2] |= (((byte) CH_COUNT) >> 2);
+        header[3] = (byte) (((CH_COUNT & 3) << 6) | ((headerLen >> 11) & 0x03));
+        header[4] = (byte) ((headerLen >> 3) & 0xFF);
+        header[5] = (byte) (((headerLen & 0x07) << 5) | 0x1f);
         header[6] = (byte) 0xFC;
     }
 
@@ -235,28 +245,40 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
     }
 
     private class AudioThread extends Thread {
-        private final int CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO;
+        private final int CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_STEREO;
         private final int AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
-        private final int[] SAMPLING_RATE = {44100, 11025, 16000, 22050, 8000};
+
+
+        private static final int SAMPLES_PER_FRAME = 1024;
+        private static final int BYTE_PER_ELEMENTS = 2;
+
+        private static final int FRAMES_PER_BUFFER = 25;
+
+        //private final int[] SAMPLING_RATE = {44100, 11025, 16000, 22050, 8000};
 
         //private byte[] buf;
         private ByteBuffer byteBuffer;
         private AudioRecord audioRecord;
 
+
+        //int BufferShortSize = SAMPLE_RATE * 6;
+        //ShortBuffer shortBuffer = ShortBuffer.allocate(SAMPLES_PER_FRAME);
+
         @Override
         public void run() {
-            android.os.Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
+            //android.os.Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
             audioRecord = createAudioRecord();
 
             if (audioRecord != null) {
-                if (isStart == true) {
+                if ((isStart == true) && (isOpenPipe == true)) {
                     audioRecord.startRecording();
                 }
 
                 while (isStart) {
                     byteBuffer.clear();
 
-                    final int readByte = audioRecord.read(byteBuffer, byteBuffer.remaining());
+                    final int readByte = audioRecord.read(byteBuffer, SAMPLES_PER_FRAME * 4);
+                    //shortBuffer.clear();
 
                     if (readByte > 0) {
                         audioQueue.add(new RecordData(byteBuffer.array(), 0, isEOS));
@@ -273,24 +295,27 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
         }
 
         private AudioRecord createAudioRecord() {
-            for (final int rate : SAMPLING_RATE) {
-                final int minBufSize = AudioRecord.getMinBufferSize(rate, CHANNEL_CONFIG, AUDIO_FORMAT);
+            //for (final int rate : SAMPLING_RATE) {
+            final int minBufSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT);
+//                int bufSize = SAMPLES_PER_FRAME * FRAMES_PER_BUFFER;
+//
+//                if (bufSize < minBufSize) {
+//                    bufSize = ((minBufSize / SAMPLES_PER_FRAME) + 1) * SAMPLES_PER_FRAME * 2;
+//                }
+//
+//                final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, bufSize);
+            //final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, SAMPLES_PER_FRAME * BYTE_PER_ELEMENTS);
+            final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, SAMPLES_PER_FRAME * 4);
 
-                if (minBufSize == AudioRecord.ERROR_BAD_VALUE) {
-                    continue;
-                }
+            if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
+                byteBuffer = ByteBuffer.allocateDirect(SAMPLES_PER_FRAME);
+                //buf = new byte[minBufSize];
 
-                final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, rate, CHANNEL_CONFIG, AUDIO_FORMAT, minBufSize);
-
-                if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
-                    byteBuffer = ByteBuffer.allocateDirect(minBufSize);
-                    //buf = new byte[minBufSize];
-
-                    return audioRecord;
-                } else {
-                    audioRecord.release();
-                }
+                return audioRecord;
+            } else {
+                audioRecord.release();
             }
+            //}
             return null;
         }
     }
