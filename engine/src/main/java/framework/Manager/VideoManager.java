@@ -10,6 +10,7 @@ import android.media.MediaFormat;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
+import android.provider.MediaStore;
 import android.util.Size;
 
 import androidx.annotation.NonNull;
@@ -255,7 +256,8 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
         videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible);;
         videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
         videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE);
-        //videoFormat.setInteger(MediaFormat.KEY_PROFILE, )
+        videoFormat.setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileHigh);
+        videoFormat.setInteger(MediaFormat.KEY_LEVEL, MediaCodecInfo.CodecProfileLevel.AVCLevel51);
         videoFormat.setFloat(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL);
     }
 
