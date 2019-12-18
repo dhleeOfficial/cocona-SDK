@@ -10,6 +10,7 @@ import android.view.View;
 import framework.Enum.Exposure;
 import framework.Enum.Filter;
 import framework.Enum.LensFacing;
+import framework.Enum.RecordSpeed;
 import framework.Enum.TouchType;
 import framework.Manager.CameraDeviceManager;
 import framework.Message.ThreadMessage;
@@ -154,6 +155,12 @@ public class CameraEngine {
     public void filter(Filter filter) {
         if (cameraHandler != null) {
             cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_FILTER, 0, filter));
+        }
+    }
+
+    public void recordSpeed(RecordSpeed recordSpeed) {
+        if (cameraHandler != null) {
+            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_SPEED_RECORD, 0, recordSpeed));
         }
     }
 }

@@ -22,12 +22,14 @@
         android:id="@+id/relativeLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/transparent"/>
+        android:background="@android:color/transparent">
+
+    </RelativeLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/overlayView"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="306dp"
         android:background="@android:color/transparent">
         <!--        tools:layout_marginTop="530dp">-->
         <!--        app:layout_constraintBottom_toBottomOf="parent"-->
@@ -95,6 +97,42 @@
             android:text="FILTER"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/zoomBtn" />
+
+        <RadioGroup
+            android:id="@+id/radioGroup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkedButton="@id/normalBtn"
+            android:orientation="vertical"
+            android:visibility="invisible"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/brightBtn">
+
+            <RadioButton
+                android:id="@+id/slowBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SLOW"
+                android:textColor="@android:color/holo_orange_dark"
+                android:textStyle="bold" />
+
+            <RadioButton
+                android:id="@+id/normalBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="NORMAL"
+                android:textColor="@android:color/holo_orange_dark"
+                android:textStyle="bold" />
+
+            <RadioButton
+                android:id="@+id/fastBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="FAST"
+                android:textColor="@android:color/holo_orange_dark"
+                android:textStyle="bold" />
+
+        </RadioGroup>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </FrameLayout>

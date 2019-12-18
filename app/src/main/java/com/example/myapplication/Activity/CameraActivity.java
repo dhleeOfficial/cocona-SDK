@@ -14,6 +14,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.PopupMenu;
+import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -22,6 +23,7 @@ import framework.Engine.CameraEngine;
 import framework.Enum.Exposure;
 import framework.Enum.Filter;
 import framework.Enum.LensFacing;
+import framework.Enum.RecordSpeed;
 import framework.Enum.TouchType;
 
 import com.example.myapplication.R;
@@ -38,6 +40,8 @@ public class CameraActivity extends AppCompatActivity {
     private Button bright;
     private Button dark;
     private Button filter;
+
+    private RadioGroup radioGroup;
 
     private CameraEngine engine;
     private CameraEngine.Util engineUtil;
@@ -68,6 +72,7 @@ public class CameraActivity extends AppCompatActivity {
         zoom = findViewById(R.id.zoomBtn);
         bright = findViewById(R.id.brightBtn);
         dark = findViewById(R.id.darkBtn);
+        radioGroup = findViewById(R.id.radioGroup);
 
         filter = findViewById(R.id.filterBtn);
 
@@ -84,14 +89,34 @@ public class CameraActivity extends AppCompatActivity {
                         }
 
                     } else if (buttonView == record) {
+                        if (isChecked == true) {
+                            radioGroup.setVisibility(View.VISIBLE);
+                        } else {
+                            radioGroup.setVisibility(View.INVISIBLE);
+                        }
+
                         engine.record(isChecked);
                     }
+            }
+        };
+
+        RadioGroup.OnCheckedChangeListener changeListener = new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                if (checkedId == R.id.slowBtn) {
+                    engine.recordSpeed(RecordSpeed.SLOW);
+                } else if (checkedId == R.id.normalBtn) {
+                    engine.recordSpeed(RecordSpeed.NORMAL);
+                } else if (checkedId == R.id.fastBtn) {
+                    engine.recordSpeed(RecordSpeed.FAST);
+                }
             }
         };
 
         flash.setOnCheckedChangeListener(checkListener);
         lens.setOnCheckedChangeListener(checkListener);
         record.setOnCheckedChangeListener(checkListener);
+        radioGroup.setOnCheckedChangeListener(changeListener);
 
         Button.OnClickListener clickListener = new Button.OnClickListener() {
             @Override

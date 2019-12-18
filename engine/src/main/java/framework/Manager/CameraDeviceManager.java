@@ -12,6 +12,7 @@ import android.hardware.SensorManager;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraConstrainedHighSpeedCaptureSession;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
@@ -39,6 +40,7 @@ import framework.Enum.Exposure;
 
 import framework.Enum.Filter;
 import framework.Enum.LensFacing;
+import framework.Enum.RecordSpeed;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
 
@@ -99,6 +101,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     // CURRENT STATUS FLAGS
     private boolean isLocked = true;
     private LensFacing lensFacing;
+    private RecordSpeed recordSpeed;
 
     private Semaphore cameraLock = new Semaphore(1);
 
@@ -176,7 +179,10 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         @Override
         public void onConfigured(@NonNull CameraCaptureSession session) {
             cameraCaptureSession = session;
+//            cameraHighSpeedCaptureSession = (CameraConstrainedHighSpeedCaptureSession) cameraCaptureSession;
+            //speedRecord(recordSpeed);
             captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
+            captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(30, 30));
 
             try {
                 cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
@@ -197,6 +203,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         try {
             objectDetectionManager.join();
             videoManager.join();
+            audioManager.join();
         } catch (InterruptedException ie) {
             ie.printStackTrace();
         }
@@ -210,9 +217,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         super("CameraDeviceManager");
 
         this.context = context;
-
         this.lensFacing = LensFacing.BACK;
-
         this.overlayView = new InferenceOverlayView(context);
         ((RelativeLayout) relativeLayout).addView(this.overlayView);
 
@@ -306,6 +311,11 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_FILTER : {
                         filter((Filter) msg.obj);
+
+                        return true;
+                    }
+                    case ThreadMessage.EngineMessage.MSG_ENGINE_SPEED_RECORD : {
+                        speedRecord((RecordSpeed) msg.obj);
 
                         return true;
                     }
@@ -567,6 +577,28 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         }
     }
 
+    private void speedRecord(RecordSpeed recordSpeed) {
+        Handler audioHandler = audioManager.getHandler();
+
+        try {
+            cameraCaptureSession.stopRepeating();
+
+            if (recordSpeed == RecordSpeed.SLOW) {
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(60, 60));
+                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_SPECIAL, 0, null));
+            } else if (recordSpeed == RecordSpeed.NORMAL) {
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(30, 30));
+                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_NORMAL, 0, null));
+            } else if (recordSpeed == RecordSpeed.FAST) {
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(15, 15));
+                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_SPECIAL, 0, null));
+            }
+            cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
+        } catch (CameraAccessException ce) {
+            ce.printStackTrace();
+        }
+    }
+
     private void initCamera(int width, int height) {
         if (textureView.isAvailable() == true) {
             try {
@@ -578,6 +610,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                 /* Camera Info */
                 hasFlash = cc.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
                 exposureLevel = 0.0;
+                recordSpeed = RecordSpeed.NORMAL;
 
                 StreamConfigurationMap scMap = cc.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
 
@@ -588,6 +621,27 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                 } else {
                     previewSize = Util.getOptimalSize(Arrays.asList(scMap.getOutputSizes(SurfaceTexture.class)));
                 }
+
+                //Range<Integer>[] fpsRanges = scMap.getHighSpeedVideoFpsRanges();
+                Range<Integer>[] fpsRanges = scMap.getHighSpeedVideoFpsRangesFor(previewSize);
+                int max = 0;
+                int min;
+
+                for (final Range<Integer> fps : fpsRanges) {
+                    if (max < fps.getUpper()) {
+                        max = fps.getUpper();
+                    }
+                }
+
+                min = max;
+
+                for (final Range<Integer> fps : fpsRanges) {
+                    if (min > fps.getLower()) {
+                        min = fps.getLower();
+                    }
+                }
+
+                System.out.println("min" + min + "max" + max);
 
                 MessageObject.BoxMessageObject boxMessageObject = new MessageObject.BoxMessageObject(previewSize, 0, lensFacing);
                 objectDetectionManager.getHandler().sendMessage(objectDetectionManager.getHandler().obtainMessage(0, ThreadMessage.ODMessage.MSG_OD_SETUP, 0, boxMessageObject));

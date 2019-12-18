@@ -6,7 +6,6 @@ import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.media.MediaRecorder;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
@@ -15,7 +14,6 @@ import android.os.Process;
 import androidx.annotation.NonNull;
 
 import java.io.BufferedOutputStream;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -30,12 +28,14 @@ import framework.Util.RecordData;
 
 public class AudioManager extends HandlerThread implements FFmpegThread.Callback {
     private Handler myHandler;
+    String audioPipe;
 
     private static final String MIME_TYPE = MediaFormat.MIMETYPE_AUDIO_AAC;
     private static final int SAMPLE_RATE = 44100;
     private static final int CH_COUNT = 1;
     private static final int BIT_RATE = 32000;
     private static final int HEADER_SIZE = 7;
+    private static final int TIMEOUT_USEC = 10000;
 
     AudioThread audioThread = null;
 
@@ -49,10 +49,8 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
     boolean isStart = false;
     boolean isOpenPipe = false;
     boolean isEOS = false;
+    boolean isNormal = true;
 
-    String audioPipe;
-
-    FileOutputStream fileOutputStream = null;
 
     private MediaCodec.Callback audioCallback = new MediaCodec.Callback() {
         @Override
@@ -158,6 +156,16 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
 
                         return true;
                     }
+                    case ThreadMessage.RecordMessage.MSG_RECORD_NORMAL : {
+                        isNormal = true;
+
+                        return true;
+                    }
+                    case ThreadMessage.RecordMessage.MSG_RECORD_SPECIAL : {
+                        isNormal = false;
+
+                        return true;
+                    }
                 }
                 return false;
             }
@@ -171,11 +179,12 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
 
     @Override
     public void onOpenPipe() {
+        isOpenPipe = true;
+
         if (audioThread == null) {
             audioThread = new AudioThread();
             audioThread.start();
         }
-        isOpenPipe = true;
     }
 
     @Override
@@ -264,9 +273,11 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
 
                 while (isStart) {
                     byte[] audioData = new byte[SAMPLES_PER_FRAME];
-                    int readByte = audioRecord.read(audioData, 0, SAMPLES_PER_FRAME);
+
+                    final int readByte = audioRecord.read(audioData, 0, SAMPLES_PER_FRAME);
 
                     if (readByte > 0) {
+                        //encode(audioData, 0, isEOS);
                         audioQueue.add(new RecordData(audioData, 0, isEOS));
                     }
 
@@ -274,6 +285,7 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
                         isStart = false;
                     }
                 }
+
                 audioRecord.stop();
                 audioRecord.release();
                 audioCallback = null;
@@ -290,6 +302,74 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
             }
 
             return null;
+        }
+    }
+
+    // sync codec
+    private void encode(byte[] buffer, long timeStamp, boolean isEOS) {
+        for (; ;) {
+            int inputBufferIndex = audioCodec.dequeueInputBuffer(TIMEOUT_USEC);
+            while (inputBufferIndex == -1) {
+                inputBufferIndex = audioCodec.dequeueInputBuffer(TIMEOUT_USEC);
+            }
+
+            if (inputBufferIndex >= 0) {
+                final ByteBuffer inputBuffer = audioCodec.getInputBuffer(inputBufferIndex);
+
+                inputBuffer.clear();
+                inputBuffer.put(buffer);
+
+                if (isEOS == false) {
+                    audioCodec.queueInputBuffer(inputBufferIndex, 0, buffer.length, timeStamp, 0);
+                } else {
+                    audioCodec.queueInputBuffer(inputBufferIndex, 0, buffer.length, timeStamp, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                }
+            } else {
+                break;
+            }
+
+            final MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
+            final int outputBufferIndex = audioCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC);
+
+            if (outputBufferIndex >= 0) {
+                if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != MediaCodec.BUFFER_FLAG_CODEC_CONFIG) {
+                    ByteBuffer out = audioCodec.getOutputBuffer(outputBufferIndex);
+
+                    out.position(bufferInfo.offset);
+                    out.limit(bufferInfo.offset + bufferInfo.size);
+
+                    byte[] outBytes = new byte[bufferInfo.size + HEADER_SIZE];
+
+                    addADTSHeader(outBytes, outBytes.length);
+
+                    if (out != null) {
+                        out.get(outBytes, HEADER_SIZE, bufferInfo.size);
+                    }
+
+                    if (bufferedOutputStream == null) {
+                        try {
+                            bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(audioPipe));
+                        } catch (FileNotFoundException fe) {
+                            fe.printStackTrace();
+                        }
+                    }
+
+                    if (bufferedOutputStream != null) {
+                        try {
+                            if (outBytes.length > 0) {
+                                bufferedOutputStream.write(outBytes);
+                            }
+                        } catch (IOException ie) {
+                            ie.printStackTrace();
+                        }
+                    }
+                }
+                audioCodec.releaseOutputBuffer(outputBufferIndex, false);
+
+                break;
+            } else {
+                break;
+            }
         }
     }
 }

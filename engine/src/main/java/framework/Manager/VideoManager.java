@@ -1,5 +1,6 @@
 package framework.Manager;
 
+import android.icu.text.AlphabeticIndex;
 import android.media.Image;
 import android.media.ImageReader;
 import android.media.MediaCodec;
@@ -10,10 +11,10 @@ import android.media.MediaFormat;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
-import android.provider.MediaStore;
 import android.util.Size;
 
 import androidx.annotation.NonNull;
+import androidx.collection.CircularArray;
 
 import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
@@ -36,6 +37,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
     private static final int BIT_RATE = 4000000;
     private static final int FRAME_RATE = 30;
     private static final float IFRAME_INTERVAL = 0.5f;
+    private static final int TIMEOUT_USEC = 10000;
 
     MediaFormat videoFormat;
     MediaCodec videoCodec;
@@ -61,12 +63,14 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
     public native byte[] YUVtoBytes(ByteBuffer y, ByteBuffer u, ByteBuffer v, int yPixelStride, int yRowStride,
                                     int uPixelStride, int uRowStride, int vPixelStride, int vRowStride, int imgWidth, int imgHeight);
 
+    // async codec
     private MediaCodec.Callback videoCallback = new MediaCodec.Callback() {
         @Override
         public void onInputBufferAvailable(@NonNull MediaCodec codec, int index) {
             ByteBuffer in = codec.getInputBuffer(index);
 
             final RecordData data = videoQueue.poll();
+            //final RecordData data = circularArray.popLast();
 
             if ((data != null) && (in != null)) {
                 in.clear();
@@ -85,19 +89,14 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
         @Override
         public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index, @NonNull MediaCodec.BufferInfo info) {
             if (index >= 0) {
-                if (info.flags == MediaCodec.BUFFER_FLAG_CODEC_CONFIG) {
-                    //codec.releaseOutputBuffer(index, false);
-                    //return;
-                }
-
-                ByteBuffer out = codec.getOutputBuffer(index);
-                byte[] outBytes = new byte[info.size];
-
-                if (out != null) {
-                    out.get(outBytes);
-                }
-
                 if (isOpenPipe == true) {
+                    ByteBuffer out = codec.getOutputBuffer(index);
+                    byte[] outBytes = new byte[info.size];
+
+                    if (out != null) {
+                        out.get(outBytes);
+                    }
+
                     if (bufferedOutputStream == null) {
                         try {
                             bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(videoPipe));
@@ -122,6 +121,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                 if (info.flags == MediaCodec.BUFFER_FLAG_END_OF_STREAM) {
                     stopCodec();
                     isEOS = false;
+                    //circularArray.clear();
                     FFmpegThread.getInstance().requestTerminate();
                 }
             }
@@ -179,7 +179,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
         try {
             image = reader.acquireNextImage();
 
-            if (isStart == true) {
+            if ((isStart == true) && (isOpenPipe == true)){
                 if (image != null) {
                     final Image.Plane[] planes = image.getPlanes();
 
@@ -199,10 +199,15 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                             image.getWidth(),
                             image.getHeight());
 
-                    videoQueue.add(new RecordData(buffer, image.getTimestamp(), isEOS));
+                    encode(buffer, image.getTimestamp(), isEOS);
+
+                    //videoQueue.add(new RecordData(buffer, image.getTimestamp(), isEOS));
 
                     if (isEOS == true) {
                         isStart = false;
+                        stopCodec();
+                        isEOS = false;
+                        FFmpegThread.getInstance().requestTerminate();
                     }
                 }
             }
@@ -289,7 +294,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
         if (videoCodecInfo != null) {
             try {
                 videoCodec = MediaCodec.createByCodecName(videoCodecInfo.getName());
-                videoCodec.setCallback(videoCallback);
+                //videoCodec.setCallback(videoCallback);
                 videoCodec.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
 
                 videoCodec.start();
@@ -303,5 +308,62 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
         videoCodec.stop();
         videoCodec.release();
         videoCodec = null;
+    }
+
+    private void encode(byte[] buffer, long timeStamp, boolean isEOS) {
+        for (; ;) {
+            final int inputBufferIndex = videoCodec.dequeueInputBuffer(TIMEOUT_USEC);
+
+            if (inputBufferIndex >= 0) {
+                final ByteBuffer inputBuffer = videoCodec.getInputBuffer(inputBufferIndex);
+
+                inputBuffer.clear();
+                inputBuffer.put(buffer);
+
+                if (isEOS == false) {
+                    videoCodec.queueInputBuffer(inputBufferIndex, 0, buffer.length, timeStamp, 0);
+                } else {
+                    videoCodec.queueInputBuffer(inputBufferIndex, 0, buffer.length, timeStamp, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                }
+            } else {
+                break;
+            }
+
+            final MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
+            final int outputBufferIndex = videoCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC);
+
+            if (outputBufferIndex >= 0) {
+                ByteBuffer out = videoCodec.getOutputBuffer(outputBufferIndex);
+
+                byte[] outBytes = new byte[bufferInfo.size];
+
+                if (out != null) {
+                    out.get(outBytes);
+                }
+
+                if (bufferedOutputStream == null) {
+                    try {
+                        bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(videoPipe));
+                    } catch (FileNotFoundException fe) {
+                        fe.printStackTrace();
+                    }
+                }
+
+                if (bufferedOutputStream != null) {
+                    try {
+                        if (outBytes.length > 0) {
+                            bufferedOutputStream.write(outBytes);
+                        }
+                    } catch (IOException ie) {
+                        ie.printStackTrace();
+                    }
+                }
+                videoCodec.releaseOutputBuffer(outputBufferIndex, false);
+
+                break;
+            } else {
+                break;
+            }
+        }
     }
 }

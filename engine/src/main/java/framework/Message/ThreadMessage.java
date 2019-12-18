@@ -12,6 +12,7 @@ public class ThreadMessage {
         public static final int MSG_ENGINE_AREA_FOCUS = 7;
         public static final int MSG_ENGINE_LOCK_FOCUS = 8;
         public static final int MSG_ENGINE_FILTER = 9;
+        public static final int MSG_ENGINE_SPEED_RECORD = 10;
     }
 
     public class ODMessage {
@@ -21,5 +22,7 @@ public class ThreadMessage {
     public class RecordMessage {
         public static final int MSG_RECORD_START = 0;
         public static final int MSG_RECORD_STOP = 1;
+        public static final int MSG_RECORD_SPECIAL = 2;
+        public static final int MSG_RECORD_NORMAL = 3;
     }
 }
