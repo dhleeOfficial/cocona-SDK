@@ -14,7 +14,6 @@ import android.os.Message;
 import android.util.Size;
 
 import androidx.annotation.NonNull;
-import androidx.collection.CircularArray;
 
 import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
@@ -207,7 +206,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                         isStart = false;
                         stopCodec();
                         isEOS = false;
-                        FFmpegThread.getInstance().requestTerminate();
+                        //FFmpegThread.getInstance().requestTerminate();
                     }
                 }
             }
@@ -237,17 +236,19 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
 
     @Override
     public void onTerminatePipe() {
-        videoThread.interrupt();
-        videoThread = null;
-
-        isOpenPipe = false;
-
-        try {
-            bufferedOutputStream.close();
-            bufferedOutputStream = null;
-        } catch (IOException ie) {
-            ie.printStackTrace();
-        }
+//        videoThread.interrupt();
+//        videoThread = null;
+//
+//        isOpenPipe = false;
+//
+//        try {
+//            if (bufferedOutputStream != null) {
+//                bufferedOutputStream.close();
+//                bufferedOutputStream = null;
+//            }
+//        } catch (IOException ie) {
+//            ie.printStackTrace();
+//        }
     }
 
     public final Handler getHandler() {
