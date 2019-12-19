@@ -45,6 +45,7 @@ public class FFmpegThread implements Runnable {
     }
 
     public void requestPipe() {
+        System.out.println("");
         videoPipe = Config.registerNewFFmpegPipe(context);
         audioPipe = Config.registerNewFFmpegPipe(context);
 
@@ -55,6 +56,11 @@ public class FFmpegThread implements Runnable {
 
     public void requestTerminate() {
         FFmpeg.cancel();
+        Config.closeFFmpegPipe(videoPipe);
+        Config.closeFFmpegPipe(audioPipe);
+
+        videoPipe = null;
+        audioPipe = null;
 
         for (final Callback cb : callbackList) {
             cb.onTerminatePipe();

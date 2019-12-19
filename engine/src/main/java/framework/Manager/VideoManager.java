@@ -11,22 +11,19 @@ import android.media.MediaFormat;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
+import android.util.Log;
 import android.util.Size;
 
 import androidx.annotation.NonNull;
-import androidx.collection.CircularArray;
 
 import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.LinkedList;
-import java.util.Queue;
 
 import framework.Message.ThreadMessage;
 import framework.Thread.FFmpegThread;
-import framework.Util.RecordData;
 
 public class VideoManager extends HandlerThread implements ImageReader.OnImageAvailableListener, FFmpegThread.Callback {
     private Handler myHandler;
@@ -43,14 +40,13 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
     MediaCodec videoCodec;
     MediaCodecInfo videoCodecInfo;
 
-    Queue<RecordData> videoQueue = new LinkedList<RecordData>();
-
     private Thread videoThread = null;
 
     private String videoPipe;
     private boolean isOpenPipe = false;
 
     BufferedOutputStream bufferedOutputStream = null;
+    private syncCallback syncCallback;
 
     // STATUS
     private boolean isStart = false;
@@ -60,83 +56,13 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
         System.loadLibrary("image-convert");
     }
 
+    public interface syncCallback {
+        void onReady(boolean ready);
+    }
+
     public native byte[] YUVtoBytes(ByteBuffer y, ByteBuffer u, ByteBuffer v, int yPixelStride, int yRowStride,
                                     int uPixelStride, int uRowStride, int vPixelStride, int vRowStride, int imgWidth, int imgHeight);
 
-    // async codec
-    private MediaCodec.Callback videoCallback = new MediaCodec.Callback() {
-        @Override
-        public void onInputBufferAvailable(@NonNull MediaCodec codec, int index) {
-            ByteBuffer in = codec.getInputBuffer(index);
-
-            final RecordData data = videoQueue.poll();
-            //final RecordData data = circularArray.popLast();
-
-            if ((data != null) && (in != null)) {
-                in.clear();
-                in.put(data.getBuffer());
-
-                if (data.getIsEOS() == false) {
-                    codec.queueInputBuffer(index, 0, data.getBuffer().length, data.getPresentationTimeUS(), 0);
-                } else {
-                    codec.queueInputBuffer(index, 0, data.getBuffer().length, data.getPresentationTimeUS(), MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-                }
-            } else {
-                codec.queueInputBuffer(index, 0, 0, 0, 0);
-            }
-        }
-
-        @Override
-        public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index, @NonNull MediaCodec.BufferInfo info) {
-            if (index >= 0) {
-                if (isOpenPipe == true) {
-                    ByteBuffer out = codec.getOutputBuffer(index);
-                    byte[] outBytes = new byte[info.size];
-
-                    if (out != null) {
-                        out.get(outBytes);
-                    }
-
-                    if (bufferedOutputStream == null) {
-                        try {
-                            bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(videoPipe));
-                        } catch (FileNotFoundException fe) {
-                            fe.printStackTrace();
-                        }
-                    }
-
-                    if (bufferedOutputStream != null) {
-                        try {
-                            if (outBytes.length > 0) {
-                                bufferedOutputStream.write(outBytes);
-                            }
-                        } catch (IOException ie) {
-                            ie.printStackTrace();
-                        }
-                    }
-                }
-
-                codec.releaseOutputBuffer(index, false);
-
-                if (info.flags == MediaCodec.BUFFER_FLAG_END_OF_STREAM) {
-                    stopCodec();
-                    isEOS = false;
-                    //circularArray.clear();
-                    FFmpegThread.getInstance().requestTerminate();
-                }
-            }
-        }
-
-        @Override
-        public void onOutputFormatChanged(@NonNull MediaCodec codec, @NonNull MediaFormat format) {
-
-        }
-
-        @Override
-        public void onError(@NonNull MediaCodec codec, @NonNull MediaCodec.CodecException e) {
-
-        }
-    };
 
     public VideoManager() {
         super("VideoManager");
@@ -200,14 +126,11 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                             image.getHeight());
 
                     encode(buffer, image.getTimestamp(), isEOS);
-
-                    //videoQueue.add(new RecordData(buffer, image.getTimestamp(), isEOS));
-
+                    syncCallback.onReady(true);
                     if (isEOS == true) {
                         isStart = false;
                         stopCodec();
                         isEOS = false;
-                        FFmpegThread.getInstance().requestTerminate();
                     }
                 }
             }
@@ -237,21 +160,30 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
 
     @Override
     public void onTerminatePipe() {
+        Log.e("TERMINATE", "START");
+
         videoThread.interrupt();
         videoThread = null;
 
         isOpenPipe = false;
 
         try {
-            bufferedOutputStream.close();
-            bufferedOutputStream = null;
+            if (bufferedOutputStream != null) {
+                bufferedOutputStream.close();
+                bufferedOutputStream = null;
+            }
         } catch (IOException ie) {
             ie.printStackTrace();
         }
+        Log.e("TERMINATE", "END");
     }
 
     public final Handler getHandler() {
         return myHandler;
+    }
+
+    public void setCallback(syncCallback syncCallback) {
+        this.syncCallback = syncCallback;
     }
 
     private void initMediaFormat(Size size) {
@@ -294,7 +226,6 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
         if (videoCodecInfo != null) {
             try {
                 videoCodec = MediaCodec.createByCodecName(videoCodecInfo.getName());
-                //videoCodec.setCallback(videoCallback);
                 videoCodec.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
 
                 videoCodec.start();

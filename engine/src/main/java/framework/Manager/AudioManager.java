@@ -6,6 +6,7 @@ import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.media.MediaRecorder;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
@@ -19,14 +20,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import java.util.LinkedList;
-import java.util.Queue;
-
 import framework.Message.ThreadMessage;
 import framework.Thread.FFmpegThread;
-import framework.Util.RecordData;
 
-public class AudioManager extends HandlerThread implements FFmpegThread.Callback {
+public class AudioManager extends HandlerThread implements FFmpegThread.Callback, VideoManager.syncCallback {
     private Handler myHandler;
     String audioPipe;
 
@@ -42,7 +39,6 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
     MediaFormat audioFormat;
     MediaCodec audioCodec;
 
-    Queue<RecordData> audioQueue = new LinkedList<RecordData>();
     BufferedOutputStream bufferedOutputStream = null;
 
     // STATUS
@@ -50,86 +46,7 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
     boolean isOpenPipe = false;
     boolean isEOS = false;
     boolean isNormal = true;
-
-
-    private MediaCodec.Callback audioCallback = new MediaCodec.Callback() {
-        @Override
-        public void onInputBufferAvailable(@NonNull MediaCodec codec, int index) {
-            ByteBuffer in = codec.getInputBuffer(index);
-
-            final RecordData data = audioQueue.poll();
-
-            if ((data != null) && (in != null)) {
-                in.clear();
-                in.put(data.getBuffer());
-
-                if (data.getIsEOS() == false) {
-                    codec.queueInputBuffer(index, 0, data.getBuffer().length, data.getPresentationTimeUS(), 0);
-                } else {
-                    codec.queueInputBuffer(index, 0, data.getBuffer().length, data.getPresentationTimeUS(), MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-                }
-            } else {
-                codec.queueInputBuffer(index, 0, 0, 0, 0);
-            }
-        }
-
-        @Override
-        public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index, @NonNull MediaCodec.BufferInfo info) {
-            if (index >= 0) {
-                if (isOpenPipe == true) {
-                    if (bufferedOutputStream == null) {
-                        try {
-                            bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(audioPipe));
-                        } catch (FileNotFoundException fe) {
-                            fe.printStackTrace();
-                        }
-                    }
-
-                    if ((info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != MediaCodec.BUFFER_FLAG_CODEC_CONFIG) {
-                        ByteBuffer out = codec.getOutputBuffer(index);
-
-                        out.position(info.offset);
-                        out.limit(info.offset + info.size);
-
-                        byte[] outBytes = new byte[info.size + HEADER_SIZE];
-
-                        addADTSHeader(outBytes, outBytes.length);
-
-                        if (out != null) {
-                            out.get(outBytes, HEADER_SIZE, info.size);
-                        }
-
-                        if (bufferedOutputStream != null) {
-                            try {
-                                if (outBytes.length > 0) {
-                                    bufferedOutputStream.write(outBytes);
-                                }
-                            } catch (IOException ie) {
-                                ie.printStackTrace();
-                            }
-                        }
-                    }
-                }
-
-                codec.releaseOutputBuffer(index, false);
-
-                if (info.flags == MediaCodec.BUFFER_FLAG_END_OF_STREAM) {
-                    stopCodec();
-                    isEOS = false;
-                }
-            }
-        }
-
-        @Override
-        public void onError(@NonNull MediaCodec codec, @NonNull MediaCodec.CodecException e) {
-
-        }
-
-        @Override
-        public void onOutputFormatChanged(@NonNull MediaCodec codec, @NonNull MediaFormat format) {
-
-        }
-    };
+    boolean isReady = false;
 
     public AudioManager() {
         super("AudioManager");
@@ -180,7 +97,6 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
     @Override
     public void onOpenPipe() {
         isOpenPipe = true;
-
         if (audioThread == null) {
             audioThread = new AudioThread();
             audioThread.start();
@@ -204,6 +120,11 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
         }
     }
 
+    @Override
+    public void onReady(boolean ready) {
+        this.isReady = ready;
+    }
+
     public final Handler getHandler() {
         return myHandler;
     }
@@ -223,7 +144,6 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
         try {
             audioCodec = MediaCodec.createEncoderByType(MIME_TYPE);
 
-            audioCodec.setCallback(audioCallback);
             audioCodec.configure(audioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
 
             audioCodec.start();
@@ -267,7 +187,7 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
             audioRecord = createAudioRecord();
 
             if (audioRecord != null) {
-                if ((isStart == true) && (isOpenPipe == true)) {
+                if (isStart == true) {
                     audioRecord.startRecording();
                 }
 
@@ -276,24 +196,26 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
 
                     final int readByte = audioRecord.read(audioData, 0, SAMPLES_PER_FRAME);
 
-                    if (readByte > 0) {
-                        //encode(audioData, 0, isEOS);
-                        audioQueue.add(new RecordData(audioData, 0, isEOS));
+                    if ((readByte > 0) && (isOpenPipe == true)) {
+                        encode(audioData, 0, isEOS);
                     }
 
                     if (isEOS == true) {
                         isStart = false;
+                        stopCodec();
+                        isEOS = false;
+
                     }
                 }
 
                 audioRecord.stop();
                 audioRecord.release();
-                audioCallback = null;
+                FFmpegThread.getInstance().requestTerminate();
             }
         }
 
         private AudioRecord createAudioRecord() {
-            final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, SAMPLES_PER_FRAME);
+            final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, SAMPLES_PER_FRAME * 25);
 
             if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
                 return audioRecord;
@@ -309,9 +231,6 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
     private void encode(byte[] buffer, long timeStamp, boolean isEOS) {
         for (; ;) {
             int inputBufferIndex = audioCodec.dequeueInputBuffer(TIMEOUT_USEC);
-            while (inputBufferIndex == -1) {
-                inputBufferIndex = audioCodec.dequeueInputBuffer(TIMEOUT_USEC);
-            }
 
             if (inputBufferIndex >= 0) {
                 final ByteBuffer inputBuffer = audioCodec.getInputBuffer(inputBufferIndex);
@@ -324,14 +243,15 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
                 } else {
                     audioCodec.queueInputBuffer(inputBufferIndex, 0, buffer.length, timeStamp, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
                 }
+
             } else {
                 break;
             }
 
-            final MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
-            final int outputBufferIndex = audioCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC);
+            MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
+            int outputBufferIndex;
 
-            if (outputBufferIndex >= 0) {
+            while ((outputBufferIndex = audioCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC)) >= 0) {
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != MediaCodec.BUFFER_FLAG_CODEC_CONFIG) {
                     ByteBuffer out = audioCodec.getOutputBuffer(outputBufferIndex);
 
@@ -365,11 +285,8 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
                     }
                 }
                 audioCodec.releaseOutputBuffer(outputBufferIndex, false);
-
-                break;
-            } else {
-                break;
             }
+            break;
         }
     }
 }
