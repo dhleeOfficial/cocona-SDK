@@ -308,7 +308,7 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
     // sync codec
     private void encode(byte[] buffer, long timeStamp, boolean isEOS) {
         for (; ;) {
-            int inputBufferIndex = audioCodec.dequeueInputBuffer(TIMEOUT_USEC);
+            int inputBufferIndex = audioCodec.dequeueInputBuffer(-1);
 
 //            if (inputBufferIndex == -1) {
 //                inputBufferIndex = audioCodec.dequeueInputBuffer(TIMEOUT_USEC);
@@ -331,13 +331,14 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
             }
 
             MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
-            int outputBufferIndex = audioCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC);
+//            int outputBufferIndex = audioCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC);
+            int outputBufferIndex;
 
-            if (outputBufferIndex == -2) {
-                outputBufferIndex = audioCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC);
-            }
+//            if (outputBufferIndex == -2) {
+//                outputBufferIndex = audioCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC);
+//            }
 
-            if (outputBufferIndex >= 0) {
+            while ((outputBufferIndex = audioCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC)) >= 0) {
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != MediaCodec.BUFFER_FLAG_CODEC_CONFIG) {
                     ByteBuffer out = audioCodec.getOutputBuffer(outputBufferIndex);
 
@@ -372,10 +373,10 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
                 }
                 audioCodec.releaseOutputBuffer(outputBufferIndex, false);
 
-                break;
-            } else {
+//                break;
+//            } else {
 
-                break;
+//                break;
             }
         }
     }

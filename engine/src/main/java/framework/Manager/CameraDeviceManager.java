@@ -236,7 +236,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         FFmpegThread.getInstance().setContext(context);
 
         videoManager = new VideoManager();
-        //FFmpegThread.getInstance().addCallback(videoManager);
+        FFmpegThread.getInstance().addCallback(videoManager);
 
         audioManager = new AudioManager();
         FFmpegThread.getInstance().addCallback(audioManager);
