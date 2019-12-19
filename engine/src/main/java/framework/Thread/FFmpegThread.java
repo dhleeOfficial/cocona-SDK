@@ -73,10 +73,10 @@ public class FFmpegThread implements Runnable {
             cb.onOpenPipe();
         }
 
-        String command = /*"-thread_queue_size 512 -f h264 -r 30 -i " + videoPipe + */" -thread_queue_size 512 -f aac -i " + audioPipe + /*" -map 0:v -map 1:a" +
-                */" -muxdelay 0 -vsync 2 -max_muxing_queue_size 9999 -c copy -copyts -f mp4 " + getOutputMediaFile().getPath();
+        String command = "-thread_queue_size 512 -f h264 -r 30 -i " + videoPipe + " -thread_queue_size 512 -f aac -i " + audioPipe + " -map 0:v -map 1:a" +
+                " -muxdelay 0 -vsync 2 -max_muxing_queue_size 9999 -c copy -copyts -f mp4 " + getOutputMediaFile().getPath();
 
-        //FFmpeg.execute(command);
+        FFmpeg.execute(command);
     }
 
     private File getOutputMediaFile() {
