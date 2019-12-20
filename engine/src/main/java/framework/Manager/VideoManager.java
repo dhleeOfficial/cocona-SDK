@@ -107,6 +107,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
 
             if ((isStart == true) && (isOpenPipe == true)){
                 if (image != null) {
+                    Log.e("IMAGE", "START");
                     final Image.Plane[] planes = image.getPlanes();
 
                     Image.Plane yPlane = planes[0];
@@ -126,11 +127,13 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                             image.getHeight());
 
                     encode(buffer, image.getTimestamp(), isEOS);
-                    syncCallback.onReady(true);
+                    //syncCallback.onReady(true);
+                    Log.e("IMAGE", "END");
                     if (isEOS == true) {
                         isStart = false;
                         stopCodec();
                         isEOS = false;
+                        FFmpegThread.getInstance().requestTerminate();
                     }
                 }
             }

@@ -11,6 +11,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.os.Process;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -192,12 +193,15 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
                 }
 
                 while (isStart) {
+                    Log.e("AUDIO", "START");
                     byte[] audioData = new byte[SAMPLES_PER_FRAME];
 
                     final int readByte = audioRecord.read(audioData, 0, SAMPLES_PER_FRAME);
 
                     if ((readByte > 0) && (isOpenPipe == true)) {
+                        Log.e("AUDIO", "START");
                         encode(audioData, 0, isEOS);
+                        Log.e("AUDIO", "END");
                     }
 
                     if (isEOS == true) {
@@ -210,12 +214,11 @@ public class AudioManager extends HandlerThread implements FFmpegThread.Callback
 
                 audioRecord.stop();
                 audioRecord.release();
-                FFmpegThread.getInstance().requestTerminate();
             }
         }
 
         private AudioRecord createAudioRecord() {
-            final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, SAMPLES_PER_FRAME * 25);
+            final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, SAMPLES_PER_FRAME);
 
             if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
                 return audioRecord;
