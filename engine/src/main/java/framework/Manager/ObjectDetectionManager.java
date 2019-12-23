@@ -68,7 +68,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
             public boolean handleMessage(@NonNull Message msg) {
                 switch (msg.arg1) {
                     case ThreadMessage.ODMessage.MSG_OD_SETUP : {
-                        setUpOD((MessageObject.BoxMessageObject) msg.obj);
+                        setUpOD((MessageObject.Box) msg.obj);
 
                         return true;
                     }
@@ -123,7 +123,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         return myHandler;
     }
 
-    private synchronized void setUpOD(MessageObject.BoxMessageObject boxMessageObject) {
+    private synchronized void setUpOD(MessageObject.Box boxMessageObject) {
         previewSize = boxMessageObject.getSize();
 
         DisplayMetrics metrics = context.getResources().getDisplayMetrics();
