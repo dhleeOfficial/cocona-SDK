@@ -7,13 +7,18 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.media.Image;
+import android.os.Environment;
 import android.util.Size;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class Util {
     private static final int MAX_PREVIEW_WIDTH = 1920;
@@ -243,5 +248,39 @@ public class Util {
         }
 
         return bytes;
+    }
+
+    public static File getOutputMuxFile() {
+        File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
+                "MUX");
+        if (!mediaStorageDir.exists()) {
+            if (!mediaStorageDir.mkdirs()) {
+                return null;
+            }
+        }
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss",
+                Locale.getDefault()).format(new Date());
+        File mediaFile;
+
+        mediaFile = new File(mediaStorageDir.getPath() + File.separator
+                + timeStamp + ".mp4");
+        return mediaFile;
+    }
+
+    public static File getOutputAACFile() {
+        File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
+                "AAC");
+        if (!mediaStorageDir.exists()) {
+            if (!mediaStorageDir.mkdirs()) {
+                return null;
+            }
+        }
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss",
+                Locale.getDefault()).format(new Date());
+        File mediaFile;
+
+        mediaFile = new File(mediaStorageDir.getPath() + File.separator
+                + timeStamp + ".aac");
+        return mediaFile;
     }
 }

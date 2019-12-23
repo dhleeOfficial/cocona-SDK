@@ -48,7 +48,6 @@ import java.util.Arrays;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import framework.Thread.FFmpegThread;
 import framework.Util.FocusOverlayView;
 import framework.Util.InferenceOverlayView;
 import framework.Util.Util;
@@ -89,6 +88,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     // AUDIO MANAGER
     private AudioManager audioManager;
+
+    // MUX MANAGER
+    private MuxManager muxManager;
 
     // ZOOM
     private float spacing = 0f;
@@ -140,9 +142,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             if (Math.abs(event.values[0] - motionX) > 1
                     || Math.abs(event.values[1] - motionY) > 1
                     || Math.abs(event.values[2] - motionZ) > 1) {
-
-                Log.i(TAG, "Refocus");
-
                 try {
                     autoFocus();
                     isLocked = true;
@@ -199,11 +198,11 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     @Override
     public boolean quit() {
-        //FIXME
         try {
             objectDetectionManager.join();
             videoManager.join();
             audioManager.join();
+            muxManager.join();
         } catch (InterruptedException ie) {
             ie.printStackTrace();
         }
@@ -233,18 +232,14 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         objectDetectionManager.start();
 
         // CREATE Video & Audio Manager
-        FFmpegThread.getInstance().setContext(context);
-
         videoManager = new VideoManager();
-
-        FFmpegThread.getInstance().addCallback(videoManager);
-
         audioManager = new AudioManager();
-        FFmpegThread.getInstance().addCallback(audioManager);
-        videoManager.setCallback(audioManager);
+
+        muxManager = new MuxManager(context);
 
         audioManager.start();
         videoManager.start();
+        muxManager.start();
     }
 
     @Override
@@ -396,16 +391,23 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     }
 
     private void record(boolean isRecord) {
+        Handler muxHandler = muxManager.getHandler();
         Handler videoHandler = videoManager.getHandler();
         Handler audioHandler = audioManager.getHandler();
 
-        if ((videoHandler != null) && (audioHandler != null)){
+        if ((muxHandler != null) && (videoHandler != null) && (audioHandler != null)){
             if (isRecord == true) {
-                videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, previewSize));
-                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, null));
+                muxManager.resetPipeList();
+
+                MessageObject.VideoRecord recordObj = new MessageObject.VideoRecord(previewSize, muxManager.requestPipe(), muxHandler);
+                MessageObject.AudioRecord audioObj = new MessageObject.AudioRecord(muxManager.requestPipe(), muxHandler);
+
+                videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, recordObj));
+                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, audioObj));
+                muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_START, 0, null));
             } else {
-                videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
+                videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
             }
         }
     }
@@ -624,29 +626,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                     previewSize = Util.getOptimalSize(Arrays.asList(scMap.getOutputSizes(SurfaceTexture.class)));
                 }
 
-                //Range<Integer>[] fpsRanges = scMap.getHighSpeedVideoFpsRanges();
-                Range<Integer>[] fpsRanges = scMap.getHighSpeedVideoFpsRangesFor(previewSize);
-                int max = 0;
-                int min;
-
-                for (final Range<Integer> fps : fpsRanges) {
-                    if (max < fps.getUpper()) {
-                        max = fps.getUpper();
-                    }
-                }
-
-                min = max;
-
-                for (final Range<Integer> fps : fpsRanges) {
-                    if (min > fps.getLower()) {
-                        min = fps.getLower();
-                    }
-                }
-
-                System.out.println("min" + min + "max" + max);
-
-                MessageObject.BoxMessageObject boxMessageObject = new MessageObject.BoxMessageObject(previewSize, 0, lensFacing);
-                objectDetectionManager.getHandler().sendMessage(objectDetectionManager.getHandler().obtainMessage(0, ThreadMessage.ODMessage.MSG_OD_SETUP, 0, boxMessageObject));
+                MessageObject.Box box = new MessageObject.Box(previewSize, 0, lensFacing);
+                objectDetectionManager.getHandler().sendMessage(objectDetectionManager.getHandler().obtainMessage(0, ThreadMessage.ODMessage.MSG_OD_SETUP, 0, box));
 
                 if (!cameraLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                     throw new RuntimeException("Time out");

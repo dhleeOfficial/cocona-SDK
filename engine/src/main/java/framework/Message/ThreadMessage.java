@@ -25,4 +25,10 @@ public class ThreadMessage {
         public static final int MSG_RECORD_SPECIAL = 2;
         public static final int MSG_RECORD_NORMAL = 3;
     }
+
+    public class MuxMessage {
+        public static final int MSG_MUX_START = 0;
+        public static final int MSG_MUX_VIDEO_END = 1;
+        public static final int MSG_MUX_AUDIO_END = 2;
+    }
 }
