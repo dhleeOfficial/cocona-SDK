@@ -143,7 +143,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                     || Math.abs(event.values[1] - motionY) > 1
                     || Math.abs(event.values[2] - motionZ) > 1) {
                 try {
-                    autoFocus();
+                    if (cameraCaptureSession != null) {
+                        autoFocus();
+                    }
                     isLocked = true;
                 } catch (RuntimeException e) {
                     e.printStackTrace();
@@ -583,20 +585,33 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     private void speedRecord(RecordSpeed recordSpeed) {
         Handler audioHandler = audioManager.getHandler();
+        Handler videoHandler = videoManager.getHandler();
 
         try {
             cameraCaptureSession.stopRepeating();
 
-            if (recordSpeed == RecordSpeed.SLOW) {
-                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(60, 60));
-                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_SPECIAL, 0, null));
-            } else if (recordSpeed == RecordSpeed.NORMAL) {
-                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(30, 30));
-                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_NORMAL, 0, null));
-            } else if (recordSpeed == RecordSpeed.FAST) {
-                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(15, 15));
-                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_SPECIAL, 0, null));
+            if (audioHandler != null) {
+                if (recordSpeed == RecordSpeed.SLOW) {
+                    captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(60, 60));
+                    audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_SLOW, 0, null));
+                } else if (recordSpeed == RecordSpeed.NORMAL) {
+                    captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(30, 30));
+                    audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_NORMAL, 0, null));
+                } else if (recordSpeed == RecordSpeed.FAST) {
+                    captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(15, 15));
+                    audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_FAST, 0, null));
+                }
+                if (videoHandler != null) {
+                    if (recordSpeed == RecordSpeed.PAUSE) {
+                        videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+                        audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+                    } else if (recordSpeed == RecordSpeed.RESUME) {
+                        videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+                        audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+                    }
+                }
             }
+
             cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
         } catch (CameraAccessException ce) {
             ce.printStackTrace();
@@ -704,7 +719,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
             captureRequestBuilder.addTarget(objectDetectionImageReader.getSurface());
 
-            recordImageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
+            recordImageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 52);
             recordImageReader.setOnImageAvailableListener(videoManager, videoManager.getHandler());
 
             captureRequestBuilder.addTarget(recordImageReader.getSurface());

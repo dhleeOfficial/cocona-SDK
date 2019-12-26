@@ -48,6 +48,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
     // STATUS
     private boolean isReady = false;
     private boolean isEOS = false;
+    private boolean isPause = false;
 
     // WRITER Thread
     private MuxWriter muxWriter = null;
@@ -80,6 +81,16 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                     }
                     case ThreadMessage.RecordMessage.MSG_RECORD_STOP : {
                         isEOS = true;
+
+                        return true;
+                    }
+                    case ThreadMessage.RecordMessage.MSG_RECORD_PAUSE : {
+                        isPause = true;
+
+                        return true;
+                    }
+                    case ThreadMessage.RecordMessage.MSG_RECORD_RESUME : {
+                        isPause = false;
 
                         return true;
                     }
@@ -301,7 +312,9 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                     final byte[] data = encodeList.poll();
 
                     if (data != null) {
-                        bufferedOutputStream.write(data);
+                        if (isPause == false) {
+                            bufferedOutputStream.write(data);
+                        }
                     } else {
                         if (isRun == false) {
                             break;

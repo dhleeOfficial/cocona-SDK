@@ -22,8 +22,11 @@ public class ThreadMessage {
     public class RecordMessage {
         public static final int MSG_RECORD_START = 0;
         public static final int MSG_RECORD_STOP = 1;
-        public static final int MSG_RECORD_SPECIAL = 2;
+        public static final int MSG_RECORD_SLOW = 2;
         public static final int MSG_RECORD_NORMAL = 3;
+        public static final int MSG_RECORD_FAST = 4;
+        public static final int MSG_RECORD_PAUSE = 5;
+        public static final int MSG_RECORD_RESUME = 6;
     }
 
     public class MuxMessage {

@@ -42,6 +42,7 @@ public class CameraActivity extends AppCompatActivity {
     private Button filter;
 
     private RadioGroup radioGroup;
+    private RadioGroup radioGroup2;
 
     private CameraEngine engine;
     private CameraEngine.Util engineUtil;
@@ -54,6 +55,7 @@ public class CameraActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         setContentView(R.layout.activity_camera);
 
@@ -73,6 +75,7 @@ public class CameraActivity extends AppCompatActivity {
         bright = findViewById(R.id.brightBtn);
         dark = findViewById(R.id.darkBtn);
         radioGroup = findViewById(R.id.radioGroup);
+        radioGroup2 = findViewById(R.id.radioGroup2);
 
         filter = findViewById(R.id.filterBtn);
 
@@ -91,8 +94,13 @@ public class CameraActivity extends AppCompatActivity {
                     } else if (buttonView == record) {
                         if (isChecked == true) {
                             radioGroup.setVisibility(View.VISIBLE);
+                            radioGroup2.setVisibility(View.VISIBLE);
                         } else {
+                            radioGroup.check(R.id.normalBtn);
                             radioGroup.setVisibility(View.INVISIBLE);
+
+                            radioGroup2.check(R.id.resumeBtn);
+                            radioGroup2.setVisibility(View.INVISIBLE);
                         }
 
                         engine.record(isChecked);
@@ -113,10 +121,22 @@ public class CameraActivity extends AppCompatActivity {
             }
         };
 
+        RadioGroup.OnCheckedChangeListener changeListener2 = new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                if (checkedId == R.id.pauseBtn) {
+                    engine.recordSpeed(RecordSpeed.PAUSE);
+                } else if (checkedId == R.id.resumeBtn) {
+                    engine.recordSpeed(RecordSpeed.RESUME);
+                }
+            }
+        };
+
         flash.setOnCheckedChangeListener(checkListener);
         lens.setOnCheckedChangeListener(checkListener);
         record.setOnCheckedChangeListener(checkListener);
         radioGroup.setOnCheckedChangeListener(changeListener);
+        radioGroup2.setOnCheckedChangeListener(changeListener2);
 
         Button.OnClickListener clickListener = new Button.OnClickListener() {
             @Override

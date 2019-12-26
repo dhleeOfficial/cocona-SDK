@@ -21,8 +21,10 @@ import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import framework.Enum.RecordSpeed;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
+import framework.Util.Util;
 
 public class AudioManager extends HandlerThread {
     private Handler myHandler;
@@ -42,12 +44,13 @@ public class AudioManager extends HandlerThread {
 
     private String audioPipe;
     private BufferedOutputStream bufferedOutputStream = null;
-    //private FileOutputStream fileOutputStream = null;
+    private FileOutputStream fileOutputStream = null;
 
     // STATUS
     boolean isReady = false;
     boolean isEOS = false;
-    boolean isNormal = true;
+    boolean isPause = false;
+    RecordSpeed recordSpeed = RecordSpeed.NORMAL;
 
     // WRITER Thread
     private MuxWriter muxWriter = null;
@@ -76,13 +79,28 @@ public class AudioManager extends HandlerThread {
 
                         return true;
                     }
-                    case ThreadMessage.RecordMessage.MSG_RECORD_NORMAL : {
-                        isNormal = true;
+                    case ThreadMessage.RecordMessage.MSG_RECORD_SLOW : {
+                        recordSpeed = RecordSpeed.SLOW;
 
                         return true;
                     }
-                    case ThreadMessage.RecordMessage.MSG_RECORD_SPECIAL : {
-                        isNormal = false;
+                    case ThreadMessage.RecordMessage.MSG_RECORD_NORMAL : {
+                        recordSpeed = RecordSpeed.NORMAL;
+
+                        return true;
+                    }
+                    case ThreadMessage.RecordMessage.MSG_RECORD_FAST : {
+                        recordSpeed = RecordSpeed.FAST;
+
+                        return true;
+                    }
+                    case ThreadMessage.RecordMessage.MSG_RECORD_PAUSE : {
+                        isPause = true;
+
+                        return true;
+                    }
+                    case ThreadMessage.RecordMessage.MSG_RECORD_RESUME : {
+                        isPause = false;
 
                         return true;
                     }
@@ -175,10 +193,10 @@ public class AudioManager extends HandlerThread {
                 bufferedOutputStream = null;
             }
 
-//            if (fileOutputStream != null) {
-//                fileOutputStream.close();
-//                fileOutputStream = null;
-//            }
+            if (fileOutputStream != null) {
+                fileOutputStream.close();
+                fileOutputStream = null;
+            }
         } catch (IOException ie) {
             ie.printStackTrace();
         }
@@ -208,7 +226,22 @@ public class AudioManager extends HandlerThread {
                 final int readByte = audioRecord.read(audioData, 0, SAMPLES_PER_FRAME);
 
                 if (readByte > 0) {
-                    encode(audioData, 0, isEOS);
+                    if (recordSpeed == RecordSpeed.NORMAL) {
+                        encode(audioData, 0, isEOS);
+                    } else if (recordSpeed == RecordSpeed.SLOW) {
+                        byte[] muteData = new byte[readByte];
+
+                        if (isEOS == true) {
+                            encode(muteData, 0, false);
+                            encode(muteData, 0, isEOS);
+                        } else {
+                            encode(muteData, 0, isEOS);
+                            encode(muteData, 0, isEOS);
+                        }
+                    } else if (recordSpeed == RecordSpeed.FAST) {
+                        byte[] muteData = new byte[readByte / 2];
+                        encode(muteData, 0, isEOS);
+                    }
                 }
             }
 
@@ -261,7 +294,7 @@ public class AudioManager extends HandlerThread {
                 if (bufferedOutputStream == null) {
                     try {
                         bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(audioPipe));
-                        //fileOutputStream = new FileOutputStream(Util.getOutputAACFile().getPath());
+                        fileOutputStream = new FileOutputStream(Util.getOutputAACFile().getPath());
                     } catch (FileNotFoundException fe) {
                         fe.printStackTrace();
                     }
@@ -317,7 +350,10 @@ public class AudioManager extends HandlerThread {
                     final byte[] data = encodeList.poll();
 
                     if (data != null) {
-                        bufferedOutputStream.write(data);
+                        if (isPause == false) {
+                            bufferedOutputStream.write(data);
+                            fileOutputStream.write(data);
+                        }
                     } else {
                         if (isRun == false) {
                             break;
@@ -327,7 +363,7 @@ public class AudioManager extends HandlerThread {
                     e.printStackTrace();
                 }
             }
-            muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_VIDEO_END, 0,null));
+            muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_AUDIO_END, 0,null));
         }
 
         public void setIsRun(boolean isRun) {
