@@ -1,5 +1,6 @@
 package framework.Manager;
 
+import android.app.Activity;
 import android.content.Context;
 
 import android.graphics.Color;
@@ -29,6 +30,7 @@ import android.os.Message;
 import android.util.Log;
 import android.util.Range;
 import android.util.Size;
+import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
@@ -40,6 +42,7 @@ import framework.Enum.Exposure;
 
 import framework.Enum.Filter;
 import framework.Enum.LensFacing;
+import framework.Enum.Mode;
 import framework.Enum.RecordSpeed;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
@@ -104,6 +107,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private boolean isLocked = true;
     private LensFacing lensFacing;
     private RecordSpeed recordSpeed;
+    private Mode mode = Mode.TRAVEL;
 
     private Semaphore cameraLock = new Semaphore(1);
 
@@ -114,6 +118,16 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private SensorManager sensorManager;
     private Sensor sensor;
 
+    // ORIENTATION
+    private int sensorOrientation;
+    private static final SparseIntArray ORIENTATION = new SparseIntArray();
+
+    static {
+        ORIENTATION.append(Surface.ROTATION_0, 90);
+        ORIENTATION.append(Surface.ROTATION_90, 0);
+        ORIENTATION.append(Surface.ROTATION_180, 270);
+        ORIENTATION.append(Surface.ROTATION_270, 180);
+    }
 
     private TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
         @Override
@@ -176,6 +190,10 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         }
     };
 
+    private int getOrientation(int rotation) {
+        return (ORIENTATION.get(rotation) + sensorOrientation + 270) % 360;
+    }
+
     private CameraCaptureSession.StateCallback captureStateCallback = new CameraCaptureSession.StateCallback() {
         @Override
         public void onConfigured(@NonNull CameraCaptureSession session) {
@@ -185,8 +203,13 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
             captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(30, 30));
 
+            int rotation = ((Activity) context).getWindowManager().getDefaultDisplay().getRotation();
+            System.out.println("===========================================");
+            System.out.println("ORIENTATION : " + rotation);
+            System.out.println("===========================================");
+
             try {
-                cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
+                 cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
             } catch (CameraAccessException ce) {
                 ce.printStackTrace();
             }
@@ -236,7 +259,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         // CREATE Video & Audio Manager
         videoManager = new VideoManager();
         audioManager = new AudioManager();
-
         muxManager = new MuxManager(context);
 
         audioManager.start();
@@ -318,6 +340,11 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
                         return true;
                     }
+                    case ThreadMessage.EngineMessage.MSG_ENGINE_MODE : {
+                        mode((Mode) msg.obj);
+
+                        return true;
+                    }
                 }
                 return false;
             }
@@ -332,6 +359,10 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     public final Handler getHandler() {
         return myHandler;
+    }
+
+    public final Mode getMode() {
+        return mode;
     }
 
     /*
@@ -396,8 +427,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         Handler muxHandler = muxManager.getHandler();
         Handler videoHandler = videoManager.getHandler();
         Handler audioHandler = audioManager.getHandler();
+        Handler inferenceHandler = objectDetectionManager.getHandler();
 
-        if ((muxHandler != null) && (videoHandler != null) && (audioHandler != null)){
+        if ((muxHandler != null) && (videoHandler != null) && (audioHandler != null) && (inferenceHandler != null)) {
             if (isRecord == true) {
                 muxManager.resetPipeList();
 
@@ -411,6 +443,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
                 videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
             }
+            inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.ODMessage.MSG_OD_SETRECORD, 0, isRecord));
         }
     }
 
@@ -528,34 +561,36 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     private void areaFocus(PointF pointF) {
         try {
-            CameraCharacteristics cc = cameraManager.getCameraCharacteristics(enableCameraId);
-            Rect rect = cc.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+            if (cameraCaptureSession != null) {
+                CameraCharacteristics cc = cameraManager.getCameraCharacteristics(enableCameraId);
+                Rect rect = cc.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
 
-            final int x = (int) ((pointF.y / (float) textureView.getHeight()) * (float) rect.width());
-            final int y = (int) ((pointF.x / (float) textureView.getWidth()) * (float) rect.height());
-            final int halfWidth = 200;
-            final int halfHeight = 200;
+                final int x = (int) ((pointF.y / (float) textureView.getHeight()) * (float) rect.width());
+                final int y = (int) ((pointF.x / (float) textureView.getWidth()) * (float) rect.height());
+                final int halfWidth = 200;
+                final int halfHeight = 200;
 
-            MeteringRectangle meteringRectangle = new MeteringRectangle(Math.max(x - halfWidth, 0),
-                                                                        Math.max(y - halfHeight, 0),
-                                                                        halfWidth * 2,
-                                                                        halfHeight * 2,
-                                                                        MeteringRectangle.METERING_WEIGHT_MAX - 1);
-            cameraCaptureSession.stopRepeating();
+                MeteringRectangle meteringRectangle = new MeteringRectangle(Math.max(x - halfWidth, 0),
+                        Math.max(y - halfHeight, 0),
+                        halfWidth * 2,
+                        halfHeight * 2,
+                        MeteringRectangle.METERING_WEIGHT_MAX - 1);
+                cameraCaptureSession.stopRepeating();
 
-            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
-            cameraCaptureSession.capture(captureRequestBuilder.build(), captureCallback, backgroundHandler);
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+                cameraCaptureSession.capture(captureRequestBuilder.build(), captureCallback, backgroundHandler);
 
-            if ((cc.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF) >= 1) ==  true) {
-                captureRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{meteringRectangle});
+                if ((cc.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF) >= 1) == true) {
+                    captureRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{meteringRectangle});
+                }
+
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+                captureRequestBuilder.setTag("FOCUS");
+
+                cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), captureCallback, backgroundHandler);
             }
-
-            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
-            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
-            captureRequestBuilder.setTag("FOCUS");
-
-            cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), captureCallback, backgroundHandler);
         } catch (CameraAccessException ce) {
             ce.printStackTrace();
         }
@@ -588,17 +623,18 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         Handler videoHandler = videoManager.getHandler();
 
         try {
-            cameraCaptureSession.stopRepeating();
-
             if (audioHandler != null) {
                 if (recordSpeed == RecordSpeed.SLOW) {
                     captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(60, 60));
+                    videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_SLOW, 0, null));
                     audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_SLOW, 0, null));
                 } else if (recordSpeed == RecordSpeed.NORMAL) {
                     captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(30, 30));
+                    videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_NORMAL, 0, null));
                     audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_NORMAL, 0, null));
                 } else if (recordSpeed == RecordSpeed.FAST) {
                     captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(15, 15));
+                    videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_FAST, 0, null));
                     audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_FAST, 0, null));
                 }
                 if (videoHandler != null) {
@@ -618,6 +654,16 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         }
     }
 
+    private void mode(Mode mode) {
+        this.mode = mode;
+
+        Handler inferenceHandler = objectDetectionManager.getHandler();
+
+        if (inferenceHandler != null) {
+            inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.ODMessage.MSG_OD_SETMODE, 0, mode));
+        }
+    }
+
     private void initCamera(int width, int height) {
         if (textureView.isAvailable() == true) {
             try {
@@ -630,6 +676,12 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                 hasFlash = cc.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
                 exposureLevel = 0.0;
                 recordSpeed = RecordSpeed.NORMAL;
+                sensorOrientation = cc.get(CameraCharacteristics.SENSOR_ORIENTATION);
+                System.out.println("===========================================");
+                System.out.println("SENSOR ORIENTATION : " + sensorOrientation);
+                System.out.println("===========================================");
+
+                mode(this.mode);
 
                 StreamConfigurationMap scMap = cc.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
 

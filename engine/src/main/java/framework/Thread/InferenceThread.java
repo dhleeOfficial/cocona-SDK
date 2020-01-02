@@ -29,9 +29,8 @@ public class InferenceThread implements Runnable {
     int yRowStride;
     int uvRowStride;
     int uvPixelStride;
+    int[] rgbBytes;
     //
-
-    byte[] temp;
 
     private Bitmap imageRGBBitmap;
     private Bitmap cropBitmap;
@@ -76,13 +75,15 @@ public class InferenceThread implements Runnable {
 
     @Override
     public void run() {
-        int[] rgbBytes = new int[previewSize.getWidth() * previewSize.getHeight()];
+        rgbBytes = new int[previewSize.getWidth() * previewSize.getHeight()];
 
         Util.convertYUV420ToARGB8888(yuvBytes[0], yuvBytes[1], yuvBytes[2], previewSize.getWidth(), previewSize.getHeight(),
                                      yRowStride, uvRowStride, uvPixelStride, rgbBytes);
 
         imageRGBBitmap = Bitmap.createBitmap(previewSize.getWidth(), previewSize.getHeight(), Bitmap.Config.ARGB_8888);
         imageRGBBitmap.setPixels(rgbBytes, 0, previewSize.getWidth(), 0, 0, previewSize.getWidth(), previewSize.getHeight());
+
+        rgbBytes = null;
 
         cropBitmap = Bitmap.createScaledBitmap(imageRGBBitmap, INPUT_SIZE, INPUT_SIZE, true);
 

@@ -13,10 +13,13 @@ public class ThreadMessage {
         public static final int MSG_ENGINE_LOCK_FOCUS = 8;
         public static final int MSG_ENGINE_FILTER = 9;
         public static final int MSG_ENGINE_SPEED_RECORD = 10;
+        public static final int MSG_ENGINE_MODE = 11;
     }
 
     public class ODMessage {
         public static final int MSG_OD_SETUP = 0;
+        public static final int MSG_OD_SETMODE = 1;
+        public static final int MSG_OD_SETRECORD = 2;
     }
 
     public class RecordMessage {

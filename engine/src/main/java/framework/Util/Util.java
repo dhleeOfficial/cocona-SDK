@@ -74,19 +74,17 @@ public class Util {
         return matrix;
     }
 
-    public static void convertImageToBytes(Image.Plane[] planes, byte[][] bytes) {
-        int count = 0;
+    public static byte[][] convertImageToBytes(Image.Plane[] planes) {
+        byte[][] bytes = new byte[3][];
 
-        for (final Image.Plane plane : planes) {
-            ByteBuffer byteBuffer = plane.getBuffer();
+        for (int i = 0; i < planes.length; ++i) {
+            ByteBuffer byteBuffer = planes[i].getBuffer();
 
-            if (bytes[count] == null) {
-                bytes[count] = new byte[byteBuffer.capacity()];
-            }
-            byteBuffer.get(bytes[count]);
-
-            ++count;
+            bytes[i] = new byte[byteBuffer.capacity()];
+            byteBuffer.get(bytes[i]);
         }
+
+        return bytes;
     }
 
     public static void convertYUV420ToARGB8888(
@@ -129,36 +127,6 @@ public class Util {
         b = b > kMaxChannelValue ? kMaxChannelValue : (b < 0 ? 0 : b);
 
         return 0xff000000 | ((r << 6) & 0xff0000) | ((g >> 2) & 0xff00) | ((b >> 10) & 0xff);
-    }
-
-    public static Bitmap byteArrayToBitmap(byte[] bytes) {
-        Bitmap bitmap = null;
-
-        bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-
-        return bitmap;
-    }
-
-    public static byte[] serialize(Image image) {
-        if (image == null) {
-            return null;
-        }
-
-        Image.Plane[] planes = image.getPlanes();
-        byte[] bytes = new byte[image.getWidth() * image.getHeight()];
-        int next = 0;
-
-        for (Image.Plane plane : planes) {
-            ByteBuffer byteBuffer = plane.getBuffer();
-            byteBuffer.position(0);
-
-            int nBytes = byteBuffer.remaining();
-
-            plane.getBuffer().get(bytes, next, nBytes);
-            next += nBytes;
-        }
-
-        return bytes;
     }
 
     public static Bitmap imageToBitmap(Image image, float rotationDegrees) {
@@ -237,6 +205,73 @@ public class Util {
         return result;
     }
 
+    public static byte[] imageToMat(Image image) {
+
+        Image.Plane[] planes = image.getPlanes();
+
+        ByteBuffer buffer0 = planes[0].getBuffer();
+        ByteBuffer buffer1 = planes[1].getBuffer();
+        ByteBuffer buffer2 = planes[2].getBuffer();
+
+        int offset = 0;
+
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        byte[] data = new byte[image.getWidth() * image.getHeight() * ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888) / 8];
+        byte[] rowData1 = new byte[planes[1].getRowStride()];
+        byte[] rowData2 = new byte[planes[2].getRowStride()];
+
+        int bytesPerPixel = ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888) / 8;
+
+        // loop via rows of u/v channels
+
+        int offsetY = 0;
+
+        int sizeY =  width * height * bytesPerPixel;
+        int sizeUV = (width * height * bytesPerPixel) / 4;
+
+        for (int row = 0; row < height ; row++) {
+
+            // fill data for Y channel, two row
+            {
+                int length = bytesPerPixel * width;
+                buffer0.get(data, offsetY, length);
+
+                if ( height - row != 1)
+                    buffer0.position(buffer0.position()  +  planes[0].getRowStride() - length);
+
+                offsetY += length;
+            }
+
+            if (row >= height/2)
+                continue;
+
+            {
+                int uvlength = planes[1].getRowStride();
+
+                if ( (height / 2 - row) == 1 ) {
+                    uvlength = width / 2 - planes[1].getPixelStride() + 1;
+                }
+
+                buffer1.get(rowData1, 0, uvlength);
+                buffer2.get(rowData2, 0, uvlength);
+
+                // fill data for u/v channels
+                for (int col = 0; col < width / 2; ++col) {
+                    // u channel
+                    data[sizeY + (row * width)/2 + col] = rowData1[col * planes[1].getPixelStride()];
+
+                    // v channel
+                    data[sizeY + sizeUV + (row * width)/2 + col] = rowData2[col * planes[2].getPixelStride()];
+                }
+            }
+
+        }
+
+        return data;
+    }
+
     public static byte[] shortToByte(short[] sData) {
         int shortArrsize = sData.length;
         byte[] bytes = new byte[shortArrsize * 2];
@@ -281,6 +316,23 @@ public class Util {
 
         mediaFile = new File(mediaStorageDir.getPath() + File.separator
                 + timeStamp + ".aac");
+        return mediaFile;
+    }
+
+    public static File getOutputTEXTFile() {
+        File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
+                "AUTOEDIT");
+        if (!mediaStorageDir.exists()) {
+            if (!mediaStorageDir.mkdirs()) {
+                return null;
+            }
+        }
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss",
+                Locale.getDefault()).format(new Date());
+        File mediaFile;
+
+        mediaFile = new File(mediaStorageDir.getPath() + File.separator
+                + timeStamp + ".txt");
         return mediaFile;
     }
 }

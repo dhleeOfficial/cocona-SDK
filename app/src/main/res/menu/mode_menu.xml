@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/travel"
+        android:title="@string/mode_travel"/>
+    <item
+        android:id="@+id/event"
+        android:title="@string/mode_event"/>
+    <item
+        android:id="@+id/live"
+        android:title="@string/mode_live"/>
+    <item
+        android:id="@+id/daily"
+        android:title="@string/mode_daily"/>
+</menu>

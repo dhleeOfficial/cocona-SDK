@@ -23,6 +23,7 @@ import framework.Engine.CameraEngine;
 import framework.Enum.Exposure;
 import framework.Enum.Filter;
 import framework.Enum.LensFacing;
+import framework.Enum.Mode;
 import framework.Enum.RecordSpeed;
 import framework.Enum.TouchType;
 
@@ -40,6 +41,7 @@ public class CameraActivity extends AppCompatActivity {
     private Button bright;
     private Button dark;
     private Button filter;
+    private Button mode;
 
     private RadioGroup radioGroup;
     private RadioGroup radioGroup2;
@@ -78,6 +80,7 @@ public class CameraActivity extends AppCompatActivity {
         radioGroup2 = findViewById(R.id.radioGroup2);
 
         filter = findViewById(R.id.filterBtn);
+        mode = findViewById(R.id.modeBtn);
 
         CompoundButton.OnCheckedChangeListener checkListener = new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -93,8 +96,10 @@ public class CameraActivity extends AppCompatActivity {
 
                     } else if (buttonView == record) {
                         if (isChecked == true) {
-                            radioGroup.setVisibility(View.VISIBLE);
-                            radioGroup2.setVisibility(View.VISIBLE);
+                            if (engine.getMode() == Mode.TRAVEL) {
+                                radioGroup.setVisibility(View.VISIBLE);
+                                radioGroup2.setVisibility(View.VISIBLE);
+                            }
                         } else {
                             radioGroup.check(R.id.normalBtn);
                             radioGroup.setVisibility(View.INVISIBLE);
@@ -206,6 +211,40 @@ public class CameraActivity extends AppCompatActivity {
 
                     menuInflater.inflate(R.menu.filter_menu, popupMenu.getMenu());
                     popupMenu.show();
+                } else if (v == mode) {
+                    PopupMenu popupMenu = new PopupMenu(CameraActivity.this, mode);
+                    popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                        @Override
+                        public boolean onMenuItemClick(MenuItem item) {
+                            switch (item.getItemId()) {
+                                case R.id.travel : {
+                                    engine.mode(Mode.TRAVEL);
+
+                                    return true;
+                                }
+                                case R.id.event : {
+                                    engine.mode(Mode.EVENT);
+
+                                    return true;
+                                }
+                                case R.id.live : {
+                                    engine.mode(Mode.LIVE);
+
+                                    return true;
+                                }
+                                case R.id.daily : {
+                                    engine.mode(Mode.DAILY);
+
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }
+                    });
+                    MenuInflater menuInflater = popupMenu.getMenuInflater();
+
+                    menuInflater.inflate(R.menu.mode_menu, popupMenu.getMenu());
+                    popupMenu.show();
                 }
             }
         };
@@ -214,6 +253,7 @@ public class CameraActivity extends AppCompatActivity {
         bright.setOnClickListener(clickListener);
         dark.setOnClickListener(clickListener);
         filter.setOnClickListener(clickListener);
+        mode.setOnClickListener(clickListener);
     }
 
     @Override

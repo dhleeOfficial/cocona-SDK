@@ -1,6 +1,5 @@
 package framework.Manager;
 
-import android.icu.text.AlphabeticIndex;
 import android.media.Image;
 import android.media.ImageReader;
 import android.media.MediaCodec;
@@ -11,6 +10,7 @@ import android.media.MediaFormat;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
+import android.util.Log;
 import android.util.Size;
 
 import androidx.annotation.NonNull;
@@ -19,12 +19,15 @@ import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import framework.Enum.RecordSpeed;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
+import framework.Util.Util;
 
 public class VideoManager extends HandlerThread implements ImageReader.OnImageAvailableListener {
     private Handler myHandler;
@@ -33,7 +36,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
 
     // VIDEO
     private static final String MIME_TYPE = MediaFormat.MIMETYPE_VIDEO_AVC;
-    private static final int BIT_RATE = 4000000;
+    private static final int BIT_RATE = 10000000;
     private static final int FRAME_RATE = 30;
     private static final float IFRAME_INTERVAL = 0.5f;
     private static final int TIMEOUT_USEC = 10000;
@@ -49,6 +52,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
     private boolean isReady = false;
     private boolean isEOS = false;
     private boolean isPause = false;
+    private boolean isSlow = false;
 
     // WRITER Thread
     private MuxWriter muxWriter = null;
@@ -81,6 +85,21 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                     }
                     case ThreadMessage.RecordMessage.MSG_RECORD_STOP : {
                         isEOS = true;
+
+                        return true;
+                    }
+                    case ThreadMessage.RecordMessage.MSG_RECORD_SLOW : {
+                        isSlow = true;
+
+                        return true;
+                    }
+                    case ThreadMessage.RecordMessage.MSG_RECORD_NORMAL : {
+                        isSlow = false;
+
+                        return true;
+                    }
+                    case ThreadMessage.RecordMessage.MSG_RECORD_FAST : {
+                        isSlow = false;
 
                         return true;
                     }
@@ -117,7 +136,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                     final int width = image.getWidth();
                     final int height = image.getHeight();
 
-                    final byte[] buffer = YUVtoBytes(yPlane.getBuffer(),
+                    WeakReference<byte[]> weakReference = new WeakReference<byte[]>(YUVtoBytes(yPlane.getBuffer(),
                             uPlane.getBuffer(),
                             vPlane.getBuffer(),
                             yPlane.getPixelStride(),
@@ -127,9 +146,25 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                             vPlane.getPixelStride(),
                             vPlane.getRowStride(),
                             width,
-                            height);
+                            height));
+
+                    byte[] buffer = weakReference.get();
 
                     encode(buffer, timestamp, isEOS);
+                    buffer = null;
+
+//                    encode(YUVtoBytes(yPlane.getBuffer(),
+//                            uPlane.getBuffer(),
+//                            vPlane.getBuffer(),
+//                            yPlane.getPixelStride(),
+//                            yPlane.getRowStride(),
+//                            uPlane.getPixelStride(),
+//                            uPlane.getRowStride(),
+//                            vPlane.getPixelStride(),
+//                            vPlane.getRowStride(),
+//                            width,
+//                            height), timestamp, isEOS);
+                    //encode(Util.imageToMat(image), image.getTimestamp(), isEOS);
                 }
             }
         } catch (NullPointerException ne) {
@@ -234,7 +269,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
 
     private void encode(byte[] buffer, long timeStamp, boolean isEOS) {
         MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
-        int inputBufferIndex = videoCodec.dequeueInputBuffer(-1);
+        int inputBufferIndex = videoCodec.dequeueInputBuffer(0);
 
         if (inputBufferIndex >= 0) {
             if (isEOS == true) {
@@ -247,6 +282,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                 in.put(buffer);
 
                 videoCodec.queueInputBuffer(inputBufferIndex, 0, buffer.length, timeStamp, 0);
+
                 muxing(false, bufferInfo);
             }
         }
@@ -254,7 +290,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
 
     private void muxing(boolean isEOS, MediaCodec.BufferInfo bufferInfo) {
         while (true) {
-            int outputBufferIndex = videoCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC);
+            int outputBufferIndex = videoCodec.dequeueOutputBuffer(bufferInfo, 0);
 
             if (outputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
                 if (isEOS == false) {
@@ -274,7 +310,8 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                         final ByteBuffer out = videoCodec.getOutputBuffer(outputBufferIndex);
 
                         if (out != null) {
-                            final byte[] outBytes = new byte[bufferInfo.size];
+                            WeakReference<byte[]> weakReference = new WeakReference<byte[]>(new byte[bufferInfo.size]);
+                            byte[] outBytes = weakReference.get();
 
                             out.get(outBytes);
 
@@ -285,6 +322,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                                     muxWriter = new MuxWriter();
                                     muxWriter.start();
                                 }
+                                outBytes = null;
                             }
                         }
                     }

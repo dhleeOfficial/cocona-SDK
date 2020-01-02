@@ -10,6 +10,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.os.Process;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -17,6 +18,7 @@ import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -44,7 +46,6 @@ public class AudioManager extends HandlerThread {
 
     private String audioPipe;
     private BufferedOutputStream bufferedOutputStream = null;
-    private FileOutputStream fileOutputStream = null;
 
     // STATUS
     boolean isReady = false;
@@ -81,16 +82,19 @@ public class AudioManager extends HandlerThread {
                     }
                     case ThreadMessage.RecordMessage.MSG_RECORD_SLOW : {
                         recordSpeed = RecordSpeed.SLOW;
+                        encodeList.clear();
 
                         return true;
                     }
                     case ThreadMessage.RecordMessage.MSG_RECORD_NORMAL : {
                         recordSpeed = RecordSpeed.NORMAL;
+                        encodeList.clear();
 
                         return true;
                     }
                     case ThreadMessage.RecordMessage.MSG_RECORD_FAST : {
                         recordSpeed = RecordSpeed.FAST;
+                        encodeList.clear();
 
                         return true;
                     }
@@ -192,11 +196,6 @@ public class AudioManager extends HandlerThread {
                 bufferedOutputStream.close();
                 bufferedOutputStream = null;
             }
-
-            if (fileOutputStream != null) {
-                fileOutputStream.close();
-                fileOutputStream = null;
-            }
         } catch (IOException ie) {
             ie.printStackTrace();
         }
@@ -222,27 +221,34 @@ public class AudioManager extends HandlerThread {
             }
 
             while (isReady) {
-                byte[] audioData = new byte[SAMPLES_PER_FRAME];
+                WeakReference<byte[]> weakReference = new WeakReference<byte[]>(new byte[SAMPLES_PER_FRAME]);
+                byte[] audioData = weakReference.get();
                 final int readByte = audioRecord.read(audioData, 0, SAMPLES_PER_FRAME);
 
                 if (readByte > 0) {
                     if (recordSpeed == RecordSpeed.NORMAL) {
                         encode(audioData, 0, isEOS);
                     } else if (recordSpeed == RecordSpeed.SLOW) {
-                        byte[] muteData = new byte[readByte];
+                        WeakReference<byte[]> weakReference1 = new WeakReference<byte[]>(new byte[readByte]);
+                        byte[] muteData = weakReference1.get();
 
-                        if (isEOS == true) {
-                            encode(muteData, 0, false);
+                        if (isEOS == false) {
+                            encode(muteData, 0, isEOS);
                             encode(muteData, 0, isEOS);
                         } else {
-                            encode(muteData, 0, isEOS);
+                            encode(muteData, 0, false);
                             encode(muteData, 0, isEOS);
                         }
+                        muteData = null;
                     } else if (recordSpeed == RecordSpeed.FAST) {
-                        byte[] muteData = new byte[readByte / 2];
+                        WeakReference<byte[]> weakReference1 = new WeakReference<byte[]>(new byte[readByte / 2]);
+                        byte[] muteData = weakReference1.get();
+
                         encode(muteData, 0, isEOS);
+                        muteData = null;
                     }
                 }
+                audioData = null;
             }
 
             audioRecord.stop();
@@ -264,7 +270,7 @@ public class AudioManager extends HandlerThread {
 
     private void encode(byte[] buffer, long timeStamp, boolean isEOS) {
         MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
-        int inputBufferIndex = audioCodec.dequeueInputBuffer(TIMEOUT_USEC);
+        int inputBufferIndex = audioCodec.dequeueInputBuffer(0);
 
         if (inputBufferIndex >= 0) {
             if (isEOS == true) {
@@ -294,7 +300,6 @@ public class AudioManager extends HandlerThread {
                 if (bufferedOutputStream == null) {
                     try {
                         bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(audioPipe));
-                        fileOutputStream = new FileOutputStream(Util.getOutputAACFile().getPath());
                     } catch (FileNotFoundException fe) {
                         fe.printStackTrace();
                     }
@@ -312,7 +317,9 @@ public class AudioManager extends HandlerThread {
                             out.position(bufferInfo.offset);
                             out.limit(bufferInfo.offset + bufferInfo.size);
 
-                            final byte[] outBytes = new byte[bufferInfo.size + HEADER_SIZE];
+                            WeakReference<byte[]> weakReference = new WeakReference<byte[]>(new byte[bufferInfo.size + HEADER_SIZE]);
+
+                            byte[] outBytes = weakReference.get();
 
                             addADTSHeader(outBytes, outBytes.length);
                             out.get(outBytes, HEADER_SIZE, bufferInfo.size);
@@ -324,6 +331,7 @@ public class AudioManager extends HandlerThread {
                                     muxWriter.start();
                                 }
                             }
+                            outBytes = null;
                         }
                     }
                 }
@@ -352,7 +360,6 @@ public class AudioManager extends HandlerThread {
                     if (data != null) {
                         if (isPause == false) {
                             bufferedOutputStream.write(data);
-                            fileOutputStream.write(data);
                         }
                     } else {
                         if (isRun == false) {

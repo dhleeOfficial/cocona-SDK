@@ -13,19 +13,21 @@ import android.util.Size;
 
 import androidx.annotation.NonNull;
 
+import framework.Enum.Mode;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
 import framework.ObjectDetection.BoxDrawer;
 import framework.ObjectDetection.Classifier;
 import framework.ObjectDetection.ObjectDetectionModel;
+import framework.Thread.AutoEditThread;
 import framework.Thread.InferenceThread;
 import framework.Util.InferenceOverlayView;
 import framework.Util.Util;
 
-public class ObjectDetectionManager extends HandlerThread implements ImageReader.OnImageAvailableListener, InferenceThread.Callback {
+public class ObjectDetectionManager extends HandlerThread implements ImageReader.OnImageAvailableListener, InferenceThread.Callback, AutoEditThread.Callback {
     private static final int INPUT_SIZE = 300;
-    private static final String MODEL_FILE = "detect.tflite";
-    private static final String LABELS_FILE = "file:///android_asset/labelmap.txt";
+    private static final String MODEL_FILE = "travelmode.tflite";
+    private static final String LABELS_FILE = "file:///android_asset/travelmode.txt";
 
     private Handler myHandler;
     private Context context;
@@ -35,14 +37,18 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     private Matrix transCropToFrame;
     private BoxDrawer boxDrawer;
     private InferenceThread inferenceThread;
+    private AutoEditThread autoEditThread;
 
     private Size previewSize;
 
     // STATUS
-    private boolean isDone = true;
+    private boolean isODDone = true;
+    private boolean isAEDone = true;
     private boolean isReady = false;
+    private Mode mode = Mode.TRAVEL;
+    private boolean isRecord = false;
 
-    private byte[][] yuvBytes = new byte[3][];
+    //private byte[][] yuvBytes = new byte[3][];
 
     public ObjectDetectionManager(Context context, InferenceOverlayView inferenceOverlayView) {
         super("ObjectDetectionManager");
@@ -60,15 +66,26 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     protected void onLooperPrepared() {
         super.onLooperPrepared();
 
-        classifier = ObjectDetectionModel.create(context.getAssets(), context, MODEL_FILE, LABELS_FILE, INPUT_SIZE, false);
-        inferenceThread = new InferenceThread(classifier, INPUT_SIZE);
-
         myHandler = new Handler(this.getLooper(), new Handler.Callback() {
             @Override
             public boolean handleMessage(@NonNull Message msg) {
                 switch (msg.arg1) {
                     case ThreadMessage.ODMessage.MSG_OD_SETUP : {
+                        if (classifier == null) {
+                            classifier = ObjectDetectionModel.create(context.getAssets(), context, MODEL_FILE, LABELS_FILE, INPUT_SIZE, true);
+                            inferenceThread = new InferenceThread(classifier, INPUT_SIZE);
+                        }
                         setUpOD((MessageObject.Box) msg.obj);
+
+                        return true;
+                    }
+                    case ThreadMessage.ODMessage.MSG_OD_SETMODE : {
+                        setMode((Mode) msg.obj);
+
+                        return true;
+                    }
+                    case ThreadMessage.ODMessage.MSG_OD_SETRECORD : {
+                        isRecord = (boolean) msg.obj;
 
                         return true;
                     }
@@ -78,32 +95,64 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         });
     }
 
+
+    // TODO : MODE별 inference (case 1 TRAVEL - object Detection), (case 2 EVENT & RECORD - auto edit), (case 3 DAILY - ??)
     @Override
     public void onImageAvailable(ImageReader reader) {
         Image image = null;
 
         try {
             image = reader.acquireNextImage();
-            if (isReady == true) {
                 if (image != null) {
-                    // TODO : CHECK RECORD
-                    if (isDone == true) {
-                        Image.Plane[] planes = image.getPlanes();
-                        int yRowStride = planes[0].getRowStride();
-                        int uvRowStride = planes[1].getRowStride();
-                        int uvPixelStride = planes[1].getPixelStride();
+                    int yRowStride = image.getPlanes()[0].getRowStride();
+                    int uvRowStride = image.getPlanes()[1].getRowStride();
+                    int uvPixelStride = image.getPlanes()[1].getPixelStride();
 
-                        Util.convertImageToBytes(planes, yuvBytes);
+                    if (mode == Mode.TRAVEL) {
+                        if (isReady == true) {
+                            if (isODDone == true) {
+                                inferenceThread.setInfo(Util.convertImageToBytes(image.getPlanes()), yRowStride, uvRowStride, uvPixelStride);
 
-                        inferenceThread.setInfo(yuvBytes, yRowStride, uvRowStride, uvPixelStride);
+                                Thread t = new Thread(inferenceThread);
+                                t.start();
 
-                        Thread t = new Thread(inferenceThread);
-                        t.start();
+                                isODDone = false;
+                            }
+                        }
+                    } else if (mode == Mode.EVENT) {
+                        if (isRecord == true) {
+                            if (isAEDone == true) {
+                                long curTS = System.nanoTime() / 1000L;
 
-                        isDone = false;
+                                if (autoEditThread == null) {
+                                    autoEditThread = new AutoEditThread();
+
+                                    autoEditThread.loadTFLite(context);
+                                    autoEditThread.setFirstTS(curTS);
+                                    autoEditThread.setPreviewSize(previewSize);
+                                    autoEditThread.setCallback(this);
+                                }
+                                autoEditThread.updateCurrentTS(curTS);
+
+                                if (autoEditThread.isNextImage() == true) {
+                                    autoEditThread.setInfo(Util.convertImageToBytes(image.getPlanes()), yRowStride, uvRowStride, uvPixelStride);
+
+                                    Thread t = new Thread(autoEditThread);
+                                    t.start();
+
+                                    isAEDone = false;
+                                }
+                            }
+                        } else {
+                            if (autoEditThread != null) {
+                                autoEditThread.stop();
+                                autoEditThread = null;
+
+                                isAEDone = true;
+                            }
+                        }
                     }
                 }
-            }
         } catch (NullPointerException ne) {
             ne.printStackTrace();
         } finally {
@@ -116,7 +165,13 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     @Override
     public void onComplete() {
         inferenceOverlayView.postInvalidate();
-        isDone = true;
+
+        isODDone = true;
+    }
+
+    @Override
+    public void onDone() {
+        isAEDone = true;
     }
 
     public final Handler getHandler() {
@@ -124,32 +179,43 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     }
 
     private synchronized void setUpOD(MessageObject.Box boxMessageObject) {
-        previewSize = boxMessageObject.getSize();
+        if (inferenceThread != null) {
+            previewSize = boxMessageObject.getSize();
 
-        DisplayMetrics metrics = context.getResources().getDisplayMetrics();
-        float ratio = (float) metrics.heightPixels / (float) metrics.widthPixels;
-        Matrix transFrameToCrop = Util.getTransformationMatrix(new Size(previewSize.getWidth(), (int) (previewSize.getWidth()*ratio)),
-                                                               new Size(INPUT_SIZE, INPUT_SIZE), 0, false);
+            DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+            float ratio = (float) metrics.heightPixels / (float) metrics.widthPixels;
+            Matrix transFrameToCrop = Util.getTransformationMatrix(new Size(previewSize.getWidth(), (int) (previewSize.getWidth() * ratio)),
+                    new Size(INPUT_SIZE, INPUT_SIZE), 0, false);
 
-        transCropToFrame = new Matrix();
-        transFrameToCrop.invert(transCropToFrame);
+            transCropToFrame = new Matrix();
+            transFrameToCrop.invert(transCropToFrame);
 
-        boxDrawer = new BoxDrawer(context, boxMessageObject.getSize(), boxMessageObject.getOrientation());
+            boxDrawer = new BoxDrawer(context, boxMessageObject.getSize(), boxMessageObject.getOrientation());
 
-        inferenceThread.setPreviewSize(previewSize);
-        inferenceThread.setLensFacing(boxMessageObject.getLensFacing());
-        inferenceThread.setBoxDrawer(boxDrawer);
-        inferenceThread.setCallback(this);
-        inferenceThread.setMatrix(transCropToFrame);
+            inferenceThread.setPreviewSize(previewSize);
+            inferenceThread.setLensFacing(boxMessageObject.getLensFacing());
+            inferenceThread.setBoxDrawer(boxDrawer);
+            inferenceThread.setCallback(this);
+            inferenceThread.setMatrix(transCropToFrame);
 
-        inferenceOverlayView.unRegisterAllDrawCallback();
-        inferenceOverlayView.registerDrawCallback(new InferenceOverlayView.DrawCallback() {
-            @Override
-            public void onDraw(Canvas canvas) {
-                boxDrawer.draw(canvas);
-            }
-        });
+            inferenceOverlayView.unRegisterAllDrawCallback();
+            inferenceOverlayView.registerDrawCallback(new InferenceOverlayView.DrawCallback() {
+                @Override
+                public void onDraw(Canvas canvas) {
+                    boxDrawer.draw(canvas);
+                }
+            });
 
-        isReady = true;
+            isReady = true;
+        }
+    }
+
+    private synchronized void setMode(Mode mode) {
+        this.mode = mode;
+        inferenceOverlayView.postInvalidate();
+
+        if (mode == Mode.TRAVEL) {
+        } else if (mode == Mode.EVENT) {
+        }
     }
 }

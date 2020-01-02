@@ -11,4 +11,9 @@
     <string name="filter_whiteboard">WHITEBOARD</string>
     <string name="filter_blackboard">BLACKBOARD</string>
     <string name="filter_aqua">AQUA</string>
+    <string name="mode_travel">TRAVEL</string>
+    <string name="mode_event">EVENT</string>
+    <string name="mode_live">LIVE</string>
+    <string name="mode_daily">DAILY</string>
+
 </resources>

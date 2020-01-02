@@ -28,9 +28,9 @@ public class MuxManager extends HandlerThread {
     private FFMPEGThread ffmpeg;
 
     // FFMPEG COMMAND
-    private final String IN_PIPE1 = "-thread_queue_size 512 -f h264 -r 30 -vsync 2 -i ";
+    private final String IN_PIPE1 = "-thread_queue_size 1024 -f h264 -r 30 -i ";
     private final String IN_PIPE2 = " -thread_queue_size 2048 -f aac -i ";
-    private final String OTHERS = " -map 0:v -map 1:a -muxdelay 0 -max_muxing_queue_size 9999 ";
+    private final String OTHERS = " -map 0:v -map 1:a -muxdelay 0 -vsync 1 -max_muxing_queue_size 9999 ";
     private final String OUTPUT = " -c copy -f mp4 ";
 
     public MuxManager(Context context) {

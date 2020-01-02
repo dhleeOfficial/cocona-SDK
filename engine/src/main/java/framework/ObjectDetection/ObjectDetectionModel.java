@@ -171,6 +171,12 @@ public class ObjectDetectionModel implements Classifier {
                             detection));
         }
         Trace.endSection(); // "recognizeImage"
+
+        outputLocations = null;
+        outputClasses = null;
+        outputScores = null;
+        numDetections = null;
+
         return recognitions;
     }
 
