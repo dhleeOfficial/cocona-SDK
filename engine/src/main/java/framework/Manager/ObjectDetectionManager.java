@@ -143,13 +143,6 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                     isAEDone = false;
                                 }
                             }
-                        } else {
-                            if (autoEditThread != null) {
-                                autoEditThread.stop();
-                                autoEditThread = null;
-
-                                isAEDone = true;
-                            }
                         }
                     }
                 }
@@ -171,6 +164,13 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
     @Override
     public void onDone() {
+        if (isRecord == false) {
+            if (autoEditThread != null) {
+                autoEditThread.stop();
+                autoEditThread = null;
+            }
+        }
+
         isAEDone = true;
     }
 

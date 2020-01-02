@@ -107,6 +107,12 @@ public class InferenceThread implements Runnable {
             boxDrawer.processWillDrawBox(result);
         }
 
+        imageRGBBitmap.recycle();
+        imageRGBBitmap = null;
+
+        cropBitmap.recycle();
+        cropBitmap = null;
+yuvBytes = null;
         callback.onComplete();
     }
 

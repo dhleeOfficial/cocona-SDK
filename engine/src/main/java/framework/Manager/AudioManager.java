@@ -57,6 +57,9 @@ public class AudioManager extends HandlerThread {
     private MuxWriter muxWriter = null;
     private Queue<byte[]> encodeList = new LinkedList<byte[]>();
 
+    private byte[] rawBuffer;
+    private byte[] muteBuffer;
+    private byte[] muxBuffer;
 
     public AudioManager() {
         super("AudioManager");
@@ -222,33 +225,33 @@ public class AudioManager extends HandlerThread {
 
             while (isReady) {
                 WeakReference<byte[]> weakReference = new WeakReference<byte[]>(new byte[SAMPLES_PER_FRAME]);
-                byte[] audioData = weakReference.get();
-                final int readByte = audioRecord.read(audioData, 0, SAMPLES_PER_FRAME);
+                rawBuffer = weakReference.get();
+                final int readByte = audioRecord.read(rawBuffer, 0, SAMPLES_PER_FRAME);
 
                 if (readByte > 0) {
                     if (recordSpeed == RecordSpeed.NORMAL) {
-                        encode(audioData, 0, isEOS);
+                        encode(rawBuffer, 0, isEOS);
                     } else if (recordSpeed == RecordSpeed.SLOW) {
                         WeakReference<byte[]> weakReference1 = new WeakReference<byte[]>(new byte[readByte]);
-                        byte[] muteData = weakReference1.get();
+                        muteBuffer = weakReference1.get();
 
                         if (isEOS == false) {
-                            encode(muteData, 0, isEOS);
-                            encode(muteData, 0, isEOS);
+                            encode(muteBuffer, 0, isEOS);
+                            encode(muteBuffer, 0, isEOS);
                         } else {
-                            encode(muteData, 0, false);
-                            encode(muteData, 0, isEOS);
+                            encode(muteBuffer, 0, false);
+                            encode(muteBuffer, 0, isEOS);
                         }
-                        muteData = null;
+                        muteBuffer = null;
                     } else if (recordSpeed == RecordSpeed.FAST) {
                         WeakReference<byte[]> weakReference1 = new WeakReference<byte[]>(new byte[readByte / 2]);
-                        byte[] muteData = weakReference1.get();
+                        muteBuffer = weakReference1.get();
 
-                        encode(muteData, 0, isEOS);
-                        muteData = null;
+                        encode(muteBuffer, 0, isEOS);
+                        muteBuffer = null;
                     }
                 }
-                audioData = null;
+                rawBuffer = null;
             }
 
             audioRecord.stop();
@@ -319,19 +322,19 @@ public class AudioManager extends HandlerThread {
 
                             WeakReference<byte[]> weakReference = new WeakReference<byte[]>(new byte[bufferInfo.size + HEADER_SIZE]);
 
-                            byte[] outBytes = weakReference.get();
+                            muxBuffer = weakReference.get();
 
-                            addADTSHeader(outBytes, outBytes.length);
-                            out.get(outBytes, HEADER_SIZE, bufferInfo.size);
+                            addADTSHeader(muxBuffer, muxBuffer.length);
+                            out.get(muxBuffer, HEADER_SIZE, bufferInfo.size);
 
-                            if (outBytes.length > 0) {
-                                encodeList.add(outBytes);
+                            if (muxBuffer.length > 0) {
+                                encodeList.add(muxBuffer);
                                 if (muxWriter == null) {
                                     muxWriter = new MuxWriter();
                                     muxWriter.start();
                                 }
                             }
-                            outBytes = null;
+                            muxBuffer = null;
                         }
                     }
                 }

@@ -58,6 +58,9 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
     private MuxWriter muxWriter = null;
     private Queue<byte[]> encodeList = new LinkedList<byte[]>();
 
+    private byte[] rawBuffer;
+    private byte[] muxBuffer;
+
     static {
         System.loadLibrary("image-convert");
     }
@@ -148,23 +151,10 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                             width,
                             height));
 
-                    byte[] buffer = weakReference.get();
+                    rawBuffer = weakReference.get();
 
-                    encode(buffer, timestamp, isEOS);
-                    buffer = null;
-
-//                    encode(YUVtoBytes(yPlane.getBuffer(),
-//                            uPlane.getBuffer(),
-//                            vPlane.getBuffer(),
-//                            yPlane.getPixelStride(),
-//                            yPlane.getRowStride(),
-//                            uPlane.getPixelStride(),
-//                            uPlane.getRowStride(),
-//                            vPlane.getPixelStride(),
-//                            vPlane.getRowStride(),
-//                            width,
-//                            height), timestamp, isEOS);
-                    //encode(Util.imageToMat(image), image.getTimestamp(), isEOS);
+                    encode(rawBuffer, timestamp, isEOS);
+                    rawBuffer = null;
                 }
             }
         } catch (NullPointerException ne) {
@@ -311,18 +301,18 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
 
                         if (out != null) {
                             WeakReference<byte[]> weakReference = new WeakReference<byte[]>(new byte[bufferInfo.size]);
-                            byte[] outBytes = weakReference.get();
+                            muxBuffer = weakReference.get();
 
-                            out.get(outBytes);
+                            out.get(muxBuffer);
 
-                            if (outBytes.length > 0) {
-                                encodeList.add(outBytes);
+                            if (muxBuffer.length > 0) {
+                                encodeList.add(muxBuffer);
 
                                 if (muxWriter == null) {
                                     muxWriter = new MuxWriter();
                                     muxWriter.start();
                                 }
-                                outBytes = null;
+                                muxBuffer = null;
                             }
                         }
                     }
