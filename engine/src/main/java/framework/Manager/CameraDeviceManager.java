@@ -345,6 +345,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
                         return true;
                     }
+                    case ThreadMessage.EngineMessage.MSG_ENGINE_LIVE : {
+                        live((boolean) msg.obj);
+                    }
                 }
                 return false;
             }
@@ -662,6 +665,35 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         if (inferenceHandler != null) {
             inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.ODMessage.MSG_OD_SETMODE, 0, mode));
         }
+
+        Handler videoHandler = videoManager.getHandler();
+
+        if (videoHandler != null) {
+            videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_MODE, 0, mode));
+        }
+    }
+
+    private void live(boolean isStart) {
+        Handler muxHandler = muxManager.getHandler();
+        Handler videoHandler = videoManager.getHandler();
+        Handler audioHandler = audioManager.getHandler();
+
+        if ((muxHandler != null) && (videoHandler != null) && (audioHandler != null)) {
+            if (isStart == true) {
+                muxManager.resetPipeList();
+
+                MessageObject.VideoLive liveObj = new MessageObject.VideoLive(previewSize, muxManager.requestPipe(), /*muxManager.requestPipe(), muxManager.requestPipe(),*/ muxHandler);
+                MessageObject.AudioRecord audioObj = new MessageObject.AudioRecord(muxManager.requestPipe(), muxHandler);
+
+                videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_LIVE_START, 0, liveObj));
+                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, audioObj));
+                muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_LIVE_START, 0, this.mode));
+            } else {
+                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
+                videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_LIVE_STOP, 0, null));
+            }
+
+        }
     }
 
     private void initCamera(int width, int height) {
@@ -771,7 +803,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
             captureRequestBuilder.addTarget(objectDetectionImageReader.getSurface());
 
-            recordImageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 52);
+            recordImageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 4);
             recordImageReader.setOnImageAvailableListener(videoManager, videoManager.getHandler());
 
             captureRequestBuilder.addTarget(recordImageReader.getSurface());

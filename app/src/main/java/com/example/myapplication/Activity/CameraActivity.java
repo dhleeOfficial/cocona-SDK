@@ -3,6 +3,7 @@ package com.example.myapplication.Activity;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
+import android.bluetooth.BluetoothGatt;
 import android.graphics.PointF;
 import android.os.Bundle;
 import android.view.MenuInflater;
@@ -36,6 +37,7 @@ public class CameraActivity extends AppCompatActivity {
     private ToggleButton flash;
     private ToggleButton lens;
     private ToggleButton record;
+    private ToggleButton live;
 
     private Button zoom;
     private Button bright;
@@ -79,6 +81,7 @@ public class CameraActivity extends AppCompatActivity {
         radioGroup = findViewById(R.id.radioGroup);
         radioGroup2 = findViewById(R.id.radioGroup2);
 
+        live = findViewById(R.id.liveBtn);
         filter = findViewById(R.id.filterBtn);
         mode = findViewById(R.id.modeBtn);
 
@@ -109,6 +112,8 @@ public class CameraActivity extends AppCompatActivity {
                         }
 
                         engine.record(isChecked);
+                    } else if (buttonView == live) {
+                        engine.live(isChecked);
                     }
             }
         };
@@ -140,6 +145,7 @@ public class CameraActivity extends AppCompatActivity {
         flash.setOnCheckedChangeListener(checkListener);
         lens.setOnCheckedChangeListener(checkListener);
         record.setOnCheckedChangeListener(checkListener);
+        live.setOnCheckedChangeListener(checkListener);
         radioGroup.setOnCheckedChangeListener(changeListener);
         radioGroup2.setOnCheckedChangeListener(changeListener2);
 
@@ -218,21 +224,33 @@ public class CameraActivity extends AppCompatActivity {
                         public boolean onMenuItemClick(MenuItem item) {
                             switch (item.getItemId()) {
                                 case R.id.travel : {
+                                    record.setVisibility(View.VISIBLE);
+                                    live.setVisibility(View.INVISIBLE);
+
                                     engine.mode(Mode.TRAVEL);
 
                                     return true;
                                 }
                                 case R.id.event : {
+                                    record.setVisibility(View.VISIBLE);
+                                    live.setVisibility(View.INVISIBLE);
+
                                     engine.mode(Mode.EVENT);
 
                                     return true;
                                 }
                                 case R.id.live : {
+                                    record.setVisibility(View.INVISIBLE);
+                                    live.setVisibility(View.VISIBLE);
+
                                     engine.mode(Mode.LIVE);
 
                                     return true;
                                 }
                                 case R.id.daily : {
+                                    record.setVisibility(View.VISIBLE);
+                                    live.setVisibility(View.INVISIBLE);
+
                                     engine.mode(Mode.DAILY);
 
                                     return true;

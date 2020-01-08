@@ -14,6 +14,7 @@ public class ThreadMessage {
         public static final int MSG_ENGINE_FILTER = 9;
         public static final int MSG_ENGINE_SPEED_RECORD = 10;
         public static final int MSG_ENGINE_MODE = 11;
+        public static final int MSG_ENGINE_LIVE = 12;
     }
 
     public class ODMessage {
@@ -30,11 +31,15 @@ public class ThreadMessage {
         public static final int MSG_RECORD_FAST = 4;
         public static final int MSG_RECORD_PAUSE = 5;
         public static final int MSG_RECORD_RESUME = 6;
+        public static final int MSG_RECORD_MODE = 7;
+        public static final int MSG_RECORD_LIVE_START = 8;
+        public static final int MSG_RECORD_LIVE_STOP = 9;
     }
 
     public class MuxMessage {
         public static final int MSG_MUX_START = 0;
-        public static final int MSG_MUX_VIDEO_END = 1;
-        public static final int MSG_MUX_AUDIO_END = 2;
+        public static final int MSG_MUX_LIVE_START = 1;
+        public static final int MSG_MUX_VIDEO_END = 2;
+        public static final int MSG_MUX_AUDIO_END = 3;
     }
 }

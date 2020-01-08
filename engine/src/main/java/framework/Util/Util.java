@@ -12,6 +12,7 @@ import android.util.Size;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
@@ -167,6 +168,29 @@ public class Util {
         return bitmap;
     }
 
+    public static byte[] convertBitmapToByteArray(Bitmap bitmap){
+        ByteArrayOutputStream baos = null;
+        try {
+            baos = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 50, baos);
+            return baos.toByteArray();
+        }finally {
+            if(baos != null){
+                try {
+                    baos.close();
+                } catch (IOException e) {
+                }
+            }
+        }
+    }
+
+    public static byte[] convertBitmapToByteArrayUncompressed(Bitmap bitmap){
+        ByteBuffer byteBuffer = ByteBuffer.allocate(bitmap.getByteCount());
+        bitmap.copyPixelsToBuffer(byteBuffer);
+        byteBuffer.rewind();
+        return byteBuffer.array();
+    }
+
     public static byte[] YUVtoByteArray(Image image) {
         int width = image.getWidth();
         int height = image.getHeight();
@@ -203,6 +227,19 @@ public class Util {
             }
         }
         return result;
+    }
+
+    public static void scale(int srcW, int srcH, int dstW, int dstH, byte[] src, int srcOffset, byte[] dst, int dstOffset) {
+        for (int y = 0; y < dstH; ++y) {
+            int dstRowOffset = y * dstW;
+            int srcRowOffset = (y * srcH) / dstH;
+
+            for (int x = 0; x < dstW; ++x) {
+                int srcX = (x * srcW) / dstW;
+
+                dst[dstRowOffset + dstOffset] = src[srcRowOffset + srcX + srcOffset];
+            }
+        }
     }
 
     public static byte[] imageToMat(Image image) {
@@ -302,21 +339,15 @@ public class Util {
         return mediaFile;
     }
 
-    public static File getOutputAACFile() {
+    public static File getOutputVideoSegDir() {
         File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
-                "AAC");
+                "VIDEO_SEG");
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
                 return null;
             }
         }
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss",
-                Locale.getDefault()).format(new Date());
-        File mediaFile;
-
-        mediaFile = new File(mediaStorageDir.getPath() + File.separator
-                + timeStamp + ".aac");
-        return mediaFile;
+        return mediaStorageDir;
     }
 
     public static File getOutputTEXTFile() {

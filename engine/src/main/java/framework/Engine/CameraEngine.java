@@ -171,6 +171,12 @@ public class CameraEngine {
         }
     }
 
+    public void live(boolean isStart) {
+        if (cameraHandler != null) {
+            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_LIVE, 0, isStart));
+        }
+    }
+
     public final Mode getMode() {
         return cameraDeviceManager.getMode();
     }
