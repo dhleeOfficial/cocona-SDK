@@ -22,6 +22,8 @@ public class PermissionManager {
         needPermissionList.add(Manifest.permission.CAMERA);
         needPermissionList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
         needPermissionList.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+        needPermissionList.add(Manifest.permission.INTERNET);
+        needPermissionList.add(Manifest.permission.ACCESS_NETWORK_STATE);
         needPermissionList.add(Manifest.permission.RECORD_AUDIO);
     }
 

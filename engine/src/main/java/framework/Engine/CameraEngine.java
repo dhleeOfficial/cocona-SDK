@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.PointF;
 import android.os.Handler;
 import android.view.MotionEvent;
+import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 
@@ -97,11 +98,19 @@ public class CameraEngine {
         cameraDeviceManager.quitSafely();
     }
 
-    public void startPreview(TextureView textureView) {
-        cameraHandler  = cameraDeviceManager.getHandler();
+//    public void startPreview(TextureView textureView) {
+//        cameraHandler  = cameraDeviceManager.getHandler();
+//
+//        if (cameraHandler != null) {
+//            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_SETUP_PREVIEW, 0, textureView));
+//        }
+//    }
+
+    public void startPreview(SurfaceView surfaceView) {
+        cameraHandler  = cameraDeviceManager.getEngineHandler();
 
         if (cameraHandler != null) {
-            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_SETUP_PREVIEW, 0, textureView));
+            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_SETUP_PREVIEW, 0, surfaceView));
         }
     }
 

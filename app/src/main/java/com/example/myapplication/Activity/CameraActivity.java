@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.view.WindowManager;
@@ -31,7 +32,10 @@ import framework.Enum.TouchType;
 import com.example.myapplication.R;
 
 public class CameraActivity extends AppCompatActivity {
-    private TextureView tv;
+    //private TextureView tv;
+    private SurfaceView sv;
+
+
     private RelativeLayout rl;
 
     private ToggleButton flash;
@@ -71,7 +75,9 @@ public class CameraActivity extends AppCompatActivity {
         engineUtil = new CameraEngine.Util();
         touchEventHandler = new CameraEngine.Util.SingleTouchEventHandler();
 
-        tv = findViewById(R.id.textureView);
+        //tv = findViewById(R.id.textureView);
+        sv = findViewById(R.id.surfaceView);
+
         flash = findViewById(R.id.flashBtn);
         lens = findViewById(R.id.lensBtn);
         record = findViewById(R.id.recordBtn);
@@ -278,7 +284,8 @@ public class CameraActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        engine.startPreview(tv);
+        //engine.startPreview(tv);
+        engine.startPreview(sv);
     }
 
     @Override

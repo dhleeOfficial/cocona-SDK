@@ -322,9 +322,43 @@ public class Util {
         return bytes;
     }
 
-    public static File getOutputMuxFile() {
+    public static File getOutput1080File() {
         File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
-                "MUX");
+                "1080");
+        if (!mediaStorageDir.exists()) {
+            if (!mediaStorageDir.mkdirs()) {
+                return null;
+            }
+        }
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss",
+                Locale.getDefault()).format(new Date());
+        File mediaFile;
+
+        mediaFile = new File(mediaStorageDir.getPath() + File.separator
+                + timeStamp + ".mp4");
+        return mediaFile;
+    }
+
+    public static File getOutput720File() {
+        File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
+                "720");
+        if (!mediaStorageDir.exists()) {
+            if (!mediaStorageDir.mkdirs()) {
+                return null;
+            }
+        }
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss",
+                Locale.getDefault()).format(new Date());
+        File mediaFile;
+
+        mediaFile = new File(mediaStorageDir.getPath() + File.separator
+                + timeStamp + ".mp4");
+        return mediaFile;
+    }
+
+    public static File getOutput480File() {
+        File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
+                "480");
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
                 return null;
@@ -365,5 +399,19 @@ public class Util {
         mediaFile = new File(mediaStorageDir.getPath() + File.separator
                 + timeStamp + ".txt");
         return mediaFile;
+    }
+
+    public static File getOutputTTTTFile() {
+        File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
+                "TTTT");
+        if (!mediaStorageDir.exists()) {
+            if (!mediaStorageDir.mkdirs()) {
+                return null;
+            }
+        }
+
+        File file = new File(mediaStorageDir.getPath() + File.separator + "TTT.mp4");
+
+        return file;
     }
 }

@@ -3,6 +3,8 @@ package framework.Message;
 import android.os.Handler;
 import android.util.Size;
 
+import java.io.BufferedOutputStream;
+
 import framework.Enum.LensFacing;
 
 public class MessageObject {
@@ -30,6 +32,7 @@ public class MessageObject {
         }
     }
 
+    // FIXME
     public static class VideoRecord {
         private final Size size;
         private final String pipe;
@@ -43,6 +46,24 @@ public class MessageObject {
 
         public final Size getSize() {
             return size;
+        }
+
+        public final String getPipe() {
+            return pipe;
+        }
+
+        public final Handler getMuxHandler() {
+            return muxHandler;
+        }
+    }
+
+    public static class VideoObject {
+        private final String pipe;
+        private final Handler muxHandler;
+
+        public VideoObject(String pipe, Handler muxHandler) {
+            this.pipe = pipe;
+            this.muxHandler = muxHandler;
         }
 
         public final String getPipe() {

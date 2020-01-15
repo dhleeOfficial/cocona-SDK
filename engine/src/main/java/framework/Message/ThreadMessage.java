@@ -34,6 +34,7 @@ public class ThreadMessage {
         public static final int MSG_RECORD_MODE = 7;
         public static final int MSG_RECORD_LIVE_START = 8;
         public static final int MSG_RECORD_LIVE_STOP = 9;
+        public static final int MSG_RECORD_FRAME_AVAILABLE = 10;
     }
 
     public class MuxMessage {

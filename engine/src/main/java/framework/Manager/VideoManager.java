@@ -34,6 +34,7 @@ import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
 import framework.Util.Util;
 import framework.Util.VideoData;
+import framework.Util.VideoMuxData;
 
 public class VideoManager extends HandlerThread implements ImageReader.OnImageAvailableListener {
     private Handler myHandler;
@@ -74,7 +75,8 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
 
     // WRITER Thread
     private MuxWriter muxWriter = null;
-    private Queue<byte[]> encodeList = new LinkedList<byte[]>();
+    //private Queue<byte[]> encodeList = new LinkedList<byte[]>();
+    private Queue<VideoMuxData> muxList = new LinkedList<VideoMuxData>();
 
     // RAW Thread
 //    private RawEncoder rawEncoder = null;
@@ -272,6 +274,9 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
 
             if (isReady == true) {
                 if (image != null) {
+                    if (isEOS == true) {
+                        isReady = false;
+                    }
 //                    if ((imgWidth == 0) && (imgHeight == 0)) {
 //                        imgWidth = image.getWidth();
 //                        imgHeight = image.getHeight();
@@ -287,6 +292,7 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                     final long timestamp = image.getTimestamp();
 
                     if (mode != Mode.LIVE) {
+
 ////
 ////
 ////                        VideoData videoData = new VideoData(yPlane.getBuffer(), uPlane.getBuffer(), vPlane.getBuffer(),
@@ -303,28 +309,26 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
 ////                            rawEncoder = new RawEncoder();
 ////                            rawEncoder.start();
 ////                        }
-////
-                        WeakReference<byte[]> weakReference = new WeakReference<byte[]>(YUVtoBytes(yPlane.getBuffer(),
-                                uPlane.getBuffer(),
-                                vPlane.getBuffer(),
-                                yPlane.getPixelStride(),
-                                yPlane.getRowStride(),
-                                uPlane.getPixelStride(),
-                                uPlane.getRowStride(),
-                                vPlane.getPixelStride(),
-                                vPlane.getRowStride(),
-                                width,
-                                height));
-
-                        rawBuffer = weakReference.get();
-
-                        encode(rawBuffer, timestamp, isEOS);
+//////
+//                        WeakReference<byte[]> weakReference = new WeakReference<byte[]>(YUVtoBytes(yPlane.getBuffer(),
+//                                uPlane.getBuffer(),
+//                                vPlane.getBuffer(),
+//                                yPlane.getPixelStride(),
+//                                yPlane.getRowStride(),
+//                                uPlane.getPixelStride(),
+//                                uPlane.getRowStride(),
+//                                vPlane.getPixelStride(),
+//                                vPlane.getRowStride(),
+//                                width,
+//                                height));
+//
+//                        rawBuffer = weakReference.get();
+//
+//                        encode(rawBuffer, timestamp, isEOS);
+                        encode(Util.imageToMat(image), timestamp, isEOS);
                         rawBuffer = null;
 
                     } else {
-                        if (isEOS == true) {
-                            isReady = false;
-                        }
                         WeakReference<byte[]> weakReference = new WeakReference<byte[]>(YUVtoBytes(yPlane.getBuffer(),
                                 uPlane.getBuffer(),
                                 vPlane.getBuffer(),
@@ -377,9 +381,13 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
         videoCodecInfo = initMeidaCodeInfo();
         initMediaCodec1080();
 
-        if (encodeList.isEmpty() == false) {
-            encodeList.clear();
+        if (muxList.isEmpty() == false) {
+            muxList.clear();
         }
+//
+//        if (encodeList.isEmpty() == false) {
+//            encodeList.clear();
+//        }
 
 //        if (rawList.isEmpty() == false) {
 //            rawList.clear();
@@ -497,14 +505,13 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
 //        } catch (InterruptedException ie) {
 //            ie.printStackTrace();
 //        }
-        //rawEncoder.setIsRun(false);
 
         videoCodec1080.stop();
         videoCodec1080.release();
         videoCodec1080 = null;
 
         try {
-            muxWriter.setIsRun(false);
+            //muxWriter.setIsRun(false);
             muxWriter.join();
             //rawEncoder = null;
             muxWriter = null;
@@ -556,7 +563,11 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
             } else  if (outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 if (bufferedOutputStream1080 == null) {
                     try {
+                        Log.e("VIDEOMANAGER", "pipe name : " + videoPipe1080);
+                        Log.e("VIDEOMANAGER", "FileOutputStream create");
                         bufferedOutputStream1080 = new BufferedOutputStream(new FileOutputStream(videoPipe1080));
+                        //bufferedOutputStream1080 = new BufferedOutputStream(new FileOutputStream(Util.getOutputTTTTFile()));
+                        Log.e("VIDEOMANAGER", "CREATE DONE");
                     } catch (FileNotFoundException fe) {
                         fe.printStackTrace();
                     }
@@ -573,7 +584,10 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
                             out.get(muxBuffer);
 
                             if (muxBuffer.length > 0) {
-                                encodeList.add(muxBuffer);
+                                VideoMuxData data = new VideoMuxData(muxBuffer, isEOS);
+
+                                muxList.add(data);
+                                //encodeList.add(muxBuffer);
 
                                 if (muxWriter == null) {
                                     muxWriter = new MuxWriter();
@@ -644,24 +658,30 @@ public class VideoManager extends HandlerThread implements ImageReader.OnImageAv
 
         @Override
         public void run() {
-            while(isRun || !encodeList.isEmpty()) {
+            while(isRun || !muxList.isEmpty()) {
                 try {
-                    final byte[] data = encodeList.poll();
+                    final VideoMuxData data = muxList.poll();
 
                     if (data != null) {
                         if (isPause == false) {
-                            bufferedOutputStream1080.write(data);
+                            bufferedOutputStream1080.write(data.getBuffer());
                         }
-                    } else {
-                        if (isRun == false) {
+                        if (data.getIsEOS() == true) {
+                            muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_VIDEO_END, 0,null));
+
                             break;
                         }
                     }
+//                    else {
+//                        if (isRun == false) {
+//                            break;
+//                        }
+//                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-            muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_VIDEO_END, 0,null));
+            //muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_VIDEO_END, 0,null));
         }
 
         public void setIsRun(boolean isRun) {

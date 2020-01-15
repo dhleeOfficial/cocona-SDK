@@ -302,7 +302,9 @@ public class AudioManager extends HandlerThread {
             } else if (outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 if (bufferedOutputStream == null) {
                     try {
+                        Log.e("AUDIO", "stream create, pipe : " + audioPipe);
                         bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(audioPipe));
+                        Log.e("AUDIO", "stream done");
                     } catch (FileNotFoundException fe) {
                         fe.printStackTrace();
                     }
@@ -329,6 +331,8 @@ public class AudioManager extends HandlerThread {
 
                             if (muxBuffer.length > 0) {
                                 encodeList.add(muxBuffer);
+                                Log.e("AUDIO", "WRITE SUCCESS");
+
                                 if (muxWriter == null) {
                                     muxWriter = new MuxWriter();
                                     muxWriter.start();
