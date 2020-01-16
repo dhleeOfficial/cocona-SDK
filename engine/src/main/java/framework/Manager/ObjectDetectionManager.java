@@ -29,11 +29,15 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     private static final String MODEL_FILE = "travelmode.tflite";
     private static final String LABELS_FILE = "file:///android_asset/travelmode.txt";
 
+    private static final String DAILY_MODEL_FILE = "dailymode.tflite";
+    private static final String DAILY_LABELS_FILE = "file:///android_asset/dailymode.txt";
+
     private Handler myHandler;
     private Context context;
     private InferenceOverlayView inferenceOverlayView;
 
     private Classifier classifier;
+    private Classifier dailyClassifier;
     private Matrix transCropToFrame;
     private BoxDrawer boxDrawer;
     private InferenceThread inferenceThread;
@@ -75,6 +79,10 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                             classifier = ObjectDetectionModel.create(context.getAssets(), context, MODEL_FILE, LABELS_FILE, INPUT_SIZE, true);
                             inferenceThread = new InferenceThread(classifier, INPUT_SIZE);
                         }
+                        if (dailyClassifier == null) {
+                            dailyClassifier = ObjectDetectionModel.create(context.getAssets(), context, DAILY_MODEL_FILE, DAILY_LABELS_FILE, INPUT_SIZE, true);
+                        }
+
                         setUpOD((MessageObject.Box) msg.obj);
 
                         return true;
@@ -110,6 +118,9 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
                     if (mode == Mode.TRAVEL) {
                         if (isReady == true) {
+                            if (inferenceThread != classifier) {
+                                inferenceThread.setClassifier(classifier);
+                            }
                             if (isODDone == true) {
                                 inferenceThread.setInfo(Util.convertImageToBytes(image.getPlanes()), yRowStride, uvRowStride, uvPixelStride);
 
@@ -119,6 +130,21 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                 isODDone = false;
                             }
                         }
+                    } else if (mode == Mode.DAILY) {
+                        if (isReady == true) {
+                            if (inferenceThread != dailyClassifier) {
+                                inferenceThread.setClassifier(dailyClassifier);
+                            }
+                            if (isODDone == true) {
+                                inferenceThread.setInfo(Util.convertImageToBytes(image.getPlanes()), yRowStride, uvRowStride, uvPixelStride);
+
+                                Thread t = new Thread(inferenceThread);
+                                t.start();
+
+                                isODDone = false;
+                            }
+                        }
+
                     } else if (mode == Mode.EVENT) {
                         if (isRecord == true) {
                             if (isAEDone == true) {

@@ -73,6 +73,8 @@ public class InferenceThread implements Runnable {
         this.matrix = matrix;
     }
 
+    public void setClassifier(Classifier classifier) { this.classifier = classifier; }
+
     @Override
     public void run() {
         rgbBytes = new int[previewSize.getWidth() * previewSize.getHeight()];

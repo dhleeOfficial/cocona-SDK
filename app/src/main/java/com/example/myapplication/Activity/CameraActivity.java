@@ -105,7 +105,7 @@ public class CameraActivity extends AppCompatActivity {
 
                     } else if (buttonView == record) {
                         if (isChecked == true) {
-                            if (engine.getMode() == Mode.TRAVEL) {
+                            if (engine.getMode() == Mode.TRAVEL || engine.getMode() == Mode.DAILY) {
                                 radioGroup.setVisibility(View.VISIBLE);
                                 radioGroup2.setVisibility(View.VISIBLE);
                             }
