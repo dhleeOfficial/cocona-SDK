@@ -50,19 +50,19 @@ public class LiveFileObserver extends FileObserver {
     public void onEvent(int event, @Nullable String path) {
         switch (event) {
             case FileObserver.CREATE : {
-                // s3 upload & file remove call
-                Log.e("CREATE EVENT", path);
-
-                if (writeDonePath != path) {
-                    Log.e("WRITE DONE", writeDonePath);
-                    String replace = writeDonePath.replace(".tmp", "");
-
-                    Log.e("REPLACE DONE", replace);
-                    UploadTask uploadTask = new UploadTask(replace);
-                    uploadTask.execute();
-
-                    writeDonePath = path;
-                }
+//                // s3 upload & file remove call
+//                Log.e("CREATE EVENT", path);
+//
+//                if (writeDonePath != path) {
+//                    Log.e("WRITE DONE", writeDonePath);
+//                    String replace = writeDonePath.replace(".tmp", "");
+//
+//                    Log.e("REPLACE DONE", replace);
+//                    UploadTask uploadTask = new UploadTask(replace);
+//                    uploadTask.execute();
+//
+//                    writeDonePath = path;
+//                }
             }
         }
     }

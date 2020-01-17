@@ -22,11 +22,14 @@ import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 
 import framework.Enum.RecordSpeed;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
 import framework.Util.Util;
+import framework.Util.VideoMuxData;
 
 public class AudioManager extends HandlerThread {
     private Handler myHandler;
@@ -46,6 +49,7 @@ public class AudioManager extends HandlerThread {
 
     private String audioPipe;
     private BufferedOutputStream bufferedOutputStream = null;
+    private PipeOpener pipeOpener = null;
 
     // STATUS
     boolean isReady = false;
@@ -55,7 +59,7 @@ public class AudioManager extends HandlerThread {
 
     // WRITER Thread
     private MuxWriter muxWriter = null;
-    private Queue<byte[]> encodeList = new LinkedList<byte[]>();
+    private BlockingQueue<VideoMuxData> muxList = new LinkedBlockingDeque<VideoMuxData>();
 
     private byte[] rawBuffer;
     private byte[] muteBuffer;
@@ -85,19 +89,19 @@ public class AudioManager extends HandlerThread {
                     }
                     case ThreadMessage.RecordMessage.MSG_RECORD_SLOW : {
                         recordSpeed = RecordSpeed.SLOW;
-                        encodeList.clear();
+                        muxList.clear();
 
                         return true;
                     }
                     case ThreadMessage.RecordMessage.MSG_RECORD_NORMAL : {
                         recordSpeed = RecordSpeed.NORMAL;
-                        encodeList.clear();
+                        muxList.clear();
 
                         return true;
                     }
                     case ThreadMessage.RecordMessage.MSG_RECORD_FAST : {
                         recordSpeed = RecordSpeed.FAST;
-                        encodeList.clear();
+                        muxList.clear();
 
                         return true;
                     }
@@ -128,8 +132,8 @@ public class AudioManager extends HandlerThread {
         initMediaFormat();
         initMediaCodec();
 
-        if (encodeList.isEmpty() == false) {
-            encodeList.clear();
+        if (muxList.isEmpty() == false) {
+            muxList.clear();
         }
 
         isReady = true;
@@ -187,7 +191,6 @@ public class AudioManager extends HandlerThread {
         audioCodec = null;
 
         try {
-            muxWriter.setIsRun(false);
             muxWriter.join();
             muxWriter = null;
         } catch (InterruptedException ie) {
@@ -202,9 +205,9 @@ public class AudioManager extends HandlerThread {
         } catch (IOException ie) {
             ie.printStackTrace();
         }
+        pipeOpener = null;
         audioThread.interrupt();
         audioThread = null;
-
     }
 
     private class AudioThread extends Thread {
@@ -300,14 +303,9 @@ public class AudioManager extends HandlerThread {
                     break;
                 }
             } else if (outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                if (bufferedOutputStream == null) {
-                    try {
-                        Log.e("AUDIO", "stream create, pipe : " + audioPipe);
-                        bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(audioPipe));
-                        Log.e("AUDIO", "stream done");
-                    } catch (FileNotFoundException fe) {
-                        fe.printStackTrace();
-                    }
+                if (pipeOpener == null) {
+                    pipeOpener = new PipeOpener();
+                    pipeOpener.start();
                 }
             } else if (outputBufferIndex >= 0) {
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
@@ -315,31 +313,29 @@ public class AudioManager extends HandlerThread {
                 }
 
                 if (bufferInfo.size != 0) {
-                    if (bufferedOutputStream != null) {
-                        final ByteBuffer out = audioCodec.getOutputBuffer(outputBufferIndex);
+                    final ByteBuffer out = audioCodec.getOutputBuffer(outputBufferIndex);
 
-                        if (out != null) {
-                            out.position(bufferInfo.offset);
-                            out.limit(bufferInfo.offset + bufferInfo.size);
+                    if (out != null) {
+                        out.position(bufferInfo.offset);
+                        out.limit(bufferInfo.offset + bufferInfo.size);
 
-                            WeakReference<byte[]> weakReference = new WeakReference<byte[]>(new byte[bufferInfo.size + HEADER_SIZE]);
+                        WeakReference<byte[]> weakReference = new WeakReference<byte[]>(new byte[bufferInfo.size + HEADER_SIZE]);
 
-                            muxBuffer = weakReference.get();
+                        muxBuffer = weakReference.get();
 
-                            addADTSHeader(muxBuffer, muxBuffer.length);
-                            out.get(muxBuffer, HEADER_SIZE, bufferInfo.size);
+                        addADTSHeader(muxBuffer, muxBuffer.length);
+                        out.get(muxBuffer, HEADER_SIZE, bufferInfo.size);
 
-                            if (muxBuffer.length > 0) {
-                                encodeList.add(muxBuffer);
-                                Log.e("AUDIO", "WRITE SUCCESS");
+                        if (muxBuffer.length > 0) {
+                            VideoMuxData data = new VideoMuxData(muxBuffer, isEOS);
+                            muxList.add(data);
 
-                                if (muxWriter == null) {
-                                    muxWriter = new MuxWriter();
-                                    muxWriter.start();
-                                }
+                            if (muxWriter == null) {
+                                muxWriter = new MuxWriter();
+                                muxWriter.start();
                             }
-                            muxBuffer = null;
                         }
+                        muxBuffer = null;
                     }
                 }
 
@@ -355,33 +351,44 @@ public class AudioManager extends HandlerThread {
         }
     }
 
-    private class MuxWriter extends Thread {
-        private boolean isRun = true;
-
+    private class PipeOpener extends Thread {
         @Override
         public void run() {
-            while(isRun || !encodeList.isEmpty()) {
+            if (bufferedOutputStream == null) {
                 try {
-                    final byte[] data = encodeList.poll();
+                    if (audioPipe != null) {
+                        bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(audioPipe));
+                    }
+                } catch (FileNotFoundException fe) {
+                    fe.printStackTrace();
+                }
+            }
+        }
+    }
 
-                    if (data != null) {
-                        if (isPause == false) {
-                            bufferedOutputStream.write(data);
+    private class MuxWriter extends Thread {
+        @Override
+        public void run() {
+            while(true) {
+                try {
+                    if (bufferedOutputStream != null) {
+                        final VideoMuxData data = muxList.take();
+
+                        if (data != null) {
+                            bufferedOutputStream.write(data.getBuffer());
+                            bufferedOutputStream.flush();
                         }
-                    } else {
-                        if (isRun == false) {
+                        if (data.getIsEOS() == true) {
+                            muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_AUDIO_END, 0,null));
                             break;
                         }
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
+                } catch (InterruptedException ie) {
+                    ie.printStackTrace();
                 }
             }
-            muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_AUDIO_END, 0,null));
-        }
-
-        public void setIsRun(boolean isRun) {
-            this.isRun = isRun;
         }
     }
 }

@@ -13,30 +13,28 @@ import android.view.Surface;
 import androidx.annotation.NonNull;
 
 import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.LinkedList;
-import java.util.Queue;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
-import framework.Util.Util;
 import framework.Util.VideoMuxData;
 
 public class EncoderManager extends HandlerThread {
+    private String name;
     private Handler handler;
-    private Handler handler1;
     private Callback callback;
 
     private int videoWidth;
     private int videoHeight;
+    private int bitRate;
 
     private static final String MIME_TYPE = MediaFormat.MIMETYPE_VIDEO_AVC;
-    private static final int BIT_RATE = 4000000;
     private static final int FRAME_RATE = 30;
     private static final float IFRAME_INTERVAL = 0.5f;
 
@@ -45,36 +43,29 @@ public class EncoderManager extends HandlerThread {
     private MediaCodec mediaCodec;
     private Surface surface;
 
-    private final Object sync = new Object();
-
-    private String name;
     private String pipe;
     private Handler muxHandler;
     private FileOutputStream fileOutputStream = null;
     private BufferedOutputStream bufferedOutputStream = null;
 
+    private PipeOpener pipeOpener = null;
     private MuxWriter muxWriter;
-    private Queue<VideoMuxData> muxList = new LinkedList<VideoMuxData>();
+    private BlockingQueue<VideoMuxData> muxList = new LinkedBlockingQueue<VideoMuxData>();
 
     private boolean isReady = false;
 
-    private int drainCount;
-
     public interface Callback {
         void initDone();
-        void eosDone();
-        void drainDone();
     }
 
-    public EncoderManager(String name, int videoWidth, int videoHeight, Callback callback){
+    public EncoderManager(String name, int videoWidth, int videoHeight, int bitRate, Callback callback){
         super(name);
 
         this.name = name;
         this.videoWidth = videoWidth;
         this.videoHeight = videoHeight;
+        this.bitRate = bitRate;
         this.callback = callback;
-
-        initCodec();
     }
 
     public final Handler getHandler() {
@@ -98,12 +89,12 @@ public class EncoderManager extends HandlerThread {
             public boolean handleMessage(@NonNull Message msg) {
                 switch (msg.arg1) {
                     case ThreadMessage.RecordMessage.MSG_RECORD_START : {
+                        initCodec();
                         setInfo((MessageObject.VideoObject) msg.obj);
 
                         return true;
                     }
                     case ThreadMessage.RecordMessage.MSG_RECORD_FRAME_AVAILABLE : {
-
                         drain(false);
 
                         return true;
@@ -118,26 +109,13 @@ public class EncoderManager extends HandlerThread {
                 return false;
             }
         });
-
-        handler1 = new Handler(new Handler.Callback() {
-            @Override
-            public boolean handleMessage(@NonNull Message msg) {
-                switch (msg.arg1) {
-                    case ThreadMessage.RecordMessage.MSG_RECORD_FRAME_AVAILABLE : {
-                        drain(false);
-                        return true;
-                    }
-                }
-                return false;
-            }
-        });
     }
 
     private void initCodec() {
         mediaFormat = MediaFormat.createVideoFormat(MIME_TYPE, videoWidth, videoHeight);
 
         mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);;
-        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
+        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
         mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE);
         mediaFormat.setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileHigh);
         mediaFormat.setInteger(MediaFormat.KEY_LEVEL, MediaCodecInfo.CodecProfileLevel.AVCLevel51);
@@ -149,13 +127,14 @@ public class EncoderManager extends HandlerThread {
             mediaCodec = MediaCodec.createByCodecName(mediaCodecInfo.getName());
             mediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
             surface = mediaCodec.createInputSurface();
+            callback.initDone();
+
             mediaCodec.start();
         } catch (IOException ie) {
             ie.printStackTrace();
         }
 
         isReady = true;
-        callback.initDone();
     }
 
     private void setInfo(MessageObject.VideoObject obj) {
@@ -187,14 +166,12 @@ public class EncoderManager extends HandlerThread {
     }
 
     private synchronized void drain(boolean endOfStream) {
-        Log.e(name, "==========" + drainCount++ + "=============");
         if (isReady == false) {
             return;
         }
 
         if (endOfStream == true) {
             isReady = false;
-            callback.eosDone();
         }
 
         while (true) {
@@ -207,112 +184,30 @@ public class EncoderManager extends HandlerThread {
                     break;
                 }
             } else  if (outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-//                if (fileOutputStream == null && bufferedOutputStream == null) {
-//                    try {
-//
-//                        Log.e(name, "stream create, pipe : " + pipe);
-//                        fileOutputStream = new FileOutputStream(pipe, true);
-//                        Log.e(name, "FileOutputStream done");
-//                        bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
-//                        Log.e(name, "stream done");
-//
-//                    } catch (FileNotFoundException fe) {
-//                        fe.printStackTrace();
-//                    } catch (Exception ie) {
-//                        ie.printStackTrace();
-//                    }
-//                }
+                if (pipeOpener == null) {
+                    pipeOpener = new PipeOpener();
+                    pipeOpener.start();
+                }
             } else if (outputBufferIndex >= 0) {
                 if (bufferInfo.size != 0) {
-                    //Log.e(name, "======bufferInfoSize====" + bufferInfo.size + "=============");
+                    final ByteBuffer out = mediaCodec.getOutputBuffer(outputBufferIndex);
 
-                    //if (bufferedOutputStream != null) {
-                        final ByteBuffer out = mediaCodec.getOutputBuffer(outputBufferIndex);
+                    if (out != null) {
+                        byte[] outBytes = new byte[bufferInfo.size];
 
-                        if (out != null) {
-                            byte[] outBytes = new byte[bufferInfo.size];
+                        out.get(outBytes);
 
-                            out.get(outBytes);
+                        if (outBytes.length > 0) {
+                            VideoMuxData data = new VideoMuxData(outBytes, endOfStream);
 
-                            if (outBytes.length > 0) {
-                                if (bufferedOutputStream == null) {
-                                    if (videoHeight == 1080) {
-                                        //try {
-                                            Log.e(name, "CREATE fileOutputStream");
-                                            Log.e(name, "PIPE name : " + pipe);
-//                                            File pipeFile = new File(pipe);
-//                                            FileDescriptor fd = null;
-//
-//                                            if (pipeFile.exists() == true) {
-                                        try {
-                                            //bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(pipe));
-                                            bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(Util.getOutput1080File()));
+                            muxList.add(data);
 
-                                        } catch (FileNotFoundException fe) {
-                                            fe.printStackTrace();
-                                        }
-//                                            }
-//
-//                                        } catch (FileNotFoundException fe) {
-//                                            fe.printStackTrace();
-//                                        }
-                                    } else if (videoHeight == 720){
-                                        try {
-                                            //bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(pipe));
-                                            bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(Util.getOutput720File()));
-
-                                        } catch (FileNotFoundException fe) {
-                                            fe.printStackTrace();
-                                        }
-//                                        try {
-//                                            bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(Util.getOutputTTTTFile()));
-//                                        } catch (FileNotFoundException fe) {
-//                                            fe.printStackTrace();
-//                                        }
-                                    } else if (videoHeight == 480){
-                                        try {
-                                            //bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(pipe));
-                                            bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(Util.getOutput480File()));
-
-                                        } catch (FileNotFoundException fe) {
-                                            fe.printStackTrace();
-                                        }
-//                                        try {
-//                                            bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(Util.getOutputTTTTFile()));
-//                                        } catch (FileNotFoundException fe) {
-//                                            fe.printStackTrace();
-//                                        }
-                                    }
-                                }
-                                try {
-                                    Log.e(name, "WRITE fileOutputStream");
-                                    bufferedOutputStream.write(outBytes);
-                                } catch (IOException ie) {
-                                    ie.printStackTrace();
-                                }
-//                                try {
-//                                    if (bufferedOutputStream != null) {
-//                                        Log.e(name, "Write start");
-//                                        bufferedOutputStream.write(outBytes);
-//                                        bufferedOutputStream.flush();
-//                                        Log.e(name, "Write END");
-//                                    }
-//                                } catch (IOException ie) {
-//                                    ie.printStackTrace();
-//                                }
-
-//                                VideoMuxData data = new VideoMuxData(outBytes, endOfStream);
-//
-//                                Log.e(name, "muxing completed");
-//                                muxList.add(data);
-//
-//                                if (muxWriter == null) {
-//                                    muxWriter = new MuxWriter();
-//                                    muxWriter.start();
-//                                }
+                            if (muxWriter == null) {
+                                muxWriter = new MuxWriter();
+                                muxWriter.start();
                             }
                         }
-                    //}
+                    }
                 }
 
                 mediaCodec.releaseOutputBuffer(outputBufferIndex, false);
@@ -323,7 +218,6 @@ public class EncoderManager extends HandlerThread {
                 }
             }
         }
-        callback.drainDone();
     }
 
     private void stopCodec() {
@@ -331,12 +225,14 @@ public class EncoderManager extends HandlerThread {
         mediaCodec.release();
         mediaCodec = null;
 
-//        try {
-//            muxWriter.join();
-//            muxWriter = null;
-//        } catch (InterruptedException ie) {
-//            ie.printStackTrace();
-//        }
+        if (muxWriter != null) {
+            try {
+                muxWriter.join();
+                muxWriter = null;
+            } catch (InterruptedException ie) {
+                ie.printStackTrace();
+            }
+        }
 
         try {
             if (bufferedOutputStream != null) {
@@ -351,32 +247,48 @@ public class EncoderManager extends HandlerThread {
         } catch (IOException ie) {
             ie.printStackTrace();
         }
+        pipeOpener = null;
+    }
+
+    private class PipeOpener extends Thread {
+        @Override
+        public void run() {
+            if (bufferedOutputStream == null) {
+                try {
+                    if (pipe != null) {
+                        bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(pipe));
+                    }
+                } catch (FileNotFoundException fe) {
+                    fe.printStackTrace();
+                }
+            }
+        }
     }
 
     private class MuxWriter extends Thread {
         @Override
         public void run() {
-            while(true || !muxList.isEmpty()) {
+            while(true) {
                 try {
-                    final VideoMuxData data = muxList.poll();
+                    if (bufferedOutputStream != null) {
+                        final VideoMuxData data = muxList.take();
 
-                    if (data != null) {
-                        //if (isPause == false) {
-                        if (bufferedOutputStream != null) {
-                            Log.e(name, "Write start");
+                        if (data != null) {
+                            //if (isPause == false) {
                             bufferedOutputStream.write(data.getBuffer());
                             bufferedOutputStream.flush();
-                            Log.e(name, "Write end");
-                        }
-                        //}
-                        if (data.getIsEOS() == true) {
-                            //muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_VIDEO_END, 0,null));
+                            //}
+                            if (data.getIsEOS() == true) {
+                                muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_VIDEO_END, 0, videoHeight));
 
-                            break;
+                                break;
+                            }
                         }
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
+                } catch (InterruptedException ie) {
+                    ie.printStackTrace();
                 }
             }
         }
