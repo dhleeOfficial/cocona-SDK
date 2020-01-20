@@ -366,4 +366,23 @@ public class Util {
                 + timeStamp + ".txt");
         return mediaFile;
     }
+
+    public static void rotateMatrix (int orientation, float[] tempMatrix) {
+        if (orientation != 0) {
+            android.opengl.Matrix.rotateM(tempMatrix, 0, orientation * 90, 0, 0, 1);
+        }
+        switch (orientation) {
+            case 3 :
+                android.opengl.Matrix.translateM(tempMatrix,0,-1,0,0);
+                break;
+            case 2 :
+                android.opengl.Matrix.translateM(tempMatrix,0,-1,-1,0);
+                break;
+            case 1 :
+                android.opengl.Matrix.translateM(tempMatrix,0,0, -1,0);
+                break;
+            default :
+                break;
+        }
+    }
 }

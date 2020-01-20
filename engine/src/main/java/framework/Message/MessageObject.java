@@ -33,12 +33,24 @@ public class MessageObject {
     }
 
     public static class VideoObject {
+        private final int width;
+        private final int height;
         private final String pipe;
         private final Handler muxHandler;
 
-        public VideoObject(String pipe, Handler muxHandler) {
+        public VideoObject(int width, int height, String pipe, Handler muxHandler) {
+            this.width = width;
+            this.height = height;
             this.pipe = pipe;
             this.muxHandler = muxHandler;
+        }
+
+        public final int getWidth() {
+            return width;
+        }
+
+        public final int getHeight() {
+            return height;
         }
 
         public final String getPipe() {

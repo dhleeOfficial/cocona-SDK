@@ -24,6 +24,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorEvent;
 import android.media.ImageReader;
 import android.opengl.GLES20;
+import android.opengl.Matrix;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
@@ -31,12 +32,14 @@ import android.util.Log;
 import android.util.Range;
 import android.util.Size;
 import android.util.SparseIntArray;
+import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.RelativeLayout;
 
 import androidx.annotation.NonNull;
@@ -134,7 +137,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     float motionY = 0;
     float motionZ = 0;
     private SensorManager sensorManager;
-    private Sensor sensor;
+    private Sensor acceleroSensor;
 
     // OPENGL ES
     private EglCore eglCore;
@@ -145,15 +148,18 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private int textureId;
 
     // ORIENTATION
-    private int sensorOrientation;
-    private static final SparseIntArray ORIENTATION = new SparseIntArray();
+    private int videoHeight = 1980;
+    private int videoWidth = 1080;
 
-    static {
-        ORIENTATION.append(Surface.ROTATION_0, 90);
-        ORIENTATION.append(Surface.ROTATION_90, 0);
-        ORIENTATION.append(Surface.ROTATION_180, 270);
-        ORIENTATION.append(Surface.ROTATION_270, 180);
-    }
+    private int videoHeight1 = 1280;
+    private int videoWidth1 = 720;
+
+    private int videoHeight2 = 854;
+    private int videoWidth2 = 480;
+
+    private OrientationEventListener orientationEventListener;
+
+    private int orientation = 0;
 
     private class EncoderHandler extends Handler {
         public static final int MSG_FRAME_AVAILABLE = 1;
@@ -185,28 +191,34 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
         if (isRecording == true) {
             encoderSurface.makeCurrent();
-            GLES20.glViewport(0, 0, 1920, 1080);
+
+            Util.rotateMatrix(orientation, tmpMatrix);
+            GLES20.glViewport(0, 0, videoWidth, videoHeight);
+
             fullFrameBlit.drawFrame(textureId, tmpMatrix);
             encoderManager.reFrame();
             encoderSurface.setPresentationTime(cameraTexture.getTimestamp());
             encoderSurface.swapBuffers();
         } else if (isLiving == true) {
             encoderSurface.makeCurrent();
-            GLES20.glViewport(0, 0, 1920, 1080);
+            Util.rotateMatrix(orientation,tmpMatrix);
+            GLES20.glViewport(0, 0, videoWidth, videoHeight);
             fullFrameBlit.drawFrame(textureId, tmpMatrix);
             encoderManager.reFrame();
             encoderSurface.setPresentationTime(cameraTexture.getTimestamp());
             encoderSurface.swapBuffers();
 
             encoderSurface1.makeCurrent();
-            GLES20.glViewport(0, 0, 1280, 720);
+//            Util.rotateMatrix(orientation,tmpMatrix);
+            GLES20.glViewport(0, 0, videoWidth1, videoHeight1);
             fullFrameBlit.drawFrame(textureId, tmpMatrix);
             encoderManager1.reFrame();
             encoderSurface1.setPresentationTime(cameraTexture.getTimestamp());
             encoderSurface1.swapBuffers();
 
             encoderSurface2.makeCurrent();
-            GLES20.glViewport(0, 0, 854, 480);
+//            Util.rotateMatrix(orientation,tmpMatrix);
+            GLES20.glViewport(0, 0, videoWidth2, videoHeight2);
             fullFrameBlit.drawFrame(textureId, tmpMatrix);
             encoderManager2.reFrame();
             encoderSurface2.setPresentationTime(cameraTexture.getTimestamp());
@@ -253,22 +265,12 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         }
     };
 
-    private int getOrientation(int rotation) {
-        return (ORIENTATION.get(rotation) + sensorOrientation + 270) % 360;
-    }
-
     private CameraCaptureSession.StateCallback captureStateCallback = new CameraCaptureSession.StateCallback() {
         @Override
         public void onConfigured(@NonNull CameraCaptureSession session) {
             cameraCaptureSession = session;
-            //speedRecord(recordSpeed);
             captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
             captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(30, 30));
-
-            int rotation = ((Activity) context).getWindowManager().getDefaultDisplay().getRotation();
-            System.out.println("===========================================");
-            System.out.println("ORIENTATION : " + rotation);
-            System.out.println("===========================================");
 
             try {
                  cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
@@ -329,8 +331,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         ((RelativeLayout) relativeLayout).addView(this.focusView);
 
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
+        acceleroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        sensorManager.registerListener(this, acceleroSensor, SensorManager.SENSOR_DELAY_NORMAL);
 
         encoderHandler = new EncoderHandler();
 
@@ -602,7 +604,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         if (isRecord == true) {
             muxManager.resetPipeList();
 
-            MessageObject.VideoObject videoObj = new MessageObject.VideoObject(muxManager.requestPipe(), muxHandler);
+            MessageObject.VideoObject videoObj = new MessageObject.VideoObject(videoWidth, videoHeight, muxManager.requestPipe(), muxHandler);
             encoderHandler.sendMessage(encoderHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, videoObj));
 
             MessageObject.AudioRecord audioObj = new MessageObject.AudioRecord(muxManager.requestPipe(), muxHandler);
@@ -849,13 +851,13 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         if (isStart == true) {
             muxManager.resetPipeList();
 
-            MessageObject.VideoObject videoObj = new MessageObject.VideoObject(muxManager.requestPipe(), muxHandler);
+            MessageObject.VideoObject videoObj = new MessageObject.VideoObject(videoWidth, videoHeight, muxManager.requestPipe(), muxHandler);
             encoderHandler.sendMessage(encoderHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, videoObj));
 
-            MessageObject.VideoObject videoObj1 = new MessageObject.VideoObject(muxManager.requestPipe(), muxHandler);
+            MessageObject.VideoObject videoObj1 = new MessageObject.VideoObject(videoWidth1, videoHeight1, muxManager.requestPipe(), muxHandler);
             encoderHandler1.sendMessage(encoderHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, videoObj1));
 
-            MessageObject.VideoObject videoObj2 = new MessageObject.VideoObject(muxManager.requestPipe(), muxHandler);
+            MessageObject.VideoObject videoObj2 = new MessageObject.VideoObject(videoWidth2, videoHeight2, muxManager.requestPipe(), muxHandler);
             encoderHandler2.sendMessage(encoderHandler2.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, videoObj2));
 
             MessageObject.AudioRecord audioObj = new MessageObject.AudioRecord(muxManager.requestPipe(), muxHandler);
@@ -884,7 +886,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             hasFlash = cc.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
             exposureLevel = 0.0;
             recordSpeed = RecordSpeed.NORMAL;
-            sensorOrientation = cc.get(CameraCharacteristics.SENSOR_ORIENTATION);
+//            sensorOrientation = cc.get(CameraCharacteristics.SENSOR_ORIENTATION);
 
             mode(this.mode);
 
@@ -904,6 +906,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             if (!cameraLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out");
             }
+            initOrientationListener();
 
             cameraManager.openCamera(enableCameraId, new CameraDevice.StateCallback() {
                 @Override
@@ -977,6 +980,68 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             cameraDevice.createCaptureSession(Arrays.asList(sf, objectDetectionImageReader.getSurface()), captureStateCallback, backgroundHandler);
         } catch (CameraAccessException ce) {
             ce.printStackTrace();
+        }
+    }
+
+    private void initOrientationListener() {
+        orientationEventListener = new OrientationEventListener(context) {
+            @Override
+            public void onOrientationChanged(int ori) {
+                if (!isRecording && !isLiving) {
+                    if (ori > 340 || ori < 20) {
+                        orientation = 0;
+                        videoWidth = 1080;
+                        videoHeight = 1920;
+
+                        videoWidth1 = 720;
+                        videoHeight1 = 1280;
+
+                        videoWidth2 = 480;
+                        videoHeight2 = 854;
+                    } else if (ori > 70 && ori < 110) {
+                        orientation = 1;
+                        videoWidth = 1920;
+                        videoHeight = 1080;
+
+                        videoWidth1 = 1280;
+                        videoHeight1 = 720;
+
+                        videoWidth2 = 854;
+                        videoHeight2 = 480;
+                    } else if (ori > 160 && ori < 200) {
+                        orientation = 2;
+                        videoWidth = 1080;
+                        videoHeight = 1920;
+
+                        videoWidth1 = 720;
+                        videoHeight1 = 1280;
+
+                        videoWidth2 = 480;
+                        videoHeight2 = 854;
+                    } else if (ori > 250 && ori < 290) {
+                        orientation = 3;
+                        videoWidth = 1920;
+                        videoHeight = 1080;
+
+                        videoWidth1 = 1280;
+                        videoHeight1 = 720;
+
+                        videoWidth2 = 854;
+                        videoHeight2 = 480;
+                    } else {
+                        return;
+                    }
+                } else {
+                    return;
+                }
+            }
+        };
+
+        if (orientationEventListener.canDetectOrientation()) {
+            orientationEventListener.enable();
+        } else {
+            orientationEventListener.disable();
+            Log.e(TAG,"ORIENTATION LISTENER ERROR");
         }
     }
 }

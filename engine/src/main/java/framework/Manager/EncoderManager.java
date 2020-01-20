@@ -58,7 +58,7 @@ public class EncoderManager extends HandlerThread {
         void initDone();
     }
 
-    public EncoderManager(String name, int videoWidth, int videoHeight, int bitRate, Callback callback){
+    public EncoderManager(String name, int videoHeight, int videoWidth, int bitRate, Callback callback){
         super(name);
 
         this.name = name;
@@ -89,8 +89,8 @@ public class EncoderManager extends HandlerThread {
             public boolean handleMessage(@NonNull Message msg) {
                 switch (msg.arg1) {
                     case ThreadMessage.RecordMessage.MSG_RECORD_START : {
-                        initCodec();
                         setInfo((MessageObject.VideoObject) msg.obj);
+                        initCodec();
 
                         return true;
                     }
@@ -138,6 +138,8 @@ public class EncoderManager extends HandlerThread {
     }
 
     private void setInfo(MessageObject.VideoObject obj) {
+        videoWidth = obj.getWidth();
+        videoHeight = obj.getHeight();
         pipe = obj.getPipe();
         muxHandler = obj.getMuxHandler();
         muxList.clear();

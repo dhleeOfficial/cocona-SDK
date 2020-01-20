@@ -162,7 +162,7 @@
             android:visibility="invisible"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintRight_toRightOf="@id/radioGroup"
-            app:layout_constraintTop_toBottomOf="@+id/darkBtn">
+            app:layout_constraintTop_toBottomOf="@+id/modeBtn">
 
             <RadioButton
                 android:id="@+id/pauseBtn"
