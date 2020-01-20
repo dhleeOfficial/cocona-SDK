@@ -8,6 +8,8 @@ import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 
+import com.amazonaws.services.s3.AmazonS3Client;
+
 import framework.Enum.Exposure;
 import framework.Enum.Filter;
 import framework.Enum.LensFacing;
@@ -80,6 +82,24 @@ public class CameraEngine {
                 }
 
                 return recentTouchType;
+            }
+        }
+
+        public static class LiveData {
+            private boolean isStart;
+            private AmazonS3Client s3Client;
+
+            public LiveData(boolean isStart, AmazonS3Client s3Client) {
+                this.isStart = isStart;
+                this.s3Client = s3Client;
+            }
+
+            public boolean getIsStart() {
+                return isStart;
+            }
+
+            public AmazonS3Client getS3Client() {
+                return s3Client;
             }
         }
     }
@@ -180,6 +200,11 @@ public class CameraEngine {
         }
     }
 
+//    public void live(Util.LiveData liveData) {
+//        if (cameraHandler != null) {
+//            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_LIVE, 0, liveData));
+//        }
+//    }
     public void live(boolean isStart) {
         if (cameraHandler != null) {
             cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_LIVE, 0, isStart));

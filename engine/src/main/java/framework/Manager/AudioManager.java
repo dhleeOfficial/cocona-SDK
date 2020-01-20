@@ -89,19 +89,16 @@ public class AudioManager extends HandlerThread {
                     }
                     case ThreadMessage.RecordMessage.MSG_RECORD_SLOW : {
                         recordSpeed = RecordSpeed.SLOW;
-                        muxList.clear();
 
                         return true;
                     }
                     case ThreadMessage.RecordMessage.MSG_RECORD_NORMAL : {
                         recordSpeed = RecordSpeed.NORMAL;
-                        muxList.clear();
 
                         return true;
                     }
                     case ThreadMessage.RecordMessage.MSG_RECORD_FAST : {
                         recordSpeed = RecordSpeed.FAST;
-                        muxList.clear();
 
                         return true;
                     }
@@ -343,6 +340,7 @@ public class AudioManager extends HandlerThread {
 
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                     isReady = false;
+                    isPause = false;
                     this.isEOS = false;
                     stopCodec();
                     break;
@@ -375,8 +373,10 @@ public class AudioManager extends HandlerThread {
                         final VideoMuxData data = muxList.take();
 
                         if (data != null) {
-                            bufferedOutputStream.write(data.getBuffer());
-                            bufferedOutputStream.flush();
+                            if (isPause == false) {
+                                bufferedOutputStream.write(data.getBuffer());
+                                bufferedOutputStream.flush();
+                            }
                         }
                         if (data.getIsEOS() == true) {
                             muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_AUDIO_END, 0,null));

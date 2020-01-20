@@ -53,6 +53,7 @@ public class EncoderManager extends HandlerThread {
     private BlockingQueue<VideoMuxData> muxList = new LinkedBlockingQueue<VideoMuxData>();
 
     private boolean isReady = false;
+    private boolean isPause = false;
 
     public interface Callback {
         void initDone();
@@ -105,6 +106,16 @@ public class EncoderManager extends HandlerThread {
 
                         return true;
                     }
+                    case ThreadMessage.RecordMessage.MSG_RECORD_PAUSE : {
+                        isPause = true;
+
+                        return true;
+                    }
+                    case ThreadMessage.RecordMessage.MSG_RECORD_RESUME : {
+                        isPause = false;
+
+                        return true;
+                    }
                 }
                 return false;
             }
@@ -134,6 +145,7 @@ public class EncoderManager extends HandlerThread {
             ie.printStackTrace();
         }
 
+        isPause = false;
         isReady = true;
     }
 
@@ -276,10 +288,10 @@ public class EncoderManager extends HandlerThread {
                         final VideoMuxData data = muxList.take();
 
                         if (data != null) {
-                            //if (isPause == false) {
-                            bufferedOutputStream.write(data.getBuffer());
-                            bufferedOutputStream.flush();
-                            //}
+                            if (isPause == false) {
+                                bufferedOutputStream.write(data.getBuffer());
+                                bufferedOutputStream.flush();
+                            }
                             if (data.getIsEOS() == true) {
                                 muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_VIDEO_END, 0, videoHeight));
 

@@ -27,6 +27,7 @@ import java.io.File;
 import java.util.ArrayList;
 
 import framework.Enum.Mode;
+import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
 import framework.Util.LiveFileObserver;
 import framework.Util.Util;
@@ -68,7 +69,7 @@ public class MuxManager extends HandlerThread {
     private final String MAP_LIVE_COMMAND = " -map 0:v -map 3:a -map 1:v -map 3:a -map 2:v -map 3:a -b:v:0 5000k -b:v:1 2000k -b:v:2 1500k -var_stream_map \"v:0,a:0 v:1,a:1 v:2,a:2\"";
     private final String MUXING_LIVE_OPT = " -muxdelay 0 -max_muxing_queue_size 9999 -flags +cgop -vsync 1 -shortest -g 24 -c copy -bsf:a aac_adtstoasc -f hls -hls_list_size 0 -hls_time 2 -hls_flags " +
             "independent_segments+omit_endlist -hls_allow_cache 0 -hls_segment_type fmp4 -movflags frag_keyframe+faststart -master_pl_publish_rate 999999999 -master_pl_name master.m3u8 -hls_fmp4_init_filename init.mp4 " +
-            "-hls_segment_filename " + Util.getOutputVideoSegDir().getPath() + "/sec%v_%d.mp4 " + Util.getOutputVideoSegDir().getPath() + "/sec%v.m3u8";
+            "-hls_segment_filename " + Util.getOutputLIVEDir().getPath() + "/sec%v_%d.mp4 " + Util.getOutputLIVEDir().getPath() + "/sec%v.m3u8";
 
     public MuxManager(Context context) {
         super("MuxManager");
@@ -94,6 +95,7 @@ public class MuxManager extends HandlerThread {
                     case ThreadMessage.MuxMessage.MSG_MUX_LIVE_START : {
                         mode = ((Mode) msg.obj);
                         muxLiveExecute();
+                        //muxLiveExecute((MessageObject.MuxLiveObject) msg.obj);
 
                         return true;
                     }
@@ -189,7 +191,7 @@ public class MuxManager extends HandlerThread {
         processPipeStatusExecute();
 
         if (liveFileObserver == null) {
-            liveFileObserver = new LiveFileObserver(context, Util.getOutputVideoSegDir());
+            liveFileObserver = new LiveFileObserver(context, Util.getOutputLIVEDir());
             liveFileObserver.startWatching();
         }
 
@@ -198,6 +200,22 @@ public class MuxManager extends HandlerThread {
             ffmpeg.start();
         }
     }
+
+//    private void muxLiveExecute(MessageObject.MuxLiveObject obj) {
+//        mode = obj.getMode();
+//
+//        processPipeStatusExecute();
+//
+//        if (liveFileObserver == null) {
+//            liveFileObserver = new LiveFileObserver(context, Util.getOutputLIVEDir(), obj.getS3Client());
+//            liveFileObserver.startWatching();
+//        }
+//
+//        if (ffmpeg == null) {
+//            ffmpeg = new FFMPEGThread();
+//            ffmpeg.start();
+//        }
+//    }
 
     private void muxCancel() {
         boolean isCancel = processPipeStatusCancel();
@@ -231,13 +249,12 @@ public class MuxManager extends HandlerThread {
         public void run() {
             String command;
             if (mode != Mode.LIVE) {
-                command = INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(0) + INPUT_AUDIO_OPT + INPUT_AUDIO + pipeList.get(1) + " -map 0:v -map 1:a" + OUTPUT + Util.getOutput1080File();
-                Log.e(Thread.currentThread().getName(), command);
+                command = INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(0) + INPUT_AUDIO_OPT + INPUT_AUDIO + pipeList.get(1) + " -map 0:v -map 1:a" + OUTPUT + Util.getOutputVODFile();
+
                 FFmpeg.execute(command);
             } else {
                 command = INPUT_LIVE_VIDEO_OPT + INPUT_LIVE_VIDEO + pipeList.get(0) + " " + INPUT_LIVE_VIDEO_OPT + INPUT_LIVE_VIDEO + pipeList.get(1) + " " + INPUT_LIVE_VIDEO_OPT + INPUT_LIVE_VIDEO + pipeList.get(2) + INPUT_LIVE_AUDIO_OPT +
                         INPUT_LIVE_AUDIO + pipeList.get(3) + MAP_LIVE_COMMAND + MUXING_LIVE_OPT;
-                Log.e(Thread.currentThread().getName(), command);
 
                 FFmpeg.execute(command);
             }

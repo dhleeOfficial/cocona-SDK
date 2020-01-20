@@ -29,6 +29,7 @@ import framework.Enum.Mode;
 import framework.Enum.RecordSpeed;
 import framework.Enum.TouchType;
 
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.example.myapplication.R;
 
 public class CameraActivity extends AppCompatActivity {
@@ -120,6 +121,18 @@ public class CameraActivity extends AppCompatActivity {
                         engine.record(isChecked);
                     } else if (buttonView == live) {
                         engine.live(isChecked);
+//                        if (isChecked == true) {
+//                            // FIXME
+////                            AmazonS3Client s3Client = new AmazonS3Client();
+////                            CameraEngine.Util.LiveData liveData = new CameraEngine.Util.LiveData(true, s3Client);
+////
+////                            engine.live(liveData);
+//
+//                        } else {
+////                            CameraEngine.Util.LiveData liveData = new CameraEngine.Util.LiveData(false, null);
+////
+////                            engine.live(liveData);
+//                        }
                     }
             }
         };

@@ -3,9 +3,12 @@ package framework.Message;
 import android.os.Handler;
 import android.util.Size;
 
+import com.amazonaws.services.s3.AmazonS3Client;
+
 import java.io.BufferedOutputStream;
 
 import framework.Enum.LensFacing;
+import framework.Enum.Mode;
 
 public class MessageObject {
     public static class Box {
@@ -77,6 +80,24 @@ public class MessageObject {
 
         public final Handler getMuxHandler() {
             return muxHandler;
+        }
+    }
+
+    public static class MuxLiveObject {
+        private final Mode mode;
+        private final AmazonS3Client s3Client;
+
+        public MuxLiveObject(Mode mode, AmazonS3Client s3Client) {
+            this.mode = mode;
+            this.s3Client = s3Client;
+        }
+
+        public final Mode getMode() {
+            return mode;
+        }
+
+        public final AmazonS3Client getS3Client() {
+            return s3Client;
         }
     }
 }

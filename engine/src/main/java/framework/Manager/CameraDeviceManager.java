@@ -44,6 +44,7 @@ import android.widget.RelativeLayout;
 
 import androidx.annotation.NonNull;
 
+import framework.Engine.CameraEngine;
 import framework.Enum.Exposure;
 
 import framework.Enum.Filter;
@@ -269,6 +270,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         @Override
         public void onConfigured(@NonNull CameraCaptureSession session) {
             cameraCaptureSession = session;
+
+            speedRecord(recordSpeed);
             captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
             captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(30, 30));
 
@@ -462,6 +465,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_LIVE : {
                         live((boolean) msg.obj);
+//                        live((CameraEngine.Util.LiveData) msg.obj);
                     }
                 }
                 return false;
@@ -796,39 +800,37 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     }
 
     private void speedRecord(RecordSpeed recordSpeed) {
-//        Handler audioHandler = audioManager.getHandler();
-//        Handler videoHandler = videoManager.getHandler();
-//
-//        try {
-//            if (audioHandler != null) {
-//                if (recordSpeed == RecordSpeed.SLOW) {
-//                    captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(60, 60));
-//                    videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_SLOW, 0, null));
-//                    audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_SLOW, 0, null));
-//                } else if (recordSpeed == RecordSpeed.NORMAL) {
-//                    captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(30, 30));
-//                    videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_NORMAL, 0, null));
-//                    audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_NORMAL, 0, null));
-//                } else if (recordSpeed == RecordSpeed.FAST) {
-//                    captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(15, 15));
-//                    videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_FAST, 0, null));
-//                    audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_FAST, 0, null));
-//                }
-//                if (videoHandler != null) {
-//                    if (recordSpeed == RecordSpeed.PAUSE) {
-//                        videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
-//                        audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
-//                    } else if (recordSpeed == RecordSpeed.RESUME) {
-//                        videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
-//                        audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
-//                    }
-//                }
-//            }
-//
-//            cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
-//        } catch (CameraAccessException ce) {
-//            ce.printStackTrace();
-//        }
+        Handler encoderHandler = encoderManager.getHandler();
+        Handler audioHandler = audioManager.getHandler();
+
+        if ((encoderHandler != null) && (audioHandler != null)) {
+            if (recordSpeed == RecordSpeed.PAUSE) {
+                encoderHandler.sendMessage(encoderHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+
+                return;
+            } else if (recordSpeed == RecordSpeed.RESUME) {
+                encoderHandler.sendMessage(encoderHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+
+                return;
+            } else if (recordSpeed == RecordSpeed.SLOW) {
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(60, 60));
+                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_SLOW, 0, null));
+            } else if (recordSpeed == RecordSpeed.NORMAL) {
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(30, 30));
+                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_NORMAL, 0, null));
+            } else if (recordSpeed == RecordSpeed.FAST) {
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(15, 15));
+                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_FAST, 0, null));
+            }
+
+            try {
+                cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
+            } catch (CameraAccessException ce) {
+                ce.printStackTrace();
+            }
+        }
     }
 
     private void mode(Mode mode) {
@@ -840,6 +842,41 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.ODMessage.MSG_OD_SETMODE, 0, mode));
         }
     }
+
+//    private void live(CameraEngine.Util.LiveData liveData) {
+//        Handler audioHandler = audioManager.getHandler();
+//        Handler muxHandler = muxManager.getHandler();
+//        Handler encoderHandler = encoderManager.getHandler();
+//        Handler encoderHandler1 = encoderManager1.getHandler();
+//        Handler encoderHandler2 = encoderManager2.getHandler();
+//
+//        if (liveData.getIsStart() == true) {
+//            muxManager.resetPipeList();
+//
+//            MessageObject.VideoObject videoObj = new MessageObject.VideoObject(muxManager.requestPipe(), muxHandler);
+//            encoderHandler.sendMessage(encoderHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, videoObj));
+//
+//            MessageObject.VideoObject videoObj1 = new MessageObject.VideoObject(muxManager.requestPipe(), muxHandler);
+//            encoderHandler1.sendMessage(encoderHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, videoObj1));
+//
+//            MessageObject.VideoObject videoObj2 = new MessageObject.VideoObject(muxManager.requestPipe(), muxHandler);
+//            encoderHandler2.sendMessage(encoderHandler2.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, videoObj2));
+//
+//            MessageObject.AudioRecord audioObj = new MessageObject.AudioRecord(muxManager.requestPipe(), muxHandler);
+//            audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, audioObj));
+//
+//            MessageObject.MuxLiveObject muxLiveObj = new MessageObject.MuxLiveObject(this.mode, liveData.getS3Client());
+//            muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_LIVE_START, 0, muxLiveObj));
+//        } else {
+//            encoderHandler.sendMessage(encoderHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
+//            encoderHandler1.sendMessage(encoderHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
+//            encoderHandler2.sendMessage(encoderHandler2.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
+//
+//            audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
+//
+//            isLiving = false;
+//        }
+//    }
 
     private void live(boolean isStart) {
         Handler audioHandler = audioManager.getHandler();

@@ -78,7 +78,7 @@ public class AutoEdit {
 
         try {
             if (fileWriter == null) {
-                outFile = Util.getOutputTEXTFile();
+                outFile = Util.getOutputScoreFile();
                 fileWriter = new FileWriter(outFile);
 
                 fileWriter.write(String.format("start_time : %d", this.firstTS) + System.getProperty("line.separator"));

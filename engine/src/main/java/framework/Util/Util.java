@@ -130,118 +130,6 @@ public class Util {
         return 0xff000000 | ((r << 6) & 0xff0000) | ((g >> 2) & 0xff00) | ((b >> 10) & 0xff);
     }
 
-    public static Bitmap imageToBitmap(Image image, float rotationDegrees) {
-
-        assert (image.getFormat() == ImageFormat.NV21);
-
-        // NV21 is a plane of 8 bit Y values followed by interleaved  Cb Cr
-        ByteBuffer ib = ByteBuffer.allocate(image.getHeight() * image.getWidth() * 2);
-
-        ByteBuffer y = image.getPlanes()[0].getBuffer();
-        ByteBuffer cr = image.getPlanes()[1].getBuffer();
-        ByteBuffer cb = image.getPlanes()[2].getBuffer();
-        ib.put(y);
-        ib.put(cb);
-        ib.put(cr);
-
-        YuvImage yuvImage = new YuvImage(ib.array(),
-                ImageFormat.NV21, image.getWidth(), image.getHeight(), null);
-
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        yuvImage.compressToJpeg(new Rect(0, 0,
-                image.getWidth(), image.getHeight()), 50, out);
-        byte[] imageBytes = out.toByteArray();
-        Bitmap bm = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
-        Bitmap bitmap = bm;
-
-        // On android the camera rotation and the screen rotation
-        // are off by 90 degrees, so if you are capturing an image
-        // in "portrait" orientation, you'll need to rotate the image.
-        if (rotationDegrees != 0) {
-            Matrix matrix = new Matrix();
-            matrix.postRotate(rotationDegrees);
-            Bitmap scaledBitmap = Bitmap.createScaledBitmap(bm,
-                    bm.getWidth(), bm.getHeight(), true);
-            bitmap = Bitmap.createBitmap(scaledBitmap, 0, 0,
-                    scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix, true);
-        }
-        return bitmap;
-    }
-
-    public static byte[] convertBitmapToByteArray(Bitmap bitmap){
-        ByteArrayOutputStream baos = null;
-        try {
-            baos = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 50, baos);
-            return baos.toByteArray();
-        }finally {
-            if(baos != null){
-                try {
-                    baos.close();
-                } catch (IOException e) {
-                }
-            }
-        }
-    }
-
-    public static byte[] convertBitmapToByteArrayUncompressed(Bitmap bitmap){
-        ByteBuffer byteBuffer = ByteBuffer.allocate(bitmap.getByteCount());
-        bitmap.copyPixelsToBuffer(byteBuffer);
-        byteBuffer.rewind();
-        return byteBuffer.array();
-    }
-
-    public static byte[] YUVtoByteArray(Image image) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-
-        Image.Plane[] planes = image.getPlanes();
-        byte[] result = new byte[width * height * 3 / 2];
-        int stride = planes[0].getRowStride();
-
-        if (stride == width) {
-            planes[0].getBuffer().get(result, 0, width);
-        } else {
-            for (int row = 0; row < height; row++) {
-                planes[0].getBuffer().position(row * stride);
-                planes[0].getBuffer().get(result, row * width, width);
-            }
-        }
-
-        stride = planes[1].getRowStride();
-
-        byte[] rowBytesCb = new byte[stride];
-        byte[] rowBytesCr = new byte[stride];
-
-        for (int row = 0; row < height / 2; row++) {
-            int rowOffset = width * height + width / 2 * row;
-
-            planes[1].getBuffer().position(row * stride);
-            planes[1].getBuffer().get(rowBytesCb, 0, width / 2);
-            planes[2].getBuffer().position(row * stride);
-            planes[2].getBuffer().get(rowBytesCr, 0, width / 2);
-
-            for (int col = 0; col < width / 2; col++) {
-                result[rowOffset + col * 2] = rowBytesCr[col];
-                result[rowOffset + col * 2 + 1] = rowBytesCb[col];
-            }
-        }
-        return result;
-    }
-
-    public static void scale(int srcW, int srcH, int dstW, int dstH, byte[] src, int srcOffset, byte[] dst, int dstOffset) {
-        for (int y = 0; y < dstH; ++y) {
-            int dstRowOffset = y * dstW;
-            int srcRowOffset = (y * srcH) / dstH;
-
-            for (int x = 0; x < dstW; ++x) {
-                int srcX = (x * srcW) / dstW;
-
-                dst[dstRowOffset + dstOffset] = src[srcRowOffset + srcX + srcOffset];
-            }
-        }
-    }
-
     public static byte[] imageToMat(Image image) {
 
         Image.Plane[] planes = image.getPlanes();
@@ -309,27 +197,15 @@ public class Util {
         return data;
     }
 
-    public static byte[] shortToByte(short[] sData) {
-        int shortArrsize = sData.length;
-        byte[] bytes = new byte[shortArrsize * 2];
-
-        for (int i = 0; i < shortArrsize; i++) {
-            bytes[i * 2] = (byte) (sData[i] & 0x00FF);
-            bytes[(i * 2) + 1] = (byte) (sData[i] >> 8);
-            sData[i] = 0;
-        }
-
-        return bytes;
-    }
-
-    public static File getOutput1080File() {
+    public static File getOutputVODFile() {
         File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
-                "1080");
+                "CubiDir" + File.separator + "VOD");
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
                 return null;
             }
         }
+
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss",
                 Locale.getDefault()).format(new Date());
         File mediaFile;
@@ -339,9 +215,9 @@ public class Util {
         return mediaFile;
     }
 
-    public static File getOutputVideoSegDir() {
+    public static File getOutputLIVEDir() {
         File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
-                "VIDEO_SEG");
+                "CubiDir" + File.separator + "LIVE");
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
                 return null;
@@ -350,9 +226,9 @@ public class Util {
         return mediaStorageDir;
     }
 
-    public static File getOutputTEXTFile() {
+    public static File getOutputScoreFile() {
         File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
-                "AUTOEDIT");
+                "CubiDir" + File.separator + "SCORE");
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
                 return null;
