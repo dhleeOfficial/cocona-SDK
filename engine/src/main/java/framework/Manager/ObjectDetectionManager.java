@@ -20,6 +20,7 @@ import framework.ObjectDetection.BoxDrawer;
 import framework.ObjectDetection.Classifier;
 import framework.ObjectDetection.ObjectDetectionModel;
 import framework.SceneDetection.JsonResult;
+import framework.SceneDetection.SceneData;
 import framework.Thread.AutoEditThread;
 import framework.Thread.InferenceThread;
 import framework.Thread.SceneDetecThread;
@@ -47,6 +48,9 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
     private SceneDetecThread sceneDetecThread;
     private JsonResult jsonResult;
+    private int frameIdx;
+    private int timestamp;
+    private int chunkIdx;
 
     private Size previewSize;
 
@@ -65,6 +69,9 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
         this.context = context;
         this.inferenceOverlayView = inferenceOverlayView;
+        this.frameIdx = 0;
+        this.timestamp = 0;
+        this.chunkIdx = 0;
     }
 
     @Override
@@ -127,6 +134,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                     // TODO : SceneDetection
                     if (isSDDone == true) {
                         // Do Something..
+                        sceneDetecThread.setInfo(frameIdx, timestamp, chunkIdx);
 
                         Thread t = new Thread(sceneDetecThread);
                         t.start();
@@ -222,7 +230,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
     // Override from SceneDetecThread.Callback
     @Override
-    public void onSceneDetecDone() {
+    public void onSceneDetecDone(SceneData sceneData) {
         // TODO : JSONRESULT PUT
 
         isSDDone = true;
