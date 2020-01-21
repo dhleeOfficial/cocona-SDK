@@ -172,6 +172,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                     chunkIdx = 0;
                                 }
 
+                                // TODO : Slow, Fast considering
                                 if ((frameIdx%30) == 0) {
                                     sceneDetecThread.setInfo(frameIdx, timestamp, chunkIdx, bytes, yRowStride, uvRowStride, uvPixelStride);
 

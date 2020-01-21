@@ -13,6 +13,8 @@ import framework.Util.Util;
 
 public class JsonResult {
     private JSONObject obj;
+    private JSONArray objArray;
+
     private File file = null;
     private FileWriter fileWriter = null;
 
@@ -45,7 +47,7 @@ public class JsonResult {
             jobj.put("time_stamp", new Integer(timeStamp));
             jobj.put("chunk_index", new Integer(chunkIdx));
 
-            obj.put("chunks", jobj);
+            objArray.put(jobj);
         } catch (JSONException je) {
             je.printStackTrace();
         }
@@ -53,9 +55,13 @@ public class JsonResult {
 
     public String createJSONFile() {
         try {
+            obj.put("chunks", objArray);
+
             fileWriter.write(obj.toString());
         } catch (IOException ie) {
             ie.printStackTrace();
+        } catch (JSONException je) {
+            je.printStackTrace();
         } finally {
             try {
                 if (fileWriter != null) {
@@ -70,9 +76,10 @@ public class JsonResult {
 
     private void init() {
         obj = new JSONObject();
+        objArray = new JSONArray();
         try {
             file = Util.getOutputLabelFile();
-            fileWriter = new FileWriter(file, true);
+            fileWriter = new FileWriter(file);
         } catch (IOException ie) {
             ie.printStackTrace();
         }
