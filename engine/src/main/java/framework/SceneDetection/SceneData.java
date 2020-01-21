@@ -1,7 +1,5 @@
 package framework.SceneDetection;
 
-import java.lang.reflect.Array;
-import java.security.acl.LastOwnerException;
 import java.util.ArrayList;
 
 public class SceneData {

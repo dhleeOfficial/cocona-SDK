@@ -293,7 +293,9 @@ public class EncoderManager extends HandlerThread {
                                 bufferedOutputStream.flush();
                             }
                             if (data.getIsEOS() == true) {
-                                muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_VIDEO_END, 0, videoHeight));
+                                int resolution = (videoWidth > videoHeight) ? videoHeight : videoWidth;
+
+                                muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_VIDEO_END, 0, resolution));
 
                                 break;
                             }

@@ -45,6 +45,7 @@ import android.widget.RelativeLayout;
 import androidx.annotation.NonNull;
 
 import framework.Engine.CameraEngine;
+import framework.Engine.OutputObserver;
 import framework.Enum.Exposure;
 
 import framework.Enum.Filter;
@@ -70,6 +71,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private final String TAG = "CameraDeviceManager";
 
     private Context context;
+    private OutputObserver outputObserver;
     private InferenceOverlayView overlayView;
     private FocusOverlayView focusView;
 
@@ -288,44 +290,46 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         }
     };
 
-    @Override
-    public boolean quit() {
-        try {
-            objectDetectionManager.join();
-            audioManager.join();
-            encoderManager.join();
-            encoderManager1.join();
-            encoderManager2.join();
+//    @Override
+//    public boolean quit() {
+//        try {
+//            objectDetectionManager.join();
+//            audioManager.join();
+//            encoderManager.join();
+//            encoderManager1.join();
+//            encoderManager2.join();
+//
+//            muxManager.join();
+//        } catch (InterruptedException ie) {
+//            ie.printStackTrace();
+//        }
+//
+//        backgroundThread.quitSafely();
+//
+//        if (encoderSurface != null) {
+//            encoderSurface.release();
+//            encoderSurface = null;
+//        }
+//
+//        if (encoderSurface1 != null) {
+//            encoderSurface1.release();
+//            encoderSurface1 = null;
+//        }
+//
+//        if (encoderSurface2 != null) {
+//            encoderSurface2.release();
+//            encoderSurface2 = null;
+//        }
+//
+//        return super.quit();
+//    }
 
-            muxManager.join();
-        } catch (InterruptedException ie) {
-            ie.printStackTrace();
-        }
-
-        backgroundThread.quitSafely();
-
-        if (encoderSurface != null) {
-            encoderSurface.release();
-            encoderSurface = null;
-        }
-
-        if (encoderSurface1 != null) {
-            encoderSurface1.release();
-            encoderSurface1 = null;
-        }
-
-        if (encoderSurface2 != null) {
-            encoderSurface2.release();
-            encoderSurface2 = null;
-        }
-
-        return super.quit();
-    }
-
-    public CameraDeviceManager(Context context, View relativeLayout) {
+    public CameraDeviceManager(Context context, View relativeLayout, OutputObserver outputObserver) {
         super("CameraDeviceManager");
 
         this.context = context;
+        this.outputObserver = outputObserver;
+
         this.lensFacing = LensFacing.BACK;
         this.overlayView = new InferenceOverlayView(context);
         ((RelativeLayout) relativeLayout).addView(this.overlayView);
@@ -340,7 +344,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         encoderHandler = new EncoderHandler();
 
         // CREATE ObjectDetectionManager
-        objectDetectionManager = new ObjectDetectionManager(this.context, this.overlayView);
+        objectDetectionManager = new ObjectDetectionManager(this.context, this.overlayView, this.outputObserver);
         objectDetectionManager.start();
 
         encoderManager = new EncoderManager("1920", 1920, 1080, 6000000, new EncoderManager.Callback() {
@@ -373,20 +377,47 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         });
 
         audioManager = new AudioManager();
-        muxManager = new MuxManager(context);
+        muxManager = new MuxManager(context, outputObserver);
 
         audioManager.start();
-
         encoderManager.start();
         encoderManager1.start();
         encoderManager2.start();
-
         muxManager.start();
     }
 
     @Override
     public void run() {
         super.run();
+    }
+
+    @Override
+    public boolean quitSafely() {
+        audioManager.quitSafely();
+        muxManager.quitSafely();
+        encoderManager.quitSafely();
+        encoderManager1.quitSafely();
+        encoderManager2.quitSafely();
+        objectDetectionManager.quitSafely();
+        backgroundThread.quitSafely();
+
+        if (encoderSurface != null) {
+            encoderSurface.release();
+            encoderSurface = null;
+        }
+
+        if (encoderSurface1 != null) {
+            encoderSurface1.release();
+            encoderSurface1 = null;
+        }
+
+        if (encoderSurface2 != null) {
+            encoderSurface2.release();
+            encoderSurface2 = null;
+        }
+
+
+        return super.quitSafely();
     }
 
     @Override
@@ -493,6 +524,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     }
 
+    // FIXME
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         stopPreview();
@@ -924,7 +956,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             hasFlash = cc.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
             exposureLevel = 0.0;
             recordSpeed = RecordSpeed.NORMAL;
-//            sensorOrientation = cc.get(CameraCharacteristics.SENSOR_ORIENTATION);
 
             mode(this.mode);
 

@@ -200,35 +200,39 @@ public class Util {
     public static File getOutputVODFile() {
         File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
                 "CubiDir" + File.separator + "VOD");
+
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
                 return null;
             }
         }
-
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss",
                 Locale.getDefault()).format(new Date());
         File mediaFile;
 
         mediaFile = new File(mediaStorageDir.getPath() + File.separator
                 + timeStamp + ".mp4");
+
         return mediaFile;
     }
 
     public static File getOutputLIVEDir() {
         File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
                 "CubiDir" + File.separator + "LIVE");
+
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
                 return null;
             }
         }
+
         return mediaStorageDir;
     }
 
     public static File getOutputScoreFile() {
         File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
                 "CubiDir" + File.separator + "SCORE");
+
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
                 return null;
@@ -240,6 +244,27 @@ public class Util {
 
         mediaFile = new File(mediaStorageDir.getPath() + File.separator
                 + timeStamp + ".txt");
+
+        return mediaFile;
+    }
+
+    public static File getOutputLabelFile() {
+        File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
+                "CubiDir" + File.separator + "LABEL");
+
+        if (!mediaStorageDir.exists()) {
+            if (!mediaStorageDir.mkdirs()) {
+                return null;
+            }
+        }
+
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss",
+                Locale.getDefault()).format(new Date());
+        File mediaFile;
+
+        mediaFile = new File(mediaStorageDir.getPath() + File.separator
+                + timeStamp + ".json");
+
         return mediaFile;
     }
 

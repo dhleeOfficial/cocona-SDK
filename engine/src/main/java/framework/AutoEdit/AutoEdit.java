@@ -105,6 +105,10 @@ public class AutoEdit {
         return false;
     }
 
+    public String getScoreFile() {
+        return outFile.getPath();
+    }
+
     public void stop() {
         try {
             fileWriter.write("scoreFile = " + outFile.getPath() + System.getProperty("line.separator"));

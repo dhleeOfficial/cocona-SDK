@@ -1,6 +1,7 @@
 package framework.Manager;
 
 import android.content.Context;
+import android.icu.util.Output;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -26,6 +27,7 @@ import com.arthenica.mobileffmpeg.Level;
 import java.io.File;
 import java.util.ArrayList;
 
+import framework.Engine.OutputObserver;
 import framework.Enum.Mode;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
@@ -35,6 +37,7 @@ import framework.Util.Util;
 public class MuxManager extends HandlerThread {
     private Context context;
     private Handler myHandler;
+    private OutputObserver outputObserver;
 
     ArrayList<String> pipeList = new ArrayList<String>();
 
@@ -71,10 +74,12 @@ public class MuxManager extends HandlerThread {
             "independent_segments+omit_endlist -hls_allow_cache 0 -hls_segment_type fmp4 -movflags frag_keyframe+faststart -master_pl_publish_rate 999999999 -master_pl_name master.m3u8 -hls_fmp4_init_filename init.mp4 " +
             "-hls_segment_filename " + Util.getOutputLIVEDir().getPath() + "/sec%v_%d.mp4 " + Util.getOutputLIVEDir().getPath() + "/sec%v.m3u8";
 
-    public MuxManager(Context context) {
+    public MuxManager(Context context, OutputObserver outputObserver) {
         super("MuxManager");
 
         this.context = context;
+        this.outputObserver = outputObserver;
+
         Config.setLogLevel(Level.AV_LOG_INFO);
     }
 
@@ -227,6 +232,12 @@ public class MuxManager extends HandlerThread {
 
             if (ffmpeg != null) {
                 ffmpeg.quitThread();
+                String output = ffmpeg.getVODFile();
+
+                if (output != null) {
+                    outputObserver.onCompleteVODFile(output);
+                }
+
                 ffmpeg.interrupt();
                 ffmpeg = null;
             }
@@ -241,15 +252,26 @@ public class MuxManager extends HandlerThread {
     }
 
     private class FFMPEGThread extends Thread {
+        private File VODFile;
+
         public FFMPEGThread() {
             super("ffmpeg");
+        }
+
+        public String getVODFile() {
+            if (VODFile != null) {
+                return VODFile.getPath();
+            }
+            return null;
         }
 
         @Override
         public void run() {
             String command;
             if (mode != Mode.LIVE) {
-                command = INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(0) + INPUT_AUDIO_OPT + INPUT_AUDIO + pipeList.get(1) + " -map 0:v -map 1:a" + OUTPUT + Util.getOutputVODFile();
+                VODFile = Util.getOutputVODFile();
+
+                command = INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(0) + INPUT_AUDIO_OPT + INPUT_AUDIO + pipeList.get(1) + " -map 0:v -map 1:a" + OUTPUT + VODFile;
 
                 FFmpeg.execute(command);
             } else {

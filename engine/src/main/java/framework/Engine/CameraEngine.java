@@ -22,6 +22,7 @@ import framework.Message.ThreadMessage;
 public class CameraEngine {
     private Context context;
     private View relativeLayout;
+    private OutputObserver outputObserver;
 
     private CameraDeviceManager cameraDeviceManager;
     private Handler cameraHandler;
@@ -84,33 +85,16 @@ public class CameraEngine {
                 return recentTouchType;
             }
         }
-
-        public static class LiveData {
-            private boolean isStart;
-            private AmazonS3Client s3Client;
-
-            public LiveData(boolean isStart, AmazonS3Client s3Client) {
-                this.isStart = isStart;
-                this.s3Client = s3Client;
-            }
-
-            public boolean getIsStart() {
-                return isStart;
-            }
-
-            public AmazonS3Client getS3Client() {
-                return s3Client;
-            }
-        }
     }
 
-    public CameraEngine(Context context, View relativeLayout) {
+    public CameraEngine(Context context, View relativeLayout, OutputObserver outputObserver) {
         this.context = context;
         this.relativeLayout = relativeLayout;
+        this.outputObserver = outputObserver;
     }
 
     public void startEngine() {
-        cameraDeviceManager = new CameraDeviceManager(context, relativeLayout);
+        cameraDeviceManager = new CameraDeviceManager(context, relativeLayout, outputObserver);
         cameraDeviceManager.start();
     }
 
@@ -200,11 +184,6 @@ public class CameraEngine {
         }
     }
 
-//    public void live(Util.LiveData liveData) {
-//        if (cameraHandler != null) {
-//            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_LIVE, 0, liveData));
-//        }
-//    }
     public void live(boolean isStart) {
         if (cameraHandler != null) {
             cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_LIVE, 0, isStart));

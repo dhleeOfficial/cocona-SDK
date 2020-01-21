@@ -13,6 +13,7 @@ import android.util.Size;
 
 import androidx.annotation.NonNull;
 
+import framework.Engine.OutputObserver;
 import framework.Enum.Mode;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
@@ -27,7 +28,7 @@ import framework.Thread.SceneDetecThread;
 import framework.Util.InferenceOverlayView;
 import framework.Util.Util;
 
-public class ObjectDetectionManager extends HandlerThread implements ImageReader.OnImageAvailableListener, InferenceThread.Callback, AutoEditThread.Callback, SceneDetecThread.Callback {
+public class ObjectDetectionManager extends HandlerThread implements ImageReader.OnImageAvailableListener, InferenceThread.Callback, AutoEditThread.Callback {
     private static final int INPUT_SIZE = 300;
     private static final String MODEL_FILE = "travelmode.tflite";
     private static final String LABELS_FILE = "file:///android_asset/travelmode.txt";
@@ -38,6 +39,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     private Handler myHandler;
     private Context context;
     private InferenceOverlayView inferenceOverlayView;
+    private OutputObserver outputObserver;
 
     private Classifier classifier;
     private Classifier dailyClassifier;
@@ -64,19 +66,22 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
     private Mode mode = Mode.TRAVEL;
 
-    public ObjectDetectionManager(Context context, InferenceOverlayView inferenceOverlayView) {
+    public ObjectDetectionManager(Context context, InferenceOverlayView inferenceOverlayView, OutputObserver outputObserver) {
         super("ObjectDetectionManager");
 
         this.context = context;
         this.inferenceOverlayView = inferenceOverlayView;
-        this.frameIdx = 0;
-        this.timestamp = 0;
-        this.chunkIdx = 0;
+        this.outputObserver = outputObserver;
     }
 
     @Override
     public void run() {
         super.run();
+    }
+
+    @Override
+    public boolean quitSafely() {
+        return super.quitSafely();
     }
 
     @Override
@@ -95,11 +100,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                         if (dailyClassifier == null) {
                             dailyClassifier = ObjectDetectionModel.create(context.getAssets(), context, DAILY_MODEL_FILE, DAILY_LABELS_FILE, INPUT_SIZE, true);
                         }
-                        if ((sceneDetecThread == null) && (jsonResult == null)) {
-                            sceneDetecThread = new SceneDetecThread();
-                            sceneDetecThread.loadModel(context);
-                            jsonResult = new JsonResult();
-                        }
+
 
                         setUpOD((MessageObject.Box) msg.obj);
 
@@ -112,6 +113,16 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                     }
                     case ThreadMessage.ODMessage.MSG_OD_SETRECORD : {
                         isRecord = (boolean) msg.obj;
+                        if (isRecord == true) {
+
+                        }
+
+                        if (isRecord == false) {
+                            outputObserver.onCompleteLabelFile(jsonResult.createJSONFile());
+
+                            sceneDetecThread = null;
+                            jsonResult = null;
+                        }
 
                         return true;
                     }
@@ -128,22 +139,50 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         try {
             image = reader.acquireNextImage();
                 if (image != null) {
+                    frameIdx++;
 
                     int yRowStride = image.getPlanes()[0].getRowStride();
                     int uvRowStride = image.getPlanes()[1].getRowStride();
                     int uvPixelStride = image.getPlanes()[1].getPixelStride();
                     byte[][] bytes = Util.convertImageToBytes(image.getPlanes());
                     // TODO : SceneDetection
-                    if (isSDDone == true) {
-                        // Do Something..
-                        sceneDetecThread.setInfo(frameIdx, timestamp, chunkIdx, bytes, yRowStride, uvRowStride, uvPixelStride);
 
-                        Thread t = new Thread(sceneDetecThread);
-                        t.start();
+                    if (isRecord == true) {
+                        if (mode != Mode.LIVE) {
+                            if (isSDDone == true) {
+                                if ((sceneDetecThread == null) && (jsonResult == null)) {
+                                    sceneDetecThread = new SceneDetecThread();
+                                    sceneDetecThread.loadModel(context);
+                                    sceneDetecThread.setPreviewSize(previewSize);
+                                    sceneDetecThread.setCallback(new SceneDetecThread.Callback() {
+                                        @Override
+                                        public void onSceneDetecDone(SceneData sceneData) {
+                                            isSDDone = true;
 
-                        isSDDone = false;
+                                            if (jsonResult != null) {
+                                                jsonResult.inputData(sceneData);
+                                                chunkIdx++;
+                                            }
+                                        }
+                                    });
+
+                                    jsonResult = new JsonResult();
+                                    frameIdx = 0;
+                                    timestamp = 0;
+                                    chunkIdx = 0;
+                                }
+
+                                if ((frameIdx%30) == 0) {
+                                    sceneDetecThread.setInfo(frameIdx, timestamp, chunkIdx, bytes, yRowStride, uvRowStride, uvPixelStride);
+
+                                    Thread t = new Thread(sceneDetecThread);
+                                    t.start();
+
+                                    isSDDone = false;
+                                }
+                            }
+                        }
                     }
-                    //
 
                     if (mode == Mode.TRAVEL) {
                         if (isReady == true) {
@@ -222,20 +261,14 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     public void onDone() {
         if (isRecord == false) {
             if (autoEditThread != null) {
+                outputObserver.onCompleteScoreFile(autoEditThread.getScoreFile());
+
                 autoEditThread.stop();
                 autoEditThread = null;
             }
         }
 
         isAEDone = true;
-    }
-
-    // Override from SceneDetecThread.Callback
-    @Override
-    public void onSceneDetecDone(SceneData sceneData) {
-        // TODO : JSONRESULT PUT
-
-        isSDDone = true;
     }
 
     public final Handler getHandler() {
@@ -272,11 +305,6 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
             isReady = true;
         }
-        if (sceneDetecThread != null) {
-            sceneDetecThread.setPreviewSize(previewSize);
-            sceneDetecThread.setCallback(this);
-        }
-
     }
 
     private synchronized void setMode(Mode mode) {

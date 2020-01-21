@@ -6,6 +6,7 @@ import android.app.Activity;
 import android.bluetooth.BluetoothGatt;
 import android.graphics.PointF;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -22,6 +23,7 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import framework.Engine.CameraEngine;
+import framework.Engine.OutputObserver;
 import framework.Enum.Exposure;
 import framework.Enum.Filter;
 import framework.Enum.LensFacing;
@@ -57,6 +59,26 @@ public class CameraActivity extends AppCompatActivity {
     private CameraEngine.Util engineUtil;
     private CameraEngine.Util.SingleTouchEventHandler touchEventHandler;
 
+    private OutputObserver outputObserver = new OutputObserver() {
+        @Override
+        public void onCompleteVODFile(String vodPath) {
+            Log.e("VOD file", "========================");
+            Log.e("VOD file", vodPath);
+        }
+
+        @Override
+        public void onCompleteScoreFile(String scorePath) {
+            Log.e("SCORE file", "========================");
+            Log.e("SCORE file", scorePath);
+        }
+
+        @Override
+        public void onCompleteLabelFile(String labelPath) {
+            Log.e("LABEL file", "========================");
+            Log.e("LABEL file", labelPath);
+        }
+    };
+
     private final Activity myActivity = this;
 
     @Override
@@ -70,7 +92,7 @@ public class CameraActivity extends AppCompatActivity {
 
         rl = findViewById(R.id.relativeLayout);
 
-        engine = new CameraEngine(myActivity, rl);
+        engine = new CameraEngine(myActivity, rl, outputObserver);
         engine.startEngine();
 
         engineUtil = new CameraEngine.Util();
@@ -121,18 +143,6 @@ public class CameraActivity extends AppCompatActivity {
                         engine.record(isChecked);
                     } else if (buttonView == live) {
                         engine.live(isChecked);
-//                        if (isChecked == true) {
-//                            // FIXME
-////                            AmazonS3Client s3Client = new AmazonS3Client();
-////                            CameraEngine.Util.LiveData liveData = new CameraEngine.Util.LiveData(true, s3Client);
-////
-////                            engine.live(liveData);
-//
-//                        } else {
-////                            CameraEngine.Util.LiveData liveData = new CameraEngine.Util.LiveData(false, null);
-////
-////                            engine.live(liveData);
-//                        }
                     }
             }
         };
@@ -301,6 +311,7 @@ public class CameraActivity extends AppCompatActivity {
         engine.startPreview(sv);
     }
 
+    // FIXME : PAUSE와 SurfaceDestoryed callback 시, StopPreview 실행이 맞는지 확인할 것
     @Override
     protected void onPause() {
         super.onPause();

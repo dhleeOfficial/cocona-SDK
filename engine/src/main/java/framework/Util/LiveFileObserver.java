@@ -138,14 +138,6 @@ public class LiveFileObserver extends FileObserver {
 //                //LiveStart api call
 //                // Bucket name set, file key(uuid) set, s3Client region set
 //            } else {
-////              CognitoCredentialsProvider credentialsProvider = new CognitoCachingCredentialsProvider(context, "us-east-1:b29bba36-b3f3-488a-8ee3-f832c561542a", Regions.US_EAST_1);
-//                BasicAWSCredentials basicAWSCredentials = new BasicAWSCredentials("AKIARPJZLSJ6QSLVXGF5","4Z1MZSP3Kas4i3yoYIktO4Vka/m3/mQ7OcINEv3l");
-//                s3Client = new AmazonS3Client(basicAWSCredentials);
-//                s3Client.setRegion(Region.getRegion(Regions.AP_NORTHEAST_2));
-//                //s3Client.setS3ClientOptions(S3ClientOptions.builder().setAccelerateModeEnabled(true).build());
-//
-//                bucketName = "dev-ap-northeast-2-test-aaron";
-//            }
         }
 
         @Override

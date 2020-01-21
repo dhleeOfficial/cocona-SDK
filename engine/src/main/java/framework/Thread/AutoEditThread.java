@@ -84,6 +84,10 @@ public class AutoEditThread implements Runnable {
         return autoEdit.isVerify();
     }
 
+    public String getScoreFile() {
+        return autoEdit.getScoreFile();
+    }
+
     public void stop() {
         autoEdit.stop();
         autoEdit = null;

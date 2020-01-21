@@ -63,7 +63,6 @@ public class SceneDetecThread implements Runnable {
         SceneData sceneData = new SceneData(frameIdx, timeStamp, chunkIdx);
 
         for (final Pair<String,Float> result : results) {
-            Log.i("LABEL : ",String.format(result.first + "%f", result.second));
             sceneData.addLabelData(new SceneData.LabelData(result.first, result.second));
         }
 
