@@ -53,6 +53,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     private int frameIdx;
     private int timestamp;
     private int chunkIdx;
+    private long startTime;
 
     private Size previewSize;
 
@@ -170,10 +171,15 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                     frameIdx = 0;
                                     timestamp = 0;
                                     chunkIdx = 0;
+                                    startTime = System.nanoTime() / 1000000L;
                                 }
 
                                 // TODO : Slow, Fast considering
                                 if ((frameIdx%30) == 0) {
+                                    long curTime = System.nanoTime() / 1000000L;
+                                    timestamp = timestamp + (int) (curTime - startTime);
+                                    startTime = curTime;
+
                                     sceneDetecThread.setInfo(frameIdx, timestamp, chunkIdx, bytes, yRowStride, uvRowStride, uvPixelStride);
 
                                     Thread t = new Thread(sceneDetecThread);
