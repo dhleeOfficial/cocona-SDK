@@ -528,6 +528,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     private synchronized void stopPreview() {
         try {
+            // FIXME
             isRecording = false;
             isLiving = false;
             cameraLock.acquire();

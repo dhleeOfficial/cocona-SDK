@@ -19,12 +19,14 @@ import framework.Message.ThreadMessage;
 import framework.ObjectDetection.BoxDrawer;
 import framework.ObjectDetection.Classifier;
 import framework.ObjectDetection.ObjectDetectionModel;
+import framework.SceneDetection.JsonResult;
 import framework.Thread.AutoEditThread;
 import framework.Thread.InferenceThread;
+import framework.Thread.SceneDetecThread;
 import framework.Util.InferenceOverlayView;
 import framework.Util.Util;
 
-public class ObjectDetectionManager extends HandlerThread implements ImageReader.OnImageAvailableListener, InferenceThread.Callback, AutoEditThread.Callback {
+public class ObjectDetectionManager extends HandlerThread implements ImageReader.OnImageAvailableListener, InferenceThread.Callback, AutoEditThread.Callback, SceneDetecThread.Callback {
     private static final int INPUT_SIZE = 300;
     private static final String MODEL_FILE = "travelmode.tflite";
     private static final String LABELS_FILE = "file:///android_asset/travelmode.txt";
@@ -43,16 +45,20 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     private InferenceThread inferenceThread;
     private AutoEditThread autoEditThread;
 
+    private SceneDetecThread sceneDetecThread;
+    private JsonResult jsonResult;
+
     private Size previewSize;
 
     // STATUS
     private boolean isODDone = true;
     private boolean isAEDone = true;
+    private boolean isSDDone = true;
+
     private boolean isReady = false;
-    private Mode mode = Mode.TRAVEL;
     private boolean isRecord = false;
 
-    //private byte[][] yuvBytes = new byte[3][];
+    private Mode mode = Mode.TRAVEL;
 
     public ObjectDetectionManager(Context context, InferenceOverlayView inferenceOverlayView) {
         super("ObjectDetectionManager");
@@ -82,6 +88,10 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                         if (dailyClassifier == null) {
                             dailyClassifier = ObjectDetectionModel.create(context.getAssets(), context, DAILY_MODEL_FILE, DAILY_LABELS_FILE, INPUT_SIZE, true);
                         }
+                        if ((sceneDetecThread == null) && (jsonResult == null)) {
+                            sceneDetecThread = new SceneDetecThread();
+                            jsonResult = new JsonResult();
+                        }
 
                         setUpOD((MessageObject.Box) msg.obj);
 
@@ -103,8 +113,6 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         });
     }
 
-
-    // TODO : MODE별 inference (case 1 TRAVEL - object Detection), (case 2 EVENT & RECORD - auto edit), (case 3 DAILY - ??)
     @Override
     public void onImageAvailable(ImageReader reader) {
         Image image = null;
@@ -115,6 +123,17 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                     int yRowStride = image.getPlanes()[0].getRowStride();
                     int uvRowStride = image.getPlanes()[1].getRowStride();
                     int uvPixelStride = image.getPlanes()[1].getPixelStride();
+
+                    // TODO : SceneDetection
+                    if (isSDDone == true) {
+                        // Do Something..
+
+                        Thread t = new Thread(sceneDetecThread);
+                        t.start();
+
+                        isSDDone = false;
+                    }
+                    //
 
                     if (mode == Mode.TRAVEL) {
                         if (isReady == true) {
@@ -144,7 +163,6 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                 isODDone = false;
                             }
                         }
-
                     } else if (mode == Mode.EVENT) {
                         if (isRecord == true) {
                             if (isAEDone == true) {
@@ -181,6 +199,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         }
     }
 
+    // Override from InferenceThread.Callback
     @Override
     public void onComplete() {
         inferenceOverlayView.postInvalidate();
@@ -188,6 +207,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         isODDone = true;
     }
 
+    // Override from AutoEditThread.Callback
     @Override
     public void onDone() {
         if (isRecord == false) {
@@ -198,6 +218,14 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         }
 
         isAEDone = true;
+    }
+
+    // Override from SceneDetecThread.Callback
+    @Override
+    public void onSceneDetecDone() {
+        // TODO : JSONRESULT PUT
+
+        isSDDone = true;
     }
 
     public final Handler getHandler() {
