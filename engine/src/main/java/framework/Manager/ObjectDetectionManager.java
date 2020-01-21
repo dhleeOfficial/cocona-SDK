@@ -97,6 +97,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                         }
                         if ((sceneDetecThread == null) && (jsonResult == null)) {
                             sceneDetecThread = new SceneDetecThread();
+                            sceneDetecThread.loadModel(context);
                             jsonResult = new JsonResult();
                         }
 
@@ -127,14 +128,15 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         try {
             image = reader.acquireNextImage();
                 if (image != null) {
+
                     int yRowStride = image.getPlanes()[0].getRowStride();
                     int uvRowStride = image.getPlanes()[1].getRowStride();
                     int uvPixelStride = image.getPlanes()[1].getPixelStride();
-
+                    byte[][] bytes = Util.convertImageToBytes(image.getPlanes());
                     // TODO : SceneDetection
                     if (isSDDone == true) {
                         // Do Something..
-                        sceneDetecThread.setInfo(frameIdx, timestamp, chunkIdx);
+                        sceneDetecThread.setInfo(frameIdx, timestamp, chunkIdx, bytes, yRowStride, uvRowStride, uvPixelStride);
 
                         Thread t = new Thread(sceneDetecThread);
                         t.start();
@@ -149,7 +151,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                 inferenceThread.setClassifier(classifier);
                             }
                             if (isODDone == true) {
-                                inferenceThread.setInfo(Util.convertImageToBytes(image.getPlanes()), yRowStride, uvRowStride, uvPixelStride);
+                                inferenceThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
 
                                 Thread t = new Thread(inferenceThread);
                                 t.start();
@@ -163,7 +165,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                 inferenceThread.setClassifier(dailyClassifier);
                             }
                             if (isODDone == true) {
-                                inferenceThread.setInfo(Util.convertImageToBytes(image.getPlanes()), yRowStride, uvRowStride, uvPixelStride);
+                                inferenceThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
 
                                 Thread t = new Thread(inferenceThread);
                                 t.start();
@@ -187,7 +189,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                 autoEditThread.updateCurrentTS(curTS);
 
                                 if (autoEditThread.isNextImage() == true) {
-                                    autoEditThread.setInfo(Util.convertImageToBytes(image.getPlanes()), yRowStride, uvRowStride, uvPixelStride);
+                                    autoEditThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
 
                                     Thread t = new Thread(autoEditThread);
                                     t.start();
@@ -270,6 +272,11 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
             isReady = true;
         }
+        if (sceneDetecThread != null) {
+            sceneDetecThread.setPreviewSize(previewSize);
+            sceneDetecThread.setCallback(this);
+        }
+
     }
 
     private synchronized void setMode(Mode mode) {
