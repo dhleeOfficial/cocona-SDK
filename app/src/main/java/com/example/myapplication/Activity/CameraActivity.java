@@ -3,7 +3,6 @@ package com.example.myapplication.Activity;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
-import android.bluetooth.BluetoothGatt;
 import android.graphics.PointF;
 import android.os.Bundle;
 import android.util.Log;
@@ -11,7 +10,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
-import android.view.TextureView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -23,7 +21,8 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import framework.Engine.CameraEngine;
-import framework.Engine.OutputObserver;
+import framework.Engine.LiveStreamingData;
+import framework.Engine.EngineObserver;
 import framework.Enum.Exposure;
 import framework.Enum.Filter;
 import framework.Enum.LensFacing;
@@ -35,10 +34,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.example.myapplication.R;
 
 public class CameraActivity extends AppCompatActivity {
-    //private TextureView tv;
     private SurfaceView sv;
-
-
     private RelativeLayout rl;
 
     private ToggleButton flash;
@@ -59,23 +55,26 @@ public class CameraActivity extends AppCompatActivity {
     private CameraEngine.Util engineUtil;
     private CameraEngine.Util.SingleTouchEventHandler touchEventHandler;
 
-    private OutputObserver outputObserver = new OutputObserver() {
+    private EngineObserver engineObserver = new EngineObserver() {
         @Override
         public void onCompleteVODFile(String vodPath) {
-            Log.e("VOD file", "========================");
             Log.e("VOD file", vodPath);
         }
 
         @Override
         public void onCompleteScoreFile(String scorePath) {
-            Log.e("SCORE file", "========================");
             Log.e("SCORE file", scorePath);
         }
 
         @Override
         public void onCompleteLabelFile(String labelPath) {
-            Log.e("LABEL file", "========================");
             Log.e("LABEL file", labelPath);
+        }
+
+        @Override
+        public void onCompleteLiveUpload() {
+            Log.e("UPLOAD", "complete");
+            // APP invoke platform api - live end
         }
     };
 
@@ -92,13 +91,12 @@ public class CameraActivity extends AppCompatActivity {
 
         rl = findViewById(R.id.relativeLayout);
 
-        engine = new CameraEngine(myActivity, rl, outputObserver);
+        engine = new CameraEngine(myActivity, rl, engineObserver);
         engine.startEngine();
 
         engineUtil = new CameraEngine.Util();
         touchEventHandler = new CameraEngine.Util.SingleTouchEventHandler();
 
-        //tv = findViewById(R.id.textureView);
         sv = findViewById(R.id.surfaceView);
 
         flash = findViewById(R.id.flashBtn);
@@ -142,7 +140,19 @@ public class CameraActivity extends AppCompatActivity {
 
                         engine.record(isChecked);
                     } else if (buttonView == live) {
-                        engine.live(isChecked);
+                        if (isChecked == true) {
+                            // FIXME PLZ
+                            String bucketName = "bucket";
+                            String uploadKey = "uploadKey";
+                            String region = "region";
+                            AmazonS3Client amazonS3Client = new AmazonS3Client();
+
+                            LiveStreamingData liveStreamingData = new LiveStreamingData(bucketName, uploadKey, region, amazonS3Client);
+
+                            engine.live(true, liveStreamingData);
+                        } else {
+                            engine.live(false, null);
+                        }
                     }
             }
         };
@@ -307,7 +317,6 @@ public class CameraActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        //engine.startPreview(tv);
         engine.startPreview(sv);
     }
 

@@ -41,7 +41,6 @@ public class FocusOverlayView extends View {
 
     @Override
     public void draw(Canvas canvas) {
-
         if (isFocus == true) {
             Paint paint = new Paint();
             paint.setColor(color);

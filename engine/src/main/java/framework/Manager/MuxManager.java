@@ -1,25 +1,12 @@
 package framework.Manager;
 
 import android.content.Context;
-import android.icu.util.Output;
-import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.amazonaws.auth.CognitoCachingCredentialsProvider;
-import com.amazonaws.auth.CognitoCredentialsProvider;
-import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
-import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
-import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
-import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.arthenica.mobileffmpeg.Config;
 import com.arthenica.mobileffmpeg.FFmpeg;
 import com.arthenica.mobileffmpeg.Level;
@@ -27,7 +14,7 @@ import com.arthenica.mobileffmpeg.Level;
 import java.io.File;
 import java.util.ArrayList;
 
-import framework.Engine.OutputObserver;
+import framework.Engine.EngineObserver;
 import framework.Enum.Mode;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
@@ -37,7 +24,7 @@ import framework.Util.Util;
 public class MuxManager extends HandlerThread {
     private Context context;
     private Handler myHandler;
-    private OutputObserver outputObserver;
+    private EngineObserver engineObserver;
 
     ArrayList<String> pipeList = new ArrayList<String>();
 
@@ -74,11 +61,11 @@ public class MuxManager extends HandlerThread {
             "independent_segments+omit_endlist -hls_allow_cache 0 -hls_segment_type fmp4 -movflags frag_keyframe+faststart -master_pl_publish_rate 999999999 -master_pl_name master.m3u8 -hls_fmp4_init_filename init.mp4 " +
             "-hls_segment_filename " + Util.getOutputLIVEDir().getPath() + "/sec%v_%d.mp4 " + Util.getOutputLIVEDir().getPath() + "/sec%v.m3u8";
 
-    public MuxManager(Context context, OutputObserver outputObserver) {
+    public MuxManager(Context context, EngineObserver engineObserver) {
         super("MuxManager");
 
         this.context = context;
-        this.outputObserver = outputObserver;
+        this.engineObserver = engineObserver;
 
         Config.setLogLevel(Level.AV_LOG_INFO);
     }
@@ -98,9 +85,8 @@ public class MuxManager extends HandlerThread {
                         return true;
                     }
                     case ThreadMessage.MuxMessage.MSG_MUX_LIVE_START : {
-                        mode = ((Mode) msg.obj);
-                        muxLiveExecute();
-                        //muxLiveExecute((MessageObject.MuxLiveObject) msg.obj);
+                        mode = Mode.LIVE;
+                        muxLiveExecute((MessageObject.LiveObject) msg.obj);
 
                         return true;
                     }
@@ -192,11 +178,11 @@ public class MuxManager extends HandlerThread {
         }
     }
 
-    private void muxLiveExecute() {
+    private void muxLiveExecute(MessageObject.LiveObject liveObject) {
         processPipeStatusExecute();
 
         if (liveFileObserver == null) {
-            liveFileObserver = new LiveFileObserver(context, Util.getOutputLIVEDir());
+            liveFileObserver = new LiveFileObserver(context, Util.getOutputLIVEDir(), liveObject.getLiveStreamingData(), engineObserver);
             liveFileObserver.startWatching();
         }
 
@@ -205,22 +191,6 @@ public class MuxManager extends HandlerThread {
             ffmpeg.start();
         }
     }
-
-//    private void muxLiveExecute(MessageObject.MuxLiveObject obj) {
-//        mode = obj.getMode();
-//
-//        processPipeStatusExecute();
-//
-//        if (liveFileObserver == null) {
-//            liveFileObserver = new LiveFileObserver(context, Util.getOutputLIVEDir(), obj.getS3Client());
-//            liveFileObserver.startWatching();
-//        }
-//
-//        if (ffmpeg == null) {
-//            ffmpeg = new FFMPEGThread();
-//            ffmpeg.start();
-//        }
-//    }
 
     private void muxCancel() {
         boolean isCancel = processPipeStatusCancel();
@@ -235,7 +205,7 @@ public class MuxManager extends HandlerThread {
                 String output = ffmpeg.getVODFile();
 
                 if (output != null) {
-                    outputObserver.onCompleteVODFile(output);
+                    engineObserver.onCompleteVODFile(output);
                 }
 
                 ffmpeg.interrupt();

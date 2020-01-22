@@ -27,22 +27,23 @@ import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import framework.Engine.EngineObserver;
+import framework.Engine.LiveStreamingData;
 
 public class LiveFileObserver extends FileObserver {
-    private Context context;
     private static final int mask = (FileObserver.CREATE | FileObserver.MODIFY | FileObserver.CLOSE_WRITE);
+
+    private Context context;
     private File observerFile;
+    private EngineObserver engineObserver;
+
     private String observerPath;
     private String writeDonePath = "init_0.mp4";
 
     private AmazonS3Client s3Client = null;
     private String bucketName;
     private String fileKey;
+    private String region;
 
     private UploadFileManager uploadFileManager = null;
     private BlockingQueue<String> fileList = new LinkedBlockingDeque<String>();
@@ -51,9 +52,18 @@ public class LiveFileObserver extends FileObserver {
     private int createCount;
     private int uploadCount;
 
-    public LiveFileObserver(Context context, File file/*, AmazonS3Client s3Client*/) {
+    public LiveFileObserver(Context context, File file, LiveStreamingData liveStreamingData, EngineObserver engineObserver) {
         super(file.getPath(), mask);
         this.context = context;
+
+        if (liveStreamingData != null) {
+            this.s3Client = liveStreamingData.getS3Client();
+            this.bucketName = liveStreamingData.getBucketName();
+            this.fileKey = processFileKey(liveStreamingData.getUploadKey());
+            this.region = liveStreamingData.getRegionName();
+        }
+
+        this.engineObserver = engineObserver;
 
         createCount = 0;
         uploadCount = 0;
@@ -63,7 +73,6 @@ public class LiveFileObserver extends FileObserver {
             tempPath += File.separator;
         }
 
-        //this.s3Client = s3Client;
         observerFile = file;
         observerPath = tempPath;
         fileList.clear();
@@ -79,6 +88,7 @@ public class LiveFileObserver extends FileObserver {
                 if (writeDonePath != path) {
                     String replace = writeDonePath.replace(".tmp", "");
 
+                    Log.e("CREATE", path);
                     fileList.add(replace);
                     createCount++;
 
@@ -93,7 +103,8 @@ public class LiveFileObserver extends FileObserver {
 
         // FIXME
         while (createCount != uploadCount);
-        // TODO : platform api call (LIVE END)
+
+        engineObserver.onCompleteLiveUpload();
 
         try {
             uploadFileManager.join();
@@ -114,31 +125,14 @@ public class LiveFileObserver extends FileObserver {
         super.finalize();
     }
 
+    private String processFileKey(String key) {
+        int idx = key.lastIndexOf("/");
+
+        return key.substring(0, idx);
+    }
+
     private class UploadFileManager extends Thread {
-        public UploadFileManager() {
-//            if (s3Client != null) {
-////                OkHttpClient client = new OkHttpClient().newBuilder()
-////                        .build();
-////                MediaType mediaType = MediaType.parse("application/json");
-////                RequestBody body = RequestBody.create(mediaType, "{\n    \"regionId\": \"us-east-1\",\n    \"userApplication\": \"MOBILE_SERVER_LESS\",\n    \"scale\": \"S1920P\",\n    \"cameraPosition\": \"BACK\",\n    \"cameraOrientation\": \"PORTRAIT\",\n    \"videoShareType\": \"PUBLIC\",\n    \"title\": \"그룹 라이브 제목입니다.\",\n    \"description\": \"description 입니다\",\n    \"gpsSensorData\": {\n        \"hdop\": 2000,\n        \"time\": 1566199644895,\n        \"speed\": -1,\n        \"course\": -1,\n        \"fixAge\": 0,\n        \"altitude\": 48.15972137451172,\n        \"latitude\": 37.5277862548828,\n        \"longitude\": 126.92301940917963\n    }\n}");
-////                Request request = new Request.Builder()
-////                        .url("https://api.cubi-dev.com/api/v1.1/video-service/live-videos")
-////                        .method("POST", body)
-////                        .addHeader("Content-Type", "application/json")
-////                        .addHeader("Authorization", "Bearer ")
-////                        .build();
-////                try {
-////                    Response response = client.newCall(request).execute();
-////
-////                    Log.e("UPLOADFILE", response.toString());
-////                } catch (IOException ie) {
-////                    ie.printStackTrace();
-////                }
-//                // TODO : platform api call (LIVE START)
-//                //LiveStart api call
-//                // Bucket name set, file key(uuid) set, s3Client region set
-//            } else {
-        }
+        public UploadFileManager() {}
 
         @Override
         public void run() {
@@ -159,8 +153,11 @@ public class LiveFileObserver extends FileObserver {
         }
     }
 
-    // TODO : 1. S3Client parameter (DONE) 2. Live start platform api (bucket name, uuid) 3. TransferUtility created (DONE) 4. upload (DONE)
-    // TODO : 5. Upload success : .mp4 remove 6. Upload complete call & .m3u8 file remove 7. thumnail?
+    // Stub code
+    //BasicAWSCredentials basicAWSCredentials = new BasicAWSCredentials("ACCESSKEY","PRIVATEKEY");
+    //s3Client = new AmazonS3Client(basicAWSCredentials);
+    //bucketName = "dev-ap-northeast-2-test-aaron";
+
     private class UploadTask extends AsyncTask<Void, Void, Void> {
         private String path;
 
@@ -187,25 +184,13 @@ public class LiveFileObserver extends FileObserver {
             final File file = new File(observerPath + path);
 
             if (file != null) {
-//                if (s3Client == null) {
-//                    Log.e("UPLOAD", "s3Client not setting!");
-//                    return null;
-//                }
-                BasicAWSCredentials basicAWSCredentials = new BasicAWSCredentials("ACCESSKEY","PRIVATEKEY");
-                s3Client = new AmazonS3Client(basicAWSCredentials);
-                s3Client.setRegion(Region.getRegion(Regions.AP_NORTHEAST_2));
+                s3Client.setRegion(Region.getRegion(Regions.fromName(region)));
                 //s3Client.setS3ClientOptions(S3ClientOptions.builder().setAccelerateModeEnabled(true).build());
-
-                bucketName = "dev-ap-northeast-2-test-aaron";
 
                 TransferUtility transferUtility = new TransferUtility(s3Client, context);
 
                 if (transferUtility != null) {
-//                    if (fileKey.isEmpty() == true) {
-//                        fileKey = file.getName();
-//                    }
-
-                    final TransferObserver observer = transferUtility.upload(bucketName, /*fileKey*/file.getName(), file, CannedAccessControlList.PublicRead);
+                    final TransferObserver observer = transferUtility.upload(bucketName, fileKey, file, CannedAccessControlList.PublicRead);
 
                     observer.setTransferListener(new TransferListener() {
                         @Override

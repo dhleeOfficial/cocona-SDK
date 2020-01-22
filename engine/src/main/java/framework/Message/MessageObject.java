@@ -7,6 +7,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 
 import java.io.BufferedOutputStream;
 
+import framework.Engine.LiveStreamingData;
 import framework.Enum.LensFacing;
 import framework.Enum.Mode;
 
@@ -83,21 +84,21 @@ public class MessageObject {
         }
     }
 
-    public static class MuxLiveObject {
-        private final Mode mode;
-        private final AmazonS3Client s3Client;
+    public static class LiveObject {
+        private final boolean isLive;
+        private final LiveStreamingData liveStreamingData;
 
-        public MuxLiveObject(Mode mode, AmazonS3Client s3Client) {
-            this.mode = mode;
-            this.s3Client = s3Client;
+        public LiveObject(boolean isLive, LiveStreamingData liveStreamingData) {
+            this.isLive = isLive;
+            this.liveStreamingData = liveStreamingData;
         }
 
-        public final Mode getMode() {
-            return mode;
+        public boolean getIsLive() {
+            return isLive;
         }
 
-        public final AmazonS3Client getS3Client() {
-            return s3Client;
+        public LiveStreamingData getLiveStreamingData() {
+            return liveStreamingData;
         }
     }
 }

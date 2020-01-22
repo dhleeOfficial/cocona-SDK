@@ -13,7 +13,7 @@ import android.util.Size;
 
 import androidx.annotation.NonNull;
 
-import framework.Engine.OutputObserver;
+import framework.Engine.EngineObserver;
 import framework.Enum.Mode;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
@@ -39,7 +39,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     private Handler myHandler;
     private Context context;
     private InferenceOverlayView inferenceOverlayView;
-    private OutputObserver outputObserver;
+    private EngineObserver engineObserver;
 
     private Classifier classifier;
     private Classifier dailyClassifier;
@@ -67,12 +67,12 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
     private Mode mode = Mode.TRAVEL;
 
-    public ObjectDetectionManager(Context context, InferenceOverlayView inferenceOverlayView, OutputObserver outputObserver) {
+    public ObjectDetectionManager(Context context, InferenceOverlayView inferenceOverlayView, EngineObserver engineObserver) {
         super("ObjectDetectionManager");
 
         this.context = context;
         this.inferenceOverlayView = inferenceOverlayView;
-        this.outputObserver = outputObserver;
+        this.engineObserver = engineObserver;
     }
 
     @Override
@@ -102,7 +102,6 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                             dailyClassifier = ObjectDetectionModel.create(context.getAssets(), context, DAILY_MODEL_FILE, DAILY_LABELS_FILE, INPUT_SIZE, true);
                         }
 
-
                         setUpOD((MessageObject.Box) msg.obj);
 
                         return true;
@@ -114,12 +113,9 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                     }
                     case ThreadMessage.ODMessage.MSG_OD_SETRECORD : {
                         isRecord = (boolean) msg.obj;
-                        if (isRecord == true) {
-
-                        }
 
                         if (isRecord == false) {
-                            outputObserver.onCompleteLabelFile(jsonResult.createJSONFile());
+                            engineObserver.onCompleteLabelFile(jsonResult.createJSONFile());
 
                             sceneDetecThread = null;
                             jsonResult = null;
@@ -268,7 +264,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     public void onDone() {
         if (isRecord == false) {
             if (autoEditThread != null) {
-                outputObserver.onCompleteScoreFile(autoEditThread.getScoreFile());
+                engineObserver.onCompleteScoreFile(autoEditThread.getScoreFile());
 
                 autoEditThread.stop();
                 autoEditThread = null;
@@ -317,9 +313,5 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     private synchronized void setMode(Mode mode) {
         this.mode = mode;
         inferenceOverlayView.postInvalidate();
-
-        if (mode == Mode.TRAVEL) {
-        } else if (mode == Mode.EVENT) {
-        }
     }
 }

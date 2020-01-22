@@ -1,6 +1,5 @@
 package framework.Manager;
 
-import android.app.Activity;
 import android.content.Context;
 
 import android.graphics.Color;
@@ -24,28 +23,22 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorEvent;
 import android.media.ImageReader;
 import android.opengl.GLES20;
-import android.opengl.Matrix;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.util.Log;
 import android.util.Range;
 import android.util.Size;
-import android.util.SparseIntArray;
 import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.TextureView;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.RelativeLayout;
 
 import androidx.annotation.NonNull;
 
-import framework.Engine.CameraEngine;
-import framework.Engine.OutputObserver;
+import framework.Engine.EngineObserver;
 import framework.Enum.Exposure;
 
 import framework.Enum.Filter;
@@ -71,7 +64,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private final String TAG = "CameraDeviceManager";
 
     private Context context;
-    private OutputObserver outputObserver;
+    private EngineObserver engineObserver;
     private InferenceOverlayView overlayView;
     private FocusOverlayView focusView;
 
@@ -212,7 +205,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             encoderSurface.swapBuffers();
 
             encoderSurface1.makeCurrent();
-//            Util.rotateMatrix(orientation,tmpMatrix);
             GLES20.glViewport(0, 0, videoWidth1, videoHeight1);
             fullFrameBlit.drawFrame(textureId, tmpMatrix);
             encoderManager1.reFrame();
@@ -220,7 +212,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             encoderSurface1.swapBuffers();
 
             encoderSurface2.makeCurrent();
-//            Util.rotateMatrix(orientation,tmpMatrix);
             GLES20.glViewport(0, 0, videoWidth2, videoHeight2);
             fullFrameBlit.drawFrame(textureId, tmpMatrix);
             encoderManager2.reFrame();
@@ -324,11 +315,11 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 //        return super.quit();
 //    }
 
-    public CameraDeviceManager(Context context, View relativeLayout, OutputObserver outputObserver) {
+    public CameraDeviceManager(Context context, View relativeLayout, EngineObserver engineObserver) {
         super("CameraDeviceManager");
 
         this.context = context;
-        this.outputObserver = outputObserver;
+        this.engineObserver = engineObserver;
 
         this.lensFacing = LensFacing.BACK;
         this.overlayView = new InferenceOverlayView(context);
@@ -344,7 +335,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         encoderHandler = new EncoderHandler();
 
         // CREATE ObjectDetectionManager
-        objectDetectionManager = new ObjectDetectionManager(this.context, this.overlayView, this.outputObserver);
+        objectDetectionManager = new ObjectDetectionManager(this.context, overlayView, this.engineObserver);
         objectDetectionManager.start();
 
         encoderManager = new EncoderManager("1920", 1920, 1080, 6000000, new EncoderManager.Callback() {
@@ -377,7 +368,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         });
 
         audioManager = new AudioManager();
-        muxManager = new MuxManager(context, outputObserver);
+        muxManager = new MuxManager(context, engineObserver);
 
         audioManager.start();
         encoderManager.start();
@@ -495,8 +486,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                         return true;
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_LIVE : {
-                        live((boolean) msg.obj);
-//                        live((CameraEngine.Util.LiveData) msg.obj);
+                        live((MessageObject.LiveObject) msg.obj);
                     }
                 }
                 return false;
@@ -876,49 +866,16 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         }
     }
 
-//    private void live(CameraEngine.Util.LiveData liveData) {
-//        Handler audioHandler = audioManager.getHandler();
-//        Handler muxHandler = muxManager.getHandler();
-//        Handler encoderHandler = encoderManager.getHandler();
-//        Handler encoderHandler1 = encoderManager1.getHandler();
-//        Handler encoderHandler2 = encoderManager2.getHandler();
-//
-//        if (liveData.getIsStart() == true) {
-//            muxManager.resetPipeList();
-//
-//            MessageObject.VideoObject videoObj = new MessageObject.VideoObject(muxManager.requestPipe(), muxHandler);
-//            encoderHandler.sendMessage(encoderHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, videoObj));
-//
-//            MessageObject.VideoObject videoObj1 = new MessageObject.VideoObject(muxManager.requestPipe(), muxHandler);
-//            encoderHandler1.sendMessage(encoderHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, videoObj1));
-//
-//            MessageObject.VideoObject videoObj2 = new MessageObject.VideoObject(muxManager.requestPipe(), muxHandler);
-//            encoderHandler2.sendMessage(encoderHandler2.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, videoObj2));
-//
-//            MessageObject.AudioRecord audioObj = new MessageObject.AudioRecord(muxManager.requestPipe(), muxHandler);
-//            audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, audioObj));
-//
-//            MessageObject.MuxLiveObject muxLiveObj = new MessageObject.MuxLiveObject(this.mode, liveData.getS3Client());
-//            muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_LIVE_START, 0, muxLiveObj));
-//        } else {
-//            encoderHandler.sendMessage(encoderHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
-//            encoderHandler1.sendMessage(encoderHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
-//            encoderHandler2.sendMessage(encoderHandler2.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
-//
-//            audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
-//
-//            isLiving = false;
-//        }
-//    }
+    private void live(MessageObject.LiveObject liveObject) {
+        boolean isLive = liveObject.getIsLive();
 
-    private void live(boolean isStart) {
         Handler audioHandler = audioManager.getHandler();
         Handler muxHandler = muxManager.getHandler();
         Handler encoderHandler = encoderManager.getHandler();
         Handler encoderHandler1 = encoderManager1.getHandler();
         Handler encoderHandler2 = encoderManager2.getHandler();
 
-        if (isStart == true) {
+        if (isLive == true) {
             muxManager.resetPipeList();
 
             MessageObject.VideoObject videoObj = new MessageObject.VideoObject(videoWidth, videoHeight, muxManager.requestPipe(), muxHandler);
@@ -933,7 +890,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             MessageObject.AudioRecord audioObj = new MessageObject.AudioRecord(muxManager.requestPipe(), muxHandler);
             audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, audioObj));
 
-            muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_LIVE_START, 0, this.mode));
+            muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_LIVE_START, 0, liveObject));
         } else {
             encoderHandler.sendMessage(encoderHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
             encoderHandler1.sendMessage(encoderHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));

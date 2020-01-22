@@ -5,10 +5,7 @@ import android.graphics.PointF;
 import android.os.Handler;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
-import android.view.TextureView;
 import android.view.View;
-
-import com.amazonaws.services.s3.AmazonS3Client;
 
 import framework.Enum.Exposure;
 import framework.Enum.Filter;
@@ -17,12 +14,13 @@ import framework.Enum.Mode;
 import framework.Enum.RecordSpeed;
 import framework.Enum.TouchType;
 import framework.Manager.CameraDeviceManager;
+import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
 
 public class CameraEngine {
     private Context context;
     private View relativeLayout;
-    private OutputObserver outputObserver;
+    private EngineObserver engineObserver;
 
     private CameraDeviceManager cameraDeviceManager;
     private Handler cameraHandler;
@@ -87,28 +85,20 @@ public class CameraEngine {
         }
     }
 
-    public CameraEngine(Context context, View relativeLayout, OutputObserver outputObserver) {
+    public CameraEngine(Context context, View relativeLayout, EngineObserver engineObserver) {
         this.context = context;
         this.relativeLayout = relativeLayout;
-        this.outputObserver = outputObserver;
+        this.engineObserver = engineObserver;
     }
 
     public void startEngine() {
-        cameraDeviceManager = new CameraDeviceManager(context, relativeLayout, outputObserver);
+        cameraDeviceManager = new CameraDeviceManager(context, relativeLayout, engineObserver);
         cameraDeviceManager.start();
     }
 
     public void stopEngine() {
         cameraDeviceManager.quitSafely();
     }
-
-//    public void startPreview(TextureView textureView) {
-//        cameraHandler  = cameraDeviceManager.getHandler();
-//
-//        if (cameraHandler != null) {
-//            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_SETUP_PREVIEW, 0, textureView));
-//        }
-//    }
 
     public void startPreview(SurfaceView surfaceView) {
         cameraHandler  = cameraDeviceManager.getEngineHandler();
@@ -184,9 +174,10 @@ public class CameraEngine {
         }
     }
 
-    public void live(boolean isStart) {
+    public void live(boolean isStart, LiveStreamingData liveStreamingData) {
         if (cameraHandler != null) {
-            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_LIVE, 0, isStart));
+            MessageObject.LiveObject liveObject = new MessageObject.LiveObject(isStart, liveStreamingData);
+            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_LIVE, 0, liveObject));
         }
     }
 
