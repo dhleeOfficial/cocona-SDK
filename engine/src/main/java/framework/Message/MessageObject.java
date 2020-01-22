@@ -101,4 +101,22 @@ public class MessageObject {
             return liveStreamingData;
         }
     }
+
+    public static class ThumbnailObject {
+        private final boolean isLive;
+        private final int orientation;
+
+        public ThumbnailObject(boolean isLive, int orientation) {
+            this.isLive = isLive;
+            this.orientation = orientation;
+        }
+
+        public boolean getIsLive() {
+            return isLive;
+        }
+
+        public int getOrientation() {
+            return orientation;
+        }
+    }
 }

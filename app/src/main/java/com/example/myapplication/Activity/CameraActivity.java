@@ -143,7 +143,7 @@ public class CameraActivity extends AppCompatActivity {
                         if (isChecked == true) {
                             // FIXME PLZ
                             String bucketName = "bucket";
-                            String uploadKey = "uploadKey";
+                            String uploadKey = "uploadKey/";
                             String region = "region";
                             AmazonS3Client amazonS3Client = new AmazonS3Client();
 

@@ -2,7 +2,6 @@ package framework.Thread;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.util.Log;
 import android.util.Pair;
 import android.util.Size;
 
@@ -65,7 +64,9 @@ public class SceneDetecThread implements Runnable {
         for (final Pair<String,Float> result : results) {
             sceneData.addLabelData(new SceneData.LabelData(result.first, result.second));
         }
-
+        imageRGBBitmap.recycle();
+        imageRGBBitmap = null;
+        yuvBytes = null;
         callback.onSceneDetecDone(sceneData);
     }
 

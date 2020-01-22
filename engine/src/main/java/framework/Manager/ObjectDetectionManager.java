@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.media.Image;
 import android.media.ImageReader;
+import android.media.ThumbnailUtils;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
@@ -25,6 +26,7 @@ import framework.SceneDetection.SceneData;
 import framework.Thread.AutoEditThread;
 import framework.Thread.InferenceThread;
 import framework.Thread.SceneDetecThread;
+import framework.Thread.ThumbnailThread;
 import framework.Util.InferenceOverlayView;
 import framework.Util.Util;
 
@@ -49,21 +51,24 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     private AutoEditThread autoEditThread;
 
     private SceneDetecThread sceneDetecThread;
+    private ThumbnailThread thumbnailThread;
     private JsonResult jsonResult;
     private int frameIdx;
     private int timestamp;
     private int chunkIdx;
     private long startTime;
-
+    private int orientation;
     private Size previewSize;
 
     // STATUS
     private boolean isODDone = true;
     private boolean isAEDone = true;
     private boolean isSDDone = true;
+    private boolean isTNDone = true;
 
     private boolean isReady = false;
     private boolean isRecord = false;
+    private boolean isLiving = false;
 
     private Mode mode = Mode.TRAVEL;
 
@@ -123,6 +128,16 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
                         return true;
                     }
+                    case ThreadMessage.ODMessage.MSG_OD_SETLIVE : {
+                        isLiving = ((MessageObject.ThumbnailObject) msg.obj).getIsLive();
+                        orientation = ((MessageObject.ThumbnailObject) msg.obj).getOrientation();
+
+                        if (isLiving == true) {
+                            frameIdx = 0;
+                        }
+
+                        return true;
+                    }
                 }
                 return false;
             }
@@ -136,13 +151,37 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         try {
             image = reader.acquireNextImage();
                 if (image != null) {
-                    frameIdx++;
 
                     int yRowStride = image.getPlanes()[0].getRowStride();
                     int uvRowStride = image.getPlanes()[1].getRowStride();
                     int uvPixelStride = image.getPlanes()[1].getPixelStride();
                     byte[][] bytes = Util.convertImageToBytes(image.getPlanes());
                     // TODO : SceneDetection
+
+                    if (isLiving == true) {
+                        if (mode == Mode.LIVE) {
+                            if (isTNDone == true) {
+                                if ((frameIdx % 300) == 0) {
+
+                                    if (thumbnailThread == null) {
+                                        thumbnailThread = new ThumbnailThread();
+
+                                        thumbnailThread.setInfo(orientation, previewSize, bytes, yRowStride, uvRowStride, uvPixelStride);
+                                        thumbnailThread.setCallback(new ThumbnailThread.Callback() {
+                                            @Override
+                                            public void onDone() {
+                                                isTNDone = true;
+                                                thumbnailThread = null;
+                                            }
+                                        });
+                                        isTNDone = false;
+                                        Thread t = new Thread(thumbnailThread);
+                                        t.start();
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     if (isRecord == true) {
                         if (mode != Mode.LIVE) {
@@ -172,6 +211,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
                                 // TODO : Slow, Fast considering
                                 if ((frameIdx%30) == 0) {
+                                    isSDDone = false;
                                     long curTime = System.nanoTime() / 1000000L;
                                     timestamp = timestamp + (int) (curTime - startTime);
                                     startTime = curTime;
@@ -181,7 +221,6 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                     Thread t = new Thread(sceneDetecThread);
                                     t.start();
 
-                                    isSDDone = false;
                                 }
                             }
                         }
@@ -193,12 +232,12 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                 inferenceThread.setClassifier(classifier);
                             }
                             if (isODDone == true) {
+                                isODDone = false;
                                 inferenceThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
 
                                 Thread t = new Thread(inferenceThread);
                                 t.start();
 
-                                isODDone = false;
                             }
                         }
                     } else if (mode == Mode.DAILY) {
@@ -207,17 +246,18 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                 inferenceThread.setClassifier(dailyClassifier);
                             }
                             if (isODDone == true) {
+                                isODDone = false;
                                 inferenceThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
 
                                 Thread t = new Thread(inferenceThread);
                                 t.start();
 
-                                isODDone = false;
                             }
                         }
                     } else if (mode == Mode.EVENT) {
                         if (isRecord == true) {
                             if (isAEDone == true) {
+
                                 long curTS = System.nanoTime() / 1000L;
 
                                 if (autoEditThread == null) {
@@ -231,16 +271,17 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                 autoEditThread.updateCurrentTS(curTS);
 
                                 if (autoEditThread.isNextImage() == true) {
+                                    isAEDone = false;
                                     autoEditThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
 
                                     Thread t = new Thread(autoEditThread);
                                     t.start();
 
-                                    isAEDone = false;
                                 }
                             }
                         }
                     }
+                    frameIdx++;
                 }
         } catch (NullPointerException ne) {
             ne.printStackTrace();

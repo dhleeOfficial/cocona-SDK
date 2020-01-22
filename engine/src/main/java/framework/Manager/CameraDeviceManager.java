@@ -868,12 +868,14 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     private void live(MessageObject.LiveObject liveObject) {
         boolean isLive = liveObject.getIsLive();
+        MessageObject.ThumbnailObject thumbnailObj = new MessageObject.ThumbnailObject(isLive, orientation);
 
         Handler audioHandler = audioManager.getHandler();
         Handler muxHandler = muxManager.getHandler();
         Handler encoderHandler = encoderManager.getHandler();
         Handler encoderHandler1 = encoderManager1.getHandler();
         Handler encoderHandler2 = encoderManager2.getHandler();
+        Handler inferenceHandler = objectDetectionManager.getHandler();
 
         if (isLive == true) {
             muxManager.resetPipeList();
@@ -900,6 +902,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
             isLiving = false;
         }
+        inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.ODMessage.MSG_OD_SETLIVE, 0, thumbnailObj));
     }
 
     private void initCamera(int width, int height) {

@@ -12,6 +12,7 @@ import android.util.Size;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
@@ -284,6 +285,17 @@ public class Util {
                 break;
             default :
                 break;
+        }
+    }
+
+    public static void saveBitmap(File file, final Bitmap bitmap) {
+        try {
+            final FileOutputStream out = new FileOutputStream(file);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 30, out);
+            out.flush();
+            out.close();
+        } catch (final Exception e) {
+            e.printStackTrace();
         }
     }
 }

@@ -140,8 +140,8 @@ public class LiveFileObserver extends FileObserver {
                 try {
                     final String path = fileList.take();
 
-                    UploadTask uploadTask = new UploadTask(path);
-                    uploadTask.execute();
+                    //UploadTask uploadTask = new UploadTask(path);
+                    //uploadTask.execute();
 
                     if (fileList.isEmpty() && signalClose) {
                         break;

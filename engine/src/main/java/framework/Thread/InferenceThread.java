@@ -114,7 +114,7 @@ public class InferenceThread implements Runnable {
 
         cropBitmap.recycle();
         cropBitmap = null;
-yuvBytes = null;
+        yuvBytes = null;
         callback.onComplete();
     }
 
