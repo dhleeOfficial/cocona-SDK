@@ -56,6 +56,7 @@ import java.util.Arrays;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import framework.Util.Constant;
 import framework.Util.FocusOverlayView;
 import framework.Util.InferenceOverlayView;
 import framework.Util.Util;
@@ -110,17 +111,18 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private MuxManager muxManager;
 
     // ZOOM
-    private float spacing = 0f;
-    private float zoomLevel = 1f;
+    private float spacing;
+    private float zoomLevel = Constant.Camera.INIT_ZOOM_LEVEL;
     private Rect zoomRect;
 
     // EXPOSURE
-    private double exposureLevel = 0.0;
+    private double exposureLevel;
 
     // CURRENT STATUS FLAGS
     private boolean isLocked = true;
     private boolean isRecording = false;
     private boolean isLiving = false;
+    private boolean isPause = false;
 
     private LensFacing lensFacing;
     private RecordSpeed recordSpeed;
@@ -129,33 +131,33 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private Semaphore cameraLock = new Semaphore(1);
 
     // SENSOR
-    float motionX = 0;
-    float motionY = 0;
-    float motionZ = 0;
+    float motionX;
+    float motionY;
+    float motionZ;
     private SensorManager sensorManager;
-    private Sensor acceleroSensor;
+    private Sensor accelerSensor;
 
     // OPENGL ES
     private EglCore eglCore;
     private WindowSurface displaySurface;
-    private SurfaceTexture cameraTexture;  // receives the output from the camera preview
+    private SurfaceTexture cameraTexture;
     private FullFrameRect fullFrameBlit;
     private final float[] tmpMatrix = new float[16];
     private int textureId;
 
     // ORIENTATION
-    private int videoHeight = 1980;
-    private int videoWidth = 1080;
+    private int videoHeight = Constant.Resolution.FHD_HEIGHT;
+    private int videoWidth = Constant.Resolution.FHD_WIDTH;
 
-    private int videoHeight1 = 1280;
-    private int videoWidth1 = 720;
+    private int videoHeight1 = Constant.Resolution.HD_HEIGHT;
+    private int videoWidth1 = Constant.Resolution.HD_WIDTH;
 
-    private int videoHeight2 = 854;
-    private int videoWidth2 = 480;
+    private int videoHeight2 = Constant.Resolution.SD_HEIGHT;
+    private int videoWidth2 = Constant.Resolution.SD_WIDTH;
 
     private OrientationEventListener orientationEventListener;
 
-    private int orientation = 0;
+    private int orientation;
 
     private class EncoderHandler extends Handler {
         public static final int MSG_FRAME_AVAILABLE = 1;
@@ -177,6 +179,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             return;
         }
 
+        if (isPause == true) {
+            return;
+        }
         // PREVIEW RENDERING
         displaySurface.makeCurrent();
         cameraTexture.updateTexImage();
@@ -197,6 +202,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             encoderSurface.swapBuffers();
         } else if (isLiving == true) {
             encoderSurface.makeCurrent();
+
             Util.rotateMatrix(orientation,tmpMatrix);
             GLES20.glViewport(0, 0, videoWidth, videoHeight);
             fullFrameBlit.drawFrame(textureId, tmpMatrix);
@@ -281,40 +287,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         }
     };
 
-//    @Override
-//    public boolean quit() {
-//        try {
-//            objectDetectionManager.join();
-//            audioManager.join();
-//            encoderManager.join();
-//            encoderManager1.join();
-//            encoderManager2.join();
-//
-//            muxManager.join();
-//        } catch (InterruptedException ie) {
-//            ie.printStackTrace();
-//        }
-//
-//        backgroundThread.quitSafely();
-//
-//        if (encoderSurface != null) {
-//            encoderSurface.release();
-//            encoderSurface = null;
-//        }
-//
-//        if (encoderSurface1 != null) {
-//            encoderSurface1.release();
-//            encoderSurface1 = null;
-//        }
-//
-//        if (encoderSurface2 != null) {
-//            encoderSurface2.release();
-//            encoderSurface2 = null;
-//        }
-//
-//        return super.quit();
-//    }
-
     public CameraDeviceManager(Context context, View relativeLayout, EngineObserver engineObserver) {
         super("CameraDeviceManager");
 
@@ -329,8 +301,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         ((RelativeLayout) relativeLayout).addView(this.focusView);
 
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-        acceleroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        sensorManager.registerListener(this, acceleroSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        accelerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        sensorManager.registerListener(this, accelerSensor, SensorManager.SENSOR_DELAY_NORMAL);
 
         encoderHandler = new EncoderHandler();
 
@@ -338,7 +310,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         objectDetectionManager = new ObjectDetectionManager(this.context, overlayView, this.engineObserver);
         objectDetectionManager.start();
 
-        encoderManager = new EncoderManager("1920", 1920, 1080, 6000000, new EncoderManager.Callback() {
+        encoderManager = new EncoderManager("FHD", Constant.Resolution.FHD_BITRATE, new EncoderManager.Callback() {
             @Override
             public void initDone() {
                 encoderSurface = new WindowSurface(eglCore, encoderManager.getSurface(), true);
@@ -349,14 +321,14 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             }
         });
 
-        encoderManager1 = new EncoderManager("1280", 1280, 720, 4000000, new EncoderManager.Callback() {
+        encoderManager1 = new EncoderManager("HD", Constant.Resolution.HD_BITRATE, new EncoderManager.Callback() {
             @Override
             public void initDone() {
                 encoderSurface1 = new WindowSurface(eglCore, encoderManager1.getSurface(), true);
             }
         });
 
-        encoderManager2 = new EncoderManager("640", 854, 480, 1000000, new EncoderManager.Callback() {
+        encoderManager2 = new EncoderManager("SD", Constant.Resolution.SD_BITRATE, new EncoderManager.Callback() {
             @Override
             public void initDone() {
                 encoderSurface2 = new WindowSurface(eglCore, encoderManager2.getSurface(), true);
@@ -384,6 +356,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     @Override
     public boolean quitSafely() {
+        isRecording = false;
+        isLiving = false;
+
         audioManager.quitSafely();
         muxManager.quitSafely();
         encoderManager.quitSafely();
@@ -391,6 +366,26 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         encoderManager2.quitSafely();
         objectDetectionManager.quitSafely();
         backgroundThread.quitSafely();
+
+        if (cameraDevice != null) {
+            cameraDevice.close();
+            cameraDevice = null;
+        }
+
+        if (cameraCaptureSession != null) {
+            cameraCaptureSession.close();
+            cameraCaptureSession = null;
+        }
+
+        if (cameraTexture != null) {
+            cameraTexture.release();
+            cameraTexture = null;
+        }
+
+        if (displaySurface != null) {
+            displaySurface.release();
+            displaySurface = null;
+        }
 
         if (encoderSurface != null) {
             encoderSurface.release();
@@ -407,7 +402,15 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             encoderSurface2 = null;
         }
 
+        if (fullFrameBlit != null) {
+            fullFrameBlit.release(false);
+            fullFrameBlit = null;
+        }
 
+        if (eglCore != null) {
+            eglCore.release();
+            eglCore = null;
+        }
         return super.quitSafely();
     }
 
@@ -550,9 +553,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     private synchronized void stopPreview() {
         try {
-            // FIXME
-            isRecording = false;
-            isLiving = false;
+            isPause = true;
             cameraLock.acquire();
 
             if (cameraDevice != null) {
@@ -563,34 +564,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                 cameraCaptureSession.close();
                 cameraCaptureSession = null;
             }
-            if (cameraTexture != null) {
-                cameraTexture.release();
-                cameraTexture = null;
-            }
-            if (displaySurface != null) {
-                displaySurface.release();
-                displaySurface = null;
-            }
-            if (encoderSurface != null) {
-                encoderSurface.release();
-                encoderSurface = null;
-            }
-            if (encoderSurface1 != null) {
-                encoderSurface1.release();
-                encoderSurface1 = null;
-            }
-            if (encoderSurface2 != null) {
-                encoderSurface2.release();
-                encoderSurface2 = null;
-            }
-            if (fullFrameBlit != null) {
-                fullFrameBlit.release(false);
-                fullFrameBlit = null;
-            }
-            if (eglCore != null) {
-                eglCore.release();
-                eglCore = null;
-            }
+
         } catch (InterruptedException ie) {
             ie.printStackTrace();
         } finally {
@@ -618,6 +592,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         this.lensFacing = lensFacing;
 
         stopPreview();
+        //setUpPreview(surfaceView);
         initCamera(previewSize.getWidth(), previewSize.getHeight());
     }
 
@@ -657,7 +632,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         try {
             CameraCharacteristics cc = cameraManager.getCameraCharacteristics(enableCameraId);
             float maxZoomLevel = cc.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
-            float delta = 0.05f;
+            float delta = Constant.Camera.ZOOM_DELTA;
             Rect rect = cc.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
 
             if (rect == null) {
@@ -671,8 +646,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                     }
                     zoomLevel = zoomLevel + delta;
                 } else if (spacing < this.spacing) {
-                    if ((zoomLevel - delta)  < 1f) {
-                        delta = zoomLevel - 1f;
+                    if ((zoomLevel - delta)  < Constant.Camera.INIT_ZOOM_LEVEL) {
+                        delta = zoomLevel - Constant.Camera.INIT_ZOOM_LEVEL;
                     }
                     zoomLevel = zoomLevel - delta;
                 }
@@ -699,7 +674,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             return;
         }
 
-        double delta = 0.1;
+        double delta = Constant.Camera.EXPOSURE_DELTA;
 
         if (exposure == Exposure.BRIGHT) {
             exposureLevel -= delta;
@@ -766,13 +741,11 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                 CameraCharacteristics cc = cameraManager.getCameraCharacteristics(enableCameraId);
                 Rect rect = cc.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
 
-//                final int x = (int) ((pointF.y / (float) textureView.getHeight()) * (float) rect.width());
-//                final int y = (int) ((pointF.x / (float) textureView.getWidth()) * (float) rect.height());
                 final int x = (int) ((pointF.y / (float) surfaceView.getHeight()) * (float) rect.width());
                 final int y = (int) ((pointF.x / (float) surfaceView.getWidth()) * (float) rect.height());
 
-                final int halfWidth = 200;
-                final int halfHeight = 200;
+                final int halfWidth = Constant.Camera.AREA_FOCUS_SIZE;
+                final int halfHeight = Constant.Camera.AREA_FOCUS_SIZE;
 
                 MeteringRectangle meteringRectangle = new MeteringRectangle(Math.max(x - halfWidth, 0),
                         Math.max(y - halfHeight, 0),
@@ -838,13 +811,13 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
                 return;
             } else if (recordSpeed == RecordSpeed.SLOW) {
-                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(60, 60));
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(Constant.Camera.SLOW_FPS, Constant.Camera.SLOW_FPS));
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_SLOW, 0, null));
             } else if (recordSpeed == RecordSpeed.NORMAL) {
-                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(30, 30));
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(Constant.Camera.NORMAL_FPS, Constant.Camera.NORMAL_FPS));
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_NORMAL, 0, null));
             } else if (recordSpeed == RecordSpeed.FAST) {
-                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(15, 15));
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(Constant.Camera.FAST_FPS, Constant.Camera.FAST_FPS));
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_FAST, 0, null));
             }
 
@@ -916,7 +889,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             hasFlash = cc.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
             exposureLevel = 0.0;
             recordSpeed = RecordSpeed.NORMAL;
-
+            isPause = false;
             mode(this.mode);
 
             StreamConfigurationMap scMap = cc.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
@@ -1019,49 +992,36 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                 if (!isRecording && !isLiving) {
                     if (ori > 340 || ori < 20) {
                         orientation = 0;
-                        videoWidth = 1080;
-                        videoHeight = 1920;
-
-                        videoWidth1 = 720;
-                        videoHeight1 = 1280;
-
-                        videoWidth2 = 480;
-                        videoHeight2 = 854;
                     } else if (ori > 70 && ori < 110) {
                         orientation = 1;
-                        videoWidth = 1920;
-                        videoHeight = 1080;
-
-                        videoWidth1 = 1280;
-                        videoHeight1 = 720;
-
-                        videoWidth2 = 854;
-                        videoHeight2 = 480;
                     } else if (ori > 160 && ori < 200) {
                         orientation = 2;
-                        videoWidth = 1080;
-                        videoHeight = 1920;
-
-                        videoWidth1 = 720;
-                        videoHeight1 = 1280;
-
-                        videoWidth2 = 480;
-                        videoHeight2 = 854;
                     } else if (ori > 250 && ori < 290) {
                         orientation = 3;
-                        videoWidth = 1920;
-                        videoHeight = 1080;
-
-                        videoWidth1 = 1280;
-                        videoHeight1 = 720;
-
-                        videoWidth2 = 854;
-                        videoHeight2 = 480;
                     } else {
                         return;
                     }
                 } else {
                     return;
+                }
+                if ((orientation%2) == 0) {
+                    videoWidth = Constant.Resolution.FHD_WIDTH;
+                    videoHeight = Constant.Resolution.FHD_HEIGHT;
+
+                    videoWidth1 = Constant.Resolution.HD_WIDTH;
+                    videoHeight1 = Constant.Resolution.HD_HEIGHT;
+
+                    videoWidth2 = Constant.Resolution.SD_WIDTH;
+                    videoHeight2 = Constant.Resolution.SD_HEIGHT;
+                } else {
+                    videoWidth = Constant.Resolution.FHD_HEIGHT;
+                    videoHeight = Constant.Resolution.FHD_WIDTH;
+
+                    videoWidth1 = Constant.Resolution.HD_HEIGHT;
+                    videoHeight1 = Constant.Resolution.HD_WIDTH;
+
+                    videoWidth2 = Constant.Resolution.SD_HEIGHT;
+                    videoHeight2 = Constant.Resolution.SD_WIDTH;
                 }
             }
         };

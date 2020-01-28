@@ -59,12 +59,10 @@ public class EncoderManager extends HandlerThread {
         void initDone();
     }
 
-    public EncoderManager(String name, int videoHeight, int videoWidth, int bitRate, Callback callback){
+    public EncoderManager(String name, int bitRate, Callback callback){
         super(name);
 
         this.name = name;
-        this.videoWidth = videoWidth;
-        this.videoHeight = videoHeight;
         this.bitRate = bitRate;
         this.callback = callback;
     }
