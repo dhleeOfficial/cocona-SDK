@@ -30,8 +30,29 @@ import framework.Enum.Mode;
 import framework.Enum.RecordSpeed;
 import framework.Enum.TouchType;
 
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSSessionCredentials;
+import com.amazonaws.auth.AnonymousAWSCredentials;
+import com.amazonaws.auth.BasicSessionCredentials;
+import com.amazonaws.auth.CognitoCachingCredentialsProvider;
+import com.amazonaws.auth.CognitoCredentialsProvider;
+import com.amazonaws.auth.SessionCredentialsProviderFactory;
+import com.amazonaws.mobile.client.AWSMobileClient;
+import com.amazonaws.mobile.config.AWSConfiguration;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.cognitoidentity.AmazonCognitoIdentityClient;
+import com.amazonaws.services.cognitoidentity.model.Credentials;
+import com.amazonaws.services.cognitoidentity.model.GetCredentialsForIdentityRequest;
+import com.amazonaws.services.cognitoidentity.model.GetCredentialsForIdentityResult;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.S3ClientOptions;
 import com.example.myapplication.R;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class CameraActivity extends AppCompatActivity {
     private SurfaceView sv;
@@ -54,6 +75,11 @@ public class CameraActivity extends AppCompatActivity {
     private CameraEngine engine;
     private CameraEngine.Util engineUtil;
     private CameraEngine.Util.SingleTouchEventHandler touchEventHandler;
+
+    private GetCredentialsForIdentityResult getCredentialsForIdentityResult;
+    private String userId;
+    private String token;
+    private HashMap<String, String> logins = new HashMap<String, String>();
 
     private EngineObserver engineObserver = new EngineObserver() {
         @Override
@@ -141,13 +167,43 @@ public class CameraActivity extends AppCompatActivity {
                         engine.record(isChecked);
                     } else if (buttonView == live) {
                         if (isChecked == true) {
-                            // FIXME PLZ
-                            String bucketName = "bucket";
-                            String uploadKey = "uploadKey/";
-                            String region = "region";
-                            AmazonS3Client amazonS3Client = new AmazonS3Client();
+                            logins = new HashMap<String, String>();
+                            // userId : cognito_identity api call userId
+                            userId = "us-east-1:838cbd7c-d199-45eb-bc4f-7a890066ae9a";
+                            // Token : cognito_identity api call token
+                            token = "eyJraWQiOiJ1cy1lYXN0LTExIiwidHlwIjoiSldTIiwiYWxnIjoiUlM1MTIifQ.eyJzdWIiOiJ1cy1lYXN0LTE6ODM4Y2JkN2MtZDE5OS00NWViLWJjNGYtN2E4OTAwNjZhZTlhIiwiYXVkIjoidXMtZWFzdC0xOmIyOWJiYTM2LWIzZjMtNDg4YS04ZWUzLWY4MzJjNTYxNTQyYSIsImFtciI6WyJhdXRoZW50aWNhdGVkIiwiZGV2LWNvZ25pdG8tbG9naW4uY3ViaS50diIsImRldi1jb2duaXRvLWxvZ2luLmN1YmkudHY6dXMtZWFzdC0xOmIyOWJiYTM2LWIzZjMtNDg4YS04ZWUzLWY4MzJjNTYxNTQyYTpQckxwN21aazg0eFgiXSwiaXNzIjoiaHR0cHM6Ly9jb2duaXRvLWlkZW50aXR5LmFtYXpvbmF3cy5jb20iLCJleHAiOjE1ODAzNTgwNDMsImlhdCI6MTU4MDI3MTY0M30.RcskYF727OkUkxs6N8cM5hlRCQmTHK_Qya1zjnrJhO5q55nBmDFKiJ9YpPvwrKV9w-BE3wOtFoujp6hn58NP3EYyyK_YqMVJJQXf27gZFgEXNN8xrkNrs_9ZIeb9cCDn_UIbFdP1DP-fX4I4LBEwspRaTfcxXP0kUgVJVAY7DK8AHEnSDM6Nq_ViYfl50owIiR_t8zPHBiSgeGL9X013MU2H2AFLTgGfJTP_D0_uMei-2Gvhrck4zuDU2Z2JA_meRQok9jNGOiZjF2D-NxsQH-hqRu4C-jyPjyUrLxWs9Pynv4ryZpkKYXBvwYCEHyExoM_y6MnMGuKtmitE5vJziA";
+                            logins.put("cognito-identity.amazonaws.com", token);
 
-                            LiveStreamingData liveStreamingData = new LiveStreamingData(bucketName, uploadKey, region, amazonS3Client);
+                            Thread thread = new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    GetCredentialsForIdentityRequest getCredentialsForIdentityRequest = new GetCredentialsForIdentityRequest().withIdentityId(userId).withLogins(logins);
+                                    AmazonCognitoIdentityClient cognitoIdentityClient = new AmazonCognitoIdentityClient(new AnonymousAWSCredentials());
+                                    cognitoIdentityClient.setRegion(Region.getRegion(Regions.US_EAST_1));
+
+                                    getCredentialsForIdentityResult = cognitoIdentityClient.getCredentialsForIdentity(getCredentialsForIdentityRequest);
+                                }
+                            });
+
+                            thread.start();
+
+                            try {
+                                thread.join();
+                            } catch (InterruptedException ie) {
+                                ie.printStackTrace();
+                            }
+
+                            BasicSessionCredentials sessionCredentials = new BasicSessionCredentials(getCredentialsForIdentityResult.getCredentials().getAccessKeyId(), getCredentialsForIdentityResult.getCredentials().getSecretKey(), getCredentialsForIdentityResult.getCredentials().getSessionToken());
+                            AmazonS3Client amazonS3Client = new AmazonS3Client(sessionCredentials);
+                            amazonS3Client.setRegion(Region.getRegion(Regions.US_EAST_1));
+                            amazonS3Client.setS3ClientOptions(S3ClientOptions.builder().setAccelerateModeEnabled(true).build());
+
+                            TransferUtility transferUtility = new TransferUtility(amazonS3Client, myActivity.getApplicationContext());
+
+                            // Live-viedeos api call result bucket name, path
+                            String bucketName = "dev-us-east-1-cubi-platform-storage";
+                            String uploadKey = "us-east-1/public/PrLp7mZk84xX/us-east-1:838cbd7c-d199-45eb-bc4f-7a890066ae9a/4rpkGWqokRoZ/LIVE/";
+                            LiveStreamingData liveStreamingData = new LiveStreamingData(bucketName, uploadKey, transferUtility);
 
                             engine.live(true, liveStreamingData);
                         } else {

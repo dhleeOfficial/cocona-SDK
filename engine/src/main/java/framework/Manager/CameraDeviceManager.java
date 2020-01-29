@@ -179,9 +179,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             return;
         }
 
-        if (isPause == true) {
-            return;
-        }
         // PREVIEW RENDERING
         displaySurface.makeCurrent();
         cameraTexture.updateTexImage();
@@ -189,6 +186,10 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         GLES20.glViewport(0, 0, surfaceView.getWidth(), surfaceView.getHeight());
         fullFrameBlit.drawFrame(textureId, tmpMatrix);
         displaySurface.swapBuffers();
+
+        if (isPause == true) {
+            return;
+        }
 
         if (isRecording == true) {
             encoderSurface.makeCurrent();
@@ -974,7 +975,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
             captureRequestBuilder.addTarget(sf);
 
-            objectDetectionImageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
+            objectDetectionImageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 4);
             objectDetectionImageReader.setOnImageAvailableListener(objectDetectionManager, objectDetectionManager.getHandler());
 
             captureRequestBuilder.addTarget(objectDetectionImageReader.getSurface());

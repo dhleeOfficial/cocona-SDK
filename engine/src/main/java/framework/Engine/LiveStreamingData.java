@@ -1,18 +1,16 @@
 package framework.Engine;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
 
 public class LiveStreamingData {
     private String bucketName;
     private String uploadKey;
-    private String regionName;
-    private AmazonS3Client s3Client;
+    private TransferUtility transferUtility;
 
-    public LiveStreamingData(String bucketName, String uploadKey, String regionName, AmazonS3Client amazonS3Client) {
+    public LiveStreamingData(String bucketName, String uploadKey, TransferUtility transferUtility) {
         this.bucketName = bucketName;
         this.uploadKey = uploadKey;
-        this.regionName = regionName;
-        this.s3Client = amazonS3Client;
+        this.transferUtility = transferUtility;
     }
 
     public String getBucketName() {
@@ -23,11 +21,7 @@ public class LiveStreamingData {
         return uploadKey;
     }
 
-    public String getRegionName() {
-        return regionName;
-    }
-
-    public AmazonS3Client getS3Client() {
-        return s3Client;
+    public TransferUtility getTransferUtility() {
+        return transferUtility;
     }
 }

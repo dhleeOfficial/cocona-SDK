@@ -156,7 +156,6 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                     int uvRowStride = image.getPlanes()[1].getRowStride();
                     int uvPixelStride = image.getPlanes()[1].getPixelStride();
                     byte[][] bytes = Util.convertImageToBytes(image.getPlanes());
-                    // TODO : SceneDetection
 
                     if (isLiving == true) {
                         if (mode == Mode.LIVE) {
@@ -223,6 +222,28 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
                                 }
                             }
+//                            if (isAEDone == true) {
+//                                long curTS = System.nanoTime() / 1000L;
+//
+//                                if (autoEditThread == null) {
+//                                    autoEditThread = new AutoEditThread();
+//
+//                                    autoEditThread.loadTFLite(context);
+//                                    autoEditThread.setFirstTS(curTS);
+//                                    autoEditThread.setPreviewSize(previewSize);
+//                                    autoEditThread.setCallback(this);
+//                                }
+//                                autoEditThread.updateCurrentTS(curTS);
+//
+//                                if (autoEditThread.isNextImage() == true) {
+//                                    isAEDone = false;
+//                                    autoEditThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
+//
+//                                    Thread t = new Thread(autoEditThread);
+//                                    t.start();
+//
+//                                }
+//                            }
                         }
                     }
 
@@ -254,33 +275,12 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
                             }
                         }
-                    } else if (mode == Mode.EVENT) {
-                        if (isRecord == true) {
-                            if (isAEDone == true) {
-
-                                long curTS = System.nanoTime() / 1000L;
-
-                                if (autoEditThread == null) {
-                                    autoEditThread = new AutoEditThread();
-
-                                    autoEditThread.loadTFLite(context);
-                                    autoEditThread.setFirstTS(curTS);
-                                    autoEditThread.setPreviewSize(previewSize);
-                                    autoEditThread.setCallback(this);
-                                }
-                                autoEditThread.updateCurrentTS(curTS);
-
-                                if (autoEditThread.isNextImage() == true) {
-                                    isAEDone = false;
-                                    autoEditThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
-
-                                    Thread t = new Thread(autoEditThread);
-                                    t.start();
-
-                                }
-                            }
-                        }
                     }
+//                    else if (mode == Mode.EVENT) {
+//                        if (isRecord == true) {
+//
+//                        }
+//                    }
                     frameIdx++;
                 }
         } catch (NullPointerException ne) {
