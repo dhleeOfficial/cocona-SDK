@@ -817,16 +817,19 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private void speedRecord(RecordSpeed recordSpeed) {
         Handler encoderHandler = encoderManager.getHandler();
         Handler audioHandler = audioManager.getHandler();
+        Handler inferenceHandler = objectDetectionManager.getHandler();
 
         if ((encoderHandler != null) && (audioHandler != null)) {
             if (recordSpeed == RecordSpeed.PAUSE) {
                 encoderHandler.sendMessage(encoderHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+                inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.ODMessage.MSG_OD_SETPAUSE, 0, recordSpeed));
 
                 return;
             } else if (recordSpeed == RecordSpeed.RESUME) {
                 encoderHandler.sendMessage(encoderHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+                inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.ODMessage.MSG_OD_SETPAUSE, 0, recordSpeed));
 
                 return;
             } else if (recordSpeed == RecordSpeed.SLOW) {

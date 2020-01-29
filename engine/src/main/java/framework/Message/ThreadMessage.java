@@ -22,6 +22,7 @@ public class ThreadMessage {
         public static final int MSG_OD_SETMODE = 1;
         public static final int MSG_OD_SETRECORD = 2;
         public static final int MSG_OD_SETLIVE = 3;
+        public static final int MSG_OD_SETPAUSE = 4;
     }
 
     public class RecordMessage {
@@ -32,10 +33,7 @@ public class ThreadMessage {
         public static final int MSG_RECORD_FAST = 4;
         public static final int MSG_RECORD_PAUSE = 5;
         public static final int MSG_RECORD_RESUME = 6;
-        public static final int MSG_RECORD_MODE = 7;
-        public static final int MSG_RECORD_LIVE_START = 8;
-        public static final int MSG_RECORD_LIVE_STOP = 9;
-        public static final int MSG_RECORD_FRAME_AVAILABLE = 10;
+        public static final int MSG_RECORD_FRAME_AVAILABLE = 7;
     }
 
     public class MuxMessage {

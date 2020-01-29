@@ -17,6 +17,7 @@ import androidx.annotation.NonNull;
 
 import framework.Engine.EngineObserver;
 import framework.Enum.Mode;
+import framework.Enum.RecordSpeed;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
 import framework.ObjectDetection.BoxDrawer;
@@ -70,6 +71,8 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     private boolean isReady = false;
     private boolean isRecord = false;
     private boolean isLiving = false;
+
+    private RecordSpeed recordSpeed = RecordSpeed.RESUME;
 
     private Mode mode = Mode.TRAVEL;
 
@@ -146,6 +149,9 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
                         return true;
                     }
+                    case ThreadMessage.ODMessage.MSG_OD_SETPAUSE : {
+                        recordSpeed = ((RecordSpeed) msg.obj);
+                    }
                 }
                 return false;
             }
@@ -191,7 +197,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                         }
                     }
 
-                    if (isRecord == true) {
+                    if ((isRecord == true) && (recordSpeed == RecordSpeed.RESUME)) {
                         if (mode != Mode.LIVE) {
                             if (isSDDone == true) {
                                 if ((sceneDetecThread == null) && (jsonResult == null)) {
