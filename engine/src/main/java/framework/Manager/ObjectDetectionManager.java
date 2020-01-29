@@ -229,7 +229,6 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                     Thread t = new Thread(sceneDetecThread);
                                     t.start();
                                     isSDDone = false;
-
                                 }
                             }
                             if (isAEDone == true) {
@@ -289,11 +288,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                             }
                         }
                     }
-//                    else if (mode == Mode.EVENT) {
-//                        if (isRecord == true) {
-//
-//                        }
-//                    }
+
                     frameIdx++;
                 }
         } catch (NullPointerException ne) {

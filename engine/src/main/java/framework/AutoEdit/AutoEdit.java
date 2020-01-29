@@ -64,8 +64,7 @@ public class AutoEdit {
         }
     }
 
-    public AutoEdit() {
-    }
+    public AutoEdit() {}
 
     public void setImageSize(Size size) {
         this.size = size;
@@ -74,7 +73,7 @@ public class AutoEdit {
     public void setFirstTS(long firstTS) {
         initVariable();
         this.firstTS = firstTS;
-        //this.lastTS = firstTS;
+
 
         try {
             if (fileWriter == null) {
@@ -83,7 +82,6 @@ public class AutoEdit {
 
                 fileWriter.write(String.format("start_time : %d", this.firstTS) + System.getProperty("line.separator"));
                 fileWriter.write("seq,  blur,   score"+System.getProperty( "line.separator"));
-
             }
         } catch(IOException ie) {
             ie.printStackTrace();
@@ -212,7 +210,6 @@ public class AutoEdit {
 
             score += Math.pow(dev.get(0, 0)[0], 2);
         }
-
         score /= 5;
 
         return score;

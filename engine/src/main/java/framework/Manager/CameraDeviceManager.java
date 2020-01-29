@@ -612,8 +612,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         this.lensFacing = lensFacing;
 
         sessionClose();
-        //stopPreview();
-        //setUpPreview(surfaceView);
         initCamera(previewSize.getWidth(), previewSize.getHeight());
     }
 

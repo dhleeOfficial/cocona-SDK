@@ -1,2 +1,0 @@
-set solib-search-path ./obj/local/x86
-directory /Users/yj/Library/Android/sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/darwin-x86_64/sysroot /Users/yj/Library/Android/sdk/ndk/20.1.5948944/sources/cxx-stl/system/include jni
