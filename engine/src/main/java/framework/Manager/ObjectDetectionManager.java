@@ -10,6 +10,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.Size;
 
 import androidx.annotation.NonNull;
@@ -124,6 +125,13 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
                             sceneDetecThread = null;
                             jsonResult = null;
+
+                            if (autoEditThread != null) {
+
+                                autoEditThread.stop();
+                                autoEditThread = null;
+                            }
+
                         }
 
                         return true;
@@ -173,9 +181,10 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                                 thumbnailThread = null;
                                             }
                                         });
-                                        isTNDone = false;
+
                                         Thread t = new Thread(thumbnailThread);
                                         t.start();
+                                        isTNDone = false;
                                     }
                                 }
                             }
@@ -210,7 +219,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
                                 // TODO : Slow, Fast considering
                                 if ((frameIdx%30) == 0) {
-                                    isSDDone = false;
+
                                     long curTime = System.nanoTime() / 1000000L;
                                     timestamp = timestamp + (int) (curTime - startTime);
                                     startTime = curTime;
@@ -219,31 +228,33 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
                                     Thread t = new Thread(sceneDetecThread);
                                     t.start();
+                                    isSDDone = false;
 
                                 }
                             }
-//                            if (isAEDone == true) {
-//                                long curTS = System.nanoTime() / 1000L;
-//
-//                                if (autoEditThread == null) {
-//                                    autoEditThread = new AutoEditThread();
-//
-//                                    autoEditThread.loadTFLite(context);
-//                                    autoEditThread.setFirstTS(curTS);
-//                                    autoEditThread.setPreviewSize(previewSize);
-//                                    autoEditThread.setCallback(this);
-//                                }
-//                                autoEditThread.updateCurrentTS(curTS);
-//
-//                                if (autoEditThread.isNextImage() == true) {
-//                                    isAEDone = false;
-//                                    autoEditThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
-//
-//                                    Thread t = new Thread(autoEditThread);
-//                                    t.start();
-//
-//                                }
-//                            }
+                            if (isAEDone == true) {
+                                long curTS = System.nanoTime() / 1000L;
+
+                                if (autoEditThread == null) {
+                                    autoEditThread = new AutoEditThread();
+
+                                    autoEditThread.loadTFLite(context);
+                                    autoEditThread.setFirstTS(curTS);
+                                    autoEditThread.setPreviewSize(previewSize);
+                                    autoEditThread.setCallback(this);
+                                }
+                                autoEditThread.updateCurrentTS(curTS);
+
+                                if (autoEditThread.isNextImage() == true) {
+
+                                    autoEditThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
+
+                                    Thread t = new Thread(autoEditThread);
+                                    t.start();
+
+                                    isAEDone = false;
+                                }
+                            }
                         }
                     }
 
@@ -253,11 +264,12 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                 inferenceThread.setClassifier(classifier);
                             }
                             if (isODDone == true) {
-                                isODDone = false;
+
                                 inferenceThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
 
                                 Thread t = new Thread(inferenceThread);
                                 t.start();
+                                isODDone = false;
 
                             }
                         }
@@ -267,11 +279,12 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                 inferenceThread.setClassifier(dailyClassifier);
                             }
                             if (isODDone == true) {
-                                isODDone = false;
+
                                 inferenceThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
 
                                 Thread t = new Thread(inferenceThread);
                                 t.start();
+                                isODDone = false;
 
                             }
                         }
@@ -303,15 +316,6 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     // Override from AutoEditThread.Callback
     @Override
     public void onDone() {
-        if (isRecord == false) {
-            if (autoEditThread != null) {
-                engineObserver.onCompleteScoreFile(autoEditThread.getScoreFile());
-
-                autoEditThread.stop();
-                autoEditThread = null;
-            }
-        }
-
         isAEDone = true;
     }
 

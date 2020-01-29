@@ -179,6 +179,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             return;
         }
 
+        if (isPause == true) {
+            return;
+        }
         // PREVIEW RENDERING
         displaySurface.makeCurrent();
         cameraTexture.updateTexImage();
@@ -186,10 +189,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         GLES20.glViewport(0, 0, surfaceView.getWidth(), surfaceView.getHeight());
         fullFrameBlit.drawFrame(textureId, tmpMatrix);
         displaySurface.swapBuffers();
-
-        if (isPause == true) {
-            return;
-        }
 
         if (isRecording == true) {
             encoderSurface.makeCurrent();
@@ -573,6 +572,26 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         }
     }
 
+    private void sessionClose() {
+        try {
+            cameraLock.acquire();
+
+            if (cameraDevice != null) {
+                cameraDevice.close();
+                cameraDevice = null;
+            }
+            if (cameraCaptureSession != null) {
+                cameraCaptureSession.close();
+                cameraCaptureSession = null;
+            }
+
+        } catch (InterruptedException ie) {
+            ie.printStackTrace();
+        } finally {
+            cameraLock.release();
+        }
+    }
+
     private void flash(boolean isFlash) {
         if ((cameraDevice != null) && (hasFlash == true)){
             try {
@@ -592,7 +611,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private void lensFacing(LensFacing lensFacing) {
         this.lensFacing = lensFacing;
 
-        stopPreview();
+        sessionClose();
+        //stopPreview();
         //setUpPreview(surfaceView);
         initCamera(previewSize.getWidth(), previewSize.getHeight());
     }

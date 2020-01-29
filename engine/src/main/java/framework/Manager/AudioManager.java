@@ -4,6 +4,7 @@ import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
+import android.media.MediaCodecList;
 import android.media.MediaFormat;
 import android.media.MediaRecorder;
 import android.os.Handler;
@@ -46,6 +47,7 @@ public class AudioManager extends HandlerThread {
 
     private MediaFormat audioFormat;
     private MediaCodec audioCodec;
+    private MediaCodecInfo mediaCodecInfo;
 
     private String audioPipe;
     private BufferedOutputStream bufferedOutputStream = null;
@@ -146,11 +148,36 @@ public class AudioManager extends HandlerThread {
         audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
     }
 
+    private MediaCodecInfo getMediaCodecInfo() {
+        int codecNum = MediaCodecList.getCodecCount();
+
+        for (int i = 0; i < codecNum; ++i) {
+            MediaCodecInfo mediaCodecInfo = MediaCodecList.getCodecInfoAt(i);
+
+            if (mediaCodecInfo.isEncoder() == false) {
+                continue;
+            }
+
+            String[] types = mediaCodecInfo.getSupportedTypes();
+
+            for (int j = 0; j < types.length; ++j) {
+                if (types[j].equalsIgnoreCase(MIME_TYPE)) {
+                    return mediaCodecInfo;
+                }
+            }
+        }
+
+        return null;
+    }
     private void initMediaCodec() {
         audioCodec = null;
 
+        mediaCodecInfo = getMediaCodecInfo();
+
         try {
             audioCodec = MediaCodec.createEncoderByType(MIME_TYPE);
+            //audioCodec = MediaCodec.createByCodecName("OMX.google.aac.encoder");
+            //audioCodec = MediaCodec.createByCodecName(mediaCodecInfo.getCanonicalName());
 
             audioCodec.configure(audioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
             audioCodec.start();

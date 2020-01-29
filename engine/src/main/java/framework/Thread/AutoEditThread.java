@@ -47,7 +47,10 @@ public class AutoEditThread implements Runnable {
         rgbBytes = null;
 
         cropBitmap = Bitmap.createBitmap(imageRGBBitmap, 0, 0, imageRGBBitmap.getWidth(), imageRGBBitmap.getHeight(), matrix, true);
-        autoEdit.appendImage(cropBitmap);
+
+        if (autoEdit != null) {
+            autoEdit.appendImage(cropBitmap);
+        }
 
         callback.onDone();
     }
@@ -81,16 +84,24 @@ public class AutoEditThread implements Runnable {
     }
 
     public boolean isNextImage() {
-        return autoEdit.isVerify();
+        if (autoEdit != null) {
+            return autoEdit.isVerify();
+        }
+        return false;
     }
 
     public String getScoreFile() {
-        return autoEdit.getScoreFile();
+        if (autoEdit != null) {
+            return autoEdit.getScoreFile();
+        }
+        return null;
     }
 
     public void stop() {
-        autoEdit.stop();
-        autoEdit = null;
+        if (autoEdit != null) {
+            autoEdit.stop();
+            autoEdit = null;
+        }
     }
 
     private void init() {
