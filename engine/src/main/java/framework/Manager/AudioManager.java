@@ -37,6 +37,7 @@ public class AudioManager extends HandlerThread {
     private Handler muxHandler;
 
     private static final String MIME_TYPE = MediaFormat.MIMETYPE_AUDIO_AAC;
+
     private static final int SAMPLE_RATE = 44100;
     private static final int CH_COUNT = 1;
     private static final int BIT_RATE = 128000;
@@ -336,6 +337,8 @@ public class AudioManager extends HandlerThread {
                     bufferInfo.size = 0;
                 }
 
+                boolean hasMuxing = false;
+
                 if (bufferInfo.size != 0) {
                     final ByteBuffer out = audioCodec.getOutputBuffer(outputBufferIndex);
 
@@ -361,11 +364,19 @@ public class AudioManager extends HandlerThread {
                         }
                         muxBuffer = null;
                     }
+                    hasMuxing = true;
                 }
 
                 audioCodec.releaseOutputBuffer(outputBufferIndex, false);
 
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+                    if (hasMuxing == false) {
+                        if (isEOS == true) {
+                            VideoMuxData data = new VideoMuxData(null, true);
+                            muxList.add(data);
+                        }
+                    }
+
                     isReady = false;
                     isPause = false;
                     this.isEOS = false;
@@ -401,8 +412,10 @@ public class AudioManager extends HandlerThread {
 
                         if (data != null) {
                             if (isPause == false) {
-                                bufferedOutputStream.write(data.getBuffer());
-                                bufferedOutputStream.flush();
+                                if (data.getBuffer() != null) {
+                                    bufferedOutputStream.write(data.getBuffer());
+                                    bufferedOutputStream.flush();
+                                }
                             }
                         }
                         if (data.getIsEOS() == true) {

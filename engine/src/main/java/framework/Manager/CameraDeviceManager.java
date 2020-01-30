@@ -996,7 +996,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
             captureRequestBuilder.addTarget(sf);
 
-            objectDetectionImageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 4);
+            objectDetectionImageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
             objectDetectionImageReader.setOnImageAvailableListener(objectDetectionManager, objectDetectionManager.getHandler());
 
             captureRequestBuilder.addTarget(objectDetectionImageReader.getSurface());
