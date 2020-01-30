@@ -272,7 +272,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
             speedRecord(recordSpeed);
             captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
-            captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(30, 30));
+            //captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(30, 30));
 
             try {
                  cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
@@ -524,9 +524,16 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     }
 
     // Override from SurfaceTexture.onFrameAvailable
+
+    private long frameTimeStamp = -1;
+
     @Override
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-        frameHandler.sendEmptyMessage(frameHandler.MSG_FRAME_AVAILABLE);
+        long timeStamp = surfaceTexture.getTimestamp();
+        if (frameTimeStamp != timeStamp) {
+            frameTimeStamp = timeStamp;
+            frameHandler.sendEmptyMessage(frameHandler.MSG_FRAME_AVAILABLE);
+        }
     }
 
     public void startBackgroundThread() {
@@ -844,6 +851,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             }
 
             try {
+                cameraCaptureSession.stopRepeating();
                 cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
             } catch (CameraAccessException ce) {
                 ce.printStackTrace();

@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Locale;
 
 public class Util {
-    private static final int MAX_PREVIEW_WIDTH = 1920;
-    private static final int MAX_PREVIEW_HEIGHT = 1080;
+    private static final int MAX_PREVIEW_WIDTH = 1280;
+    private static final int MAX_PREVIEW_HEIGHT = 720;
 
     public static Size getOptimalSize(List<Size> availSize) {
         return Collections.min(availSize, new Comparator<Size>() {
