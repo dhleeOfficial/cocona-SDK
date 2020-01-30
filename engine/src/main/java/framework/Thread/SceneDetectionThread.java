@@ -10,7 +10,7 @@ import framework.SceneDetection.SceneData;
 import framework.SceneDetection.SceneDetection;
 import framework.Util.Util;
 
-public class SceneDetecThread implements Runnable {
+public class SceneDetectionThread implements Runnable {
 
     private SceneDetection sceneDetection;
 
@@ -33,7 +33,7 @@ public class SceneDetecThread implements Runnable {
         void onSceneDetecDone(SceneData sceneData);
     }
 
-    public SceneDetecThread () {
+    public SceneDetectionThread() {
         this.sceneDetection = new SceneDetection();
     }
 

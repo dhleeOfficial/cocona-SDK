@@ -11,7 +11,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.os.Process;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -21,16 +20,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
-import java.util.LinkedList;
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import framework.Enum.RecordSpeed;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
-import framework.Util.Util;
-import framework.Util.VideoMuxData;
+import framework.Util.MuxData;
 
 public class AudioManager extends HandlerThread {
     private Handler myHandler;
@@ -62,7 +58,7 @@ public class AudioManager extends HandlerThread {
 
     // WRITER Thread
     private MuxWriter muxWriter = null;
-    private BlockingQueue<VideoMuxData> muxList = new LinkedBlockingDeque<VideoMuxData>();
+    private BlockingQueue<MuxData> muxList = new LinkedBlockingDeque<MuxData>();
 
     private byte[] rawBuffer;
     private byte[] muteBuffer;
@@ -177,8 +173,6 @@ public class AudioManager extends HandlerThread {
 
         try {
             audioCodec = MediaCodec.createEncoderByType(MIME_TYPE);
-            //audioCodec = MediaCodec.createByCodecName("OMX.google.aac.encoder");
-            //audioCodec = MediaCodec.createByCodecName(mediaCodecInfo.getCanonicalName());
 
             audioCodec.configure(audioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
             audioCodec.start();
@@ -354,7 +348,7 @@ public class AudioManager extends HandlerThread {
                         out.get(muxBuffer, HEADER_SIZE, bufferInfo.size);
 
                         if (muxBuffer.length > 0) {
-                            VideoMuxData data = new VideoMuxData(muxBuffer, isEOS);
+                            MuxData data = new MuxData(muxBuffer, isEOS);
                             muxList.add(data);
 
                             if (muxWriter == null) {
@@ -372,7 +366,7 @@ public class AudioManager extends HandlerThread {
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                     if (hasMuxing == false) {
                         if (isEOS == true) {
-                            VideoMuxData data = new VideoMuxData(null, true);
+                            MuxData data = new MuxData(null, true);
                             muxList.add(data);
                         }
                     }
@@ -408,7 +402,7 @@ public class AudioManager extends HandlerThread {
             while(true) {
                 try {
                     if (bufferedOutputStream != null) {
-                        final VideoMuxData data = muxList.take();
+                        final MuxData data = muxList.take();
 
                         if (data != null) {
                             if (isPause == false) {

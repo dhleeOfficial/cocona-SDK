@@ -13,7 +13,7 @@ import framework.ObjectDetection.BoxDrawer;
 import framework.ObjectDetection.Classifier;
 import framework.Util.Util;
 
-public class InferenceThread implements Runnable {
+public class ObjectDetectionThread implements Runnable {
     private static final float MINIMUM_CONFIDENCE = 0.5f;
     private static int INPUT_SIZE;
     private boolean isComplete = false;
@@ -41,7 +41,7 @@ public class InferenceThread implements Runnable {
         void onComplete();
     }
 
-    public InferenceThread(Classifier classifier, int size) {
+    public ObjectDetectionThread(Classifier classifier, int size) {
         this.classifier = classifier;
         INPUT_SIZE = size;
     }

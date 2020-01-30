@@ -5,12 +5,10 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.media.Image;
 import android.media.ImageReader;
-import android.media.ThumbnailUtils;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.util.Size;
 
 import androidx.annotation.NonNull;
@@ -26,13 +24,13 @@ import framework.ObjectDetection.ObjectDetectionModel;
 import framework.SceneDetection.JsonResult;
 import framework.SceneDetection.SceneData;
 import framework.Thread.AutoEditThread;
-import framework.Thread.InferenceThread;
-import framework.Thread.SceneDetecThread;
+import framework.Thread.ObjectDetectionThread;
+import framework.Thread.SceneDetectionThread;
 import framework.Thread.ThumbnailThread;
 import framework.Util.InferenceOverlayView;
 import framework.Util.Util;
 
-public class ObjectDetectionManager extends HandlerThread implements ImageReader.OnImageAvailableListener, InferenceThread.Callback, AutoEditThread.Callback {
+public class InferenceManager extends HandlerThread implements ImageReader.OnImageAvailableListener, ObjectDetectionThread.Callback, AutoEditThread.Callback {
     private static final int INPUT_SIZE = 300;
     private static final String MODEL_FILE = "travelmode.tflite";
     private static final String LABELS_FILE = "file:///android_asset/travelmode.txt";
@@ -49,10 +47,10 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     private Classifier dailyClassifier;
     private Matrix transCropToFrame;
     private BoxDrawer boxDrawer;
-    private InferenceThread inferenceThread;
+    private ObjectDetectionThread objectDetectionThread;
     private AutoEditThread autoEditThread;
 
-    private SceneDetecThread sceneDetecThread;
+    private SceneDetectionThread sceneDetectionThread;
     private ThumbnailThread thumbnailThread;
     private JsonResult jsonResult;
     private int frameIdx;
@@ -76,8 +74,8 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
     private Mode mode = Mode.TRAVEL;
 
-    public ObjectDetectionManager(Context context, InferenceOverlayView inferenceOverlayView, EngineObserver engineObserver) {
-        super("ObjectDetectionManager");
+    public InferenceManager(Context context, InferenceOverlayView inferenceOverlayView, EngineObserver engineObserver) {
+        super("InferenceManager");
 
         this.context = context;
         this.inferenceOverlayView = inferenceOverlayView;
@@ -102,10 +100,10 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
             @Override
             public boolean handleMessage(@NonNull Message msg) {
                 switch (msg.arg1) {
-                    case ThreadMessage.ODMessage.MSG_OD_SETUP : {
+                    case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETUP : {
                         if (classifier == null) {
                             classifier = ObjectDetectionModel.create(context.getAssets(), context, MODEL_FILE, LABELS_FILE, INPUT_SIZE, true);
-                            inferenceThread = new InferenceThread(classifier, INPUT_SIZE);
+                            objectDetectionThread = new ObjectDetectionThread(classifier, INPUT_SIZE);
                         }
                         if (dailyClassifier == null) {
                             dailyClassifier = ObjectDetectionModel.create(context.getAssets(), context, DAILY_MODEL_FILE, DAILY_LABELS_FILE, INPUT_SIZE, true);
@@ -115,18 +113,18 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
                         return true;
                     }
-                    case ThreadMessage.ODMessage.MSG_OD_SETMODE : {
+                    case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETMODE : {
                         setMode((Mode) msg.obj);
 
                         return true;
                     }
-                    case ThreadMessage.ODMessage.MSG_OD_SETRECORD : {
+                    case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETRECORD : {
                         isRecord = (boolean) msg.obj;
 
                         if (isRecord == false) {
                             engineObserver.onCompleteLabelFile(jsonResult.createJSONFile());
 
-                            sceneDetecThread = null;
+                            sceneDetectionThread = null;
                             jsonResult = null;
 
                             if (autoEditThread != null) {
@@ -139,7 +137,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
                         return true;
                     }
-                    case ThreadMessage.ODMessage.MSG_OD_SETLIVE : {
+                    case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETLIVE : {
                         isLiving = ((MessageObject.ThumbnailObject) msg.obj).getIsLive();
                         orientation = ((MessageObject.ThumbnailObject) msg.obj).getOrientation();
 
@@ -149,7 +147,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
                         return true;
                     }
-                    case ThreadMessage.ODMessage.MSG_OD_SETPAUSE : {
+                    case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETPAUSE : {
                         recordSpeed = ((RecordSpeed) msg.obj);
                     }
                 }
@@ -200,11 +198,11 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                     if ((isRecord == true) && (recordSpeed == RecordSpeed.RESUME)) {
                         if (mode != Mode.LIVE) {
                             if (isSDDone == true) {
-                                if ((sceneDetecThread == null) && (jsonResult == null)) {
-                                    sceneDetecThread = new SceneDetecThread();
-                                    sceneDetecThread.loadModel(context);
-                                    sceneDetecThread.setPreviewSize(previewSize);
-                                    sceneDetecThread.setCallback(new SceneDetecThread.Callback() {
+                                if ((sceneDetectionThread == null) && (jsonResult == null)) {
+                                    sceneDetectionThread = new SceneDetectionThread();
+                                    sceneDetectionThread.loadModel(context);
+                                    sceneDetectionThread.setPreviewSize(previewSize);
+                                    sceneDetectionThread.setCallback(new SceneDetectionThread.Callback() {
                                         @Override
                                         public void onSceneDetecDone(SceneData sceneData) {
                                             isSDDone = true;
@@ -230,9 +228,9 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                                     timestamp = timestamp + (int) (curTime - startTime);
                                     startTime = curTime;
 
-                                    sceneDetecThread.setInfo(frameIdx, timestamp, chunkIdx, bytes, yRowStride, uvRowStride, uvPixelStride);
+                                    sceneDetectionThread.setInfo(frameIdx, timestamp, chunkIdx, bytes, yRowStride, uvRowStride, uvPixelStride);
 
-                                    Thread t = new Thread(sceneDetecThread);
+                                    Thread t = new Thread(sceneDetectionThread);
                                     t.start();
                                     isSDDone = false;
                                 }
@@ -265,14 +263,14 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
                     if (mode == Mode.TRAVEL) {
                         if (isReady == true) {
-                            if (inferenceThread != classifier) {
-                                inferenceThread.setClassifier(classifier);
+                            if (objectDetectionThread != classifier) {
+                                objectDetectionThread.setClassifier(classifier);
                             }
                             if (isODDone == true) {
 
-                                inferenceThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
+                                objectDetectionThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
 
-                                Thread t = new Thread(inferenceThread);
+                                Thread t = new Thread(objectDetectionThread);
                                 t.start();
                                 isODDone = false;
 
@@ -280,14 +278,14 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
                         }
                     } else if (mode == Mode.DAILY) {
                         if (isReady == true) {
-                            if (inferenceThread != dailyClassifier) {
-                                inferenceThread.setClassifier(dailyClassifier);
+                            if (objectDetectionThread != dailyClassifier) {
+                                objectDetectionThread.setClassifier(dailyClassifier);
                             }
                             if (isODDone == true) {
 
-                                inferenceThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
+                                objectDetectionThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
 
-                                Thread t = new Thread(inferenceThread);
+                                Thread t = new Thread(objectDetectionThread);
                                 t.start();
                                 isODDone = false;
 
@@ -306,7 +304,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
         }
     }
 
-    // Override from InferenceThread.Callback
+    // Override from ObjectDetectionThread.Callback
     @Override
     public void onComplete() {
         inferenceOverlayView.postInvalidate();
@@ -325,7 +323,7 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
     }
 
     private synchronized void setUpOD(MessageObject.Box boxMessageObject) {
-        if (inferenceThread != null) {
+        if (objectDetectionThread != null) {
             previewSize = boxMessageObject.getSize();
 
             DisplayMetrics metrics = context.getResources().getDisplayMetrics();
@@ -338,11 +336,11 @@ public class ObjectDetectionManager extends HandlerThread implements ImageReader
 
             boxDrawer = new BoxDrawer(context, boxMessageObject.getSize(), boxMessageObject.getOrientation());
 
-            inferenceThread.setPreviewSize(previewSize);
-            inferenceThread.setLensFacing(boxMessageObject.getLensFacing());
-            inferenceThread.setBoxDrawer(boxDrawer);
-            inferenceThread.setCallback(this);
-            inferenceThread.setMatrix(transCropToFrame);
+            objectDetectionThread.setPreviewSize(previewSize);
+            objectDetectionThread.setLensFacing(boxMessageObject.getLensFacing());
+            objectDetectionThread.setBoxDrawer(boxDrawer);
+            objectDetectionThread.setCallback(this);
+            objectDetectionThread.setMatrix(transCropToFrame);
 
             inferenceOverlayView.unRegisterAllDrawCallback();
             inferenceOverlayView.registerDrawCallback(new InferenceOverlayView.DrawCallback() {

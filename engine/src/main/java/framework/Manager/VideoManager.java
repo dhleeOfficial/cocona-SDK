@@ -7,7 +7,6 @@ import android.media.MediaFormat;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
-import android.util.Log;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
@@ -23,9 +22,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
-import framework.Util.VideoMuxData;
+import framework.Util.MuxData;
 
-public class EncoderManager extends HandlerThread {
+public class VideoManager extends HandlerThread {
     private String name;
     private Handler handler;
     private Callback callback;
@@ -50,7 +49,7 @@ public class EncoderManager extends HandlerThread {
 
     private PipeOpener pipeOpener = null;
     private MuxWriter muxWriter;
-    private BlockingQueue<VideoMuxData> muxList = new LinkedBlockingQueue<VideoMuxData>();
+    private BlockingQueue<MuxData> muxList = new LinkedBlockingQueue<MuxData>();
 
     private boolean isReady = false;
     private boolean isPause = false;
@@ -59,7 +58,7 @@ public class EncoderManager extends HandlerThread {
         void initDone();
     }
 
-    public EncoderManager(String name, int bitRate, Callback callback){
+    public VideoManager(String name, int bitRate, Callback callback){
         super(name);
 
         this.name = name;
@@ -210,7 +209,7 @@ public class EncoderManager extends HandlerThread {
                         out.get(outBytes);
 
                         if (outBytes.length > 0) {
-                            VideoMuxData data = new VideoMuxData(outBytes, endOfStream);
+                            MuxData data = new MuxData(outBytes, endOfStream);
 
                             muxList.add(data);
 
@@ -283,7 +282,7 @@ public class EncoderManager extends HandlerThread {
             while(true) {
                 try {
                     if (bufferedOutputStream != null) {
-                        final VideoMuxData data = muxList.take();
+                        final MuxData data = muxList.take();
 
                         if (data != null) {
                             if (isPause == false) {

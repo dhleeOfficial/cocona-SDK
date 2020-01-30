@@ -17,12 +17,12 @@ public class ThreadMessage {
         public static final int MSG_ENGINE_LIVE = 12;
     }
 
-    public class ODMessage {
-        public static final int MSG_OD_SETUP = 0;
-        public static final int MSG_OD_SETMODE = 1;
-        public static final int MSG_OD_SETRECORD = 2;
-        public static final int MSG_OD_SETLIVE = 3;
-        public static final int MSG_OD_SETPAUSE = 4;
+    public class InferenceMessage {
+        public static final int MSG_INFERENCE_SETUP = 0;
+        public static final int MSG_INFERENCE_SETMODE = 1;
+        public static final int MSG_INFERENCE_SETRECORD = 2;
+        public static final int MSG_INFERENCE_SETLIVE = 3;
+        public static final int MSG_INFERENCE_SETPAUSE = 4;
     }
 
     public class RecordMessage {
