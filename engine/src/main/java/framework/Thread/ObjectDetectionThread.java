@@ -11,12 +11,10 @@ import java.util.List;
 import framework.Enum.LensFacing;
 import framework.ObjectDetection.BoxDrawer;
 import framework.ObjectDetection.Classifier;
-import framework.Util.Util;
 
 public class ObjectDetectionThread implements Runnable {
     private static final float MINIMUM_CONFIDENCE = 0.5f;
     private static int INPUT_SIZE;
-    private boolean isComplete = false;
 
     private Size previewSize;
     private LensFacing lensFacing;
@@ -24,13 +22,7 @@ public class ObjectDetectionThread implements Runnable {
     private Classifier classifier;
     private Matrix matrix;
 
-    // SETTING INFO
-    byte[][] yuvBytes;
-    int yRowStride;
-    int uvRowStride;
-    int uvPixelStride;
     int[] rgbBytes;
-    //
 
     private Bitmap imageRGBBitmap;
     private Bitmap cropBitmap;
@@ -38,7 +30,7 @@ public class ObjectDetectionThread implements Runnable {
     private Callback callback;
 
     public interface Callback {
-        void onComplete();
+        void onObjectDetectionDone();
     }
 
     public ObjectDetectionThread(Classifier classifier, int size) {
@@ -46,11 +38,8 @@ public class ObjectDetectionThread implements Runnable {
         INPUT_SIZE = size;
     }
 
-    public void setInfo(byte[][] in, int yRowStride, int uvRowStride, int uvPixelStride) {
-        this.yuvBytes = in.clone();
-        this.yRowStride = yRowStride;
-        this.uvRowStride = uvRowStride;
-        this.uvPixelStride = uvPixelStride;
+    public void setData(int[] rgbBytes) {
+        this.rgbBytes = rgbBytes;
     }
 
     public void setCallback(Callback callback) {
@@ -77,45 +66,52 @@ public class ObjectDetectionThread implements Runnable {
 
     @Override
     public void run() {
-        rgbBytes = new int[previewSize.getWidth() * previewSize.getHeight()];
+        if (rgbBytes != null) {
+            imageRGBBitmap = Bitmap.createBitmap(previewSize.getWidth(), previewSize.getHeight(), Bitmap.Config.ARGB_8888);
+            imageRGBBitmap.setPixels(rgbBytes, 0, previewSize.getWidth(), 0, 0, previewSize.getWidth(), previewSize.getHeight());
 
-        Util.convertYUV420ToARGB8888(yuvBytes[0], yuvBytes[1], yuvBytes[2], previewSize.getWidth(), previewSize.getHeight(),
-                                     yRowStride, uvRowStride, uvPixelStride, rgbBytes);
+            rgbBytes = null;
+        }
 
-        imageRGBBitmap = Bitmap.createBitmap(previewSize.getWidth(), previewSize.getHeight(), Bitmap.Config.ARGB_8888);
-        imageRGBBitmap.setPixels(rgbBytes, 0, previewSize.getWidth(), 0, 0, previewSize.getWidth(), previewSize.getHeight());
+        if (imageRGBBitmap != null) {
+            cropBitmap = Bitmap.createScaledBitmap(imageRGBBitmap, INPUT_SIZE, INPUT_SIZE, true);
+        }
 
-        rgbBytes = null;
+        if (cropBitmap != null) {
+            List<Classifier.Recognition> recognitionList = classifier.recognizeImage(cropBitmap);
+            List<Classifier.Recognition> result = new LinkedList<Classifier.Recognition>();
 
-        cropBitmap = Bitmap.createScaledBitmap(imageRGBBitmap, INPUT_SIZE, INPUT_SIZE, true);
+            for (final Classifier.Recognition recElement : recognitionList) {
+                RectF location = recElement.getLocation();
 
-        List<Classifier.Recognition> recognitionList = classifier.recognizeImage(cropBitmap);
-        List<Classifier.Recognition> result = new LinkedList<Classifier.Recognition>();
+                if ((location != null) && (recElement.getConfidence() >= MINIMUM_CONFIDENCE)) {
+                    location = rotate(location);
+                    matrix.mapRect(location);
+                    recElement.setLocation(location);
+                    result.add(recElement);
+                }
+            }
 
-        for (final Classifier.Recognition recElement : recognitionList) {
-            RectF location = recElement.getLocation();
-
-            if ((location != null) && (recElement.getConfidence() >= MINIMUM_CONFIDENCE)) {
-                location = rotate(location);
-                matrix.mapRect(location);
-                recElement.setLocation(location);
-                result.add(recElement);
+            if (result.isEmpty() == true) {
+                boxDrawer.clearBoxDrawer();
+            } else {
+                boxDrawer.processWillDrawBox(result);
             }
         }
 
-        if (result.isEmpty() == true) {
-            boxDrawer.clearBoxDrawer();
-        } else {
-            boxDrawer.processWillDrawBox(result);
+        if (imageRGBBitmap != null) {
+            imageRGBBitmap.recycle();
+            imageRGBBitmap = null;
         }
 
-        imageRGBBitmap.recycle();
-        imageRGBBitmap = null;
+        if (cropBitmap != null) {
+            cropBitmap.recycle();
+            cropBitmap = null;
+        }
 
-        cropBitmap.recycle();
-        cropBitmap = null;
-        yuvBytes = null;
-        callback.onComplete();
+        if (callback != null) {
+            callback.onObjectDetectionDone();
+        }
     }
 
     private RectF rotate(RectF rectF) {

@@ -30,21 +30,12 @@ import framework.Enum.Mode;
 import framework.Enum.RecordSpeed;
 import framework.Enum.TouchType;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSSessionCredentials;
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.auth.BasicSessionCredentials;
-import com.amazonaws.auth.CognitoCachingCredentialsProvider;
-import com.amazonaws.auth.CognitoCredentialsProvider;
-import com.amazonaws.auth.SessionCredentialsProviderFactory;
-import com.amazonaws.mobile.client.AWSMobileClient;
-import com.amazonaws.mobile.config.AWSConfiguration;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.cognitoidentity.AmazonCognitoIdentityClient;
-import com.amazonaws.services.cognitoidentity.model.Credentials;
 import com.amazonaws.services.cognitoidentity.model.GetCredentialsForIdentityRequest;
 import com.amazonaws.services.cognitoidentity.model.GetCredentialsForIdentityResult;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -52,7 +43,6 @@ import com.amazonaws.services.s3.S3ClientOptions;
 import com.example.myapplication.R;
 
 import java.util.HashMap;
-import java.util.Map;
 
 public class CameraActivity extends AppCompatActivity {
     private SurfaceView sv;
@@ -376,7 +366,6 @@ public class CameraActivity extends AppCompatActivity {
         engine.startPreview(sv);
     }
 
-    // FIXME : PAUSE와 SurfaceDestoryed callback 시, StopPreview 실행이 맞는지 확인할 것
     @Override
     protected void onPause() {
         super.onPause();

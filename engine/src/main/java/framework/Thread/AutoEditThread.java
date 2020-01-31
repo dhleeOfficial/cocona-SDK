@@ -6,19 +6,12 @@ import android.graphics.Matrix;
 import android.util.Size;
 
 import framework.AutoEdit.AutoEdit;
-import framework.Util.Util;
 
 public class AutoEditThread implements Runnable {
     private Matrix matrix;
     private AutoEdit autoEdit;
 
     private Size previewSize;
-
-    // SETTING INFO
-    byte[][] yuvBytes;
-    int yRowStride;
-    int uvRowStride;
-    int uvPixelStride;
     int[] rgbBytes;
 
     private Bitmap imageRGBBitmap;
@@ -27,7 +20,7 @@ public class AutoEditThread implements Runnable {
     private Callback callback;
 
     public interface Callback {
-        void onDone();
+        void onAutoEditDone();
     }
 
     public AutoEditThread() {
@@ -36,23 +29,24 @@ public class AutoEditThread implements Runnable {
 
     @Override
     public void run() {
-        rgbBytes = new int[previewSize.getWidth() * previewSize.getHeight()];
+        if (rgbBytes != null) {
+            imageRGBBitmap = Bitmap.createBitmap(previewSize.getWidth(), previewSize.getHeight(), Bitmap.Config.ARGB_8888);
+            imageRGBBitmap.setPixels(rgbBytes, 0, previewSize.getWidth(), 0, 0, previewSize.getWidth(), previewSize.getHeight());
 
-        Util.convertYUV420ToARGB8888(yuvBytes[0], yuvBytes[1], yuvBytes[2], previewSize.getWidth(), previewSize.getHeight(),
-                yRowStride, uvRowStride, uvPixelStride, rgbBytes);
+            rgbBytes = null;
+        }
 
-        imageRGBBitmap = Bitmap.createBitmap(previewSize.getWidth(), previewSize.getHeight(), Bitmap.Config.ARGB_8888);
-        imageRGBBitmap.setPixels(rgbBytes, 0, previewSize.getWidth(), 0, 0, previewSize.getWidth(), previewSize.getHeight());
+        if (imageRGBBitmap != null) {
+            cropBitmap = Bitmap.createBitmap(imageRGBBitmap, 0, 0, imageRGBBitmap.getWidth(), imageRGBBitmap.getHeight(), matrix, true);
+        }
 
-        rgbBytes = null;
-
-        cropBitmap = Bitmap.createBitmap(imageRGBBitmap, 0, 0, imageRGBBitmap.getWidth(), imageRGBBitmap.getHeight(), matrix, true);
-
-        if (autoEdit != null) {
+        if ((autoEdit != null) && (cropBitmap != null)) {
             autoEdit.appendImage(cropBitmap);
         }
 
-        callback.onDone();
+        if (callback != null) {
+            callback.onAutoEditDone();
+        }
     }
 
     public void loadTFLite(Context context) {
@@ -63,11 +57,8 @@ public class AutoEditThread implements Runnable {
         this.callback = callback;
     }
 
-    public void setInfo(byte[][] in, int yRowStride, int uvRowStride, int uvPixelStride) {
-        this.yuvBytes = in.clone();
-        this.yRowStride = yRowStride;
-        this.uvRowStride = uvRowStride;
-        this.uvPixelStride = uvPixelStride;
+    public void setData(int[] rgbBytes) {
+        this.rgbBytes = rgbBytes;
     }
 
     public void setPreviewSize(Size size) {

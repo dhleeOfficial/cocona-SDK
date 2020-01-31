@@ -104,7 +104,7 @@ public class ObjectDetectionModel implements Classifier {
     }
 
     @Override
-    public List<Recognition> recognizeImage(Bitmap bitmap) {
+    public synchronized List<Recognition> recognizeImage(Bitmap bitmap) {
         Trace.beginSection("recognizeImage");
         Trace.beginSection("preprocessBitmap");
 

@@ -1,5 +1,8 @@
 package framework.Engine;
 
+/**
+ *
+ */
 public interface EngineObserver {
     void onCompleteVODFile(String vodPath);
     void onCompleteScoreFile(String scorePath);

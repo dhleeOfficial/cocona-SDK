@@ -13,6 +13,8 @@ import android.util.Size;
 
 import androidx.annotation.NonNull;
 
+import java.nio.Buffer;
+
 import framework.Engine.EngineObserver;
 import framework.Enum.Mode;
 import framework.Enum.RecordSpeed;
@@ -24,13 +26,14 @@ import framework.ObjectDetection.ObjectDetectionModel;
 import framework.SceneDetection.JsonResult;
 import framework.SceneDetection.SceneData;
 import framework.Thread.AutoEditThread;
+import framework.Thread.ImageConvertThread;
 import framework.Thread.ObjectDetectionThread;
 import framework.Thread.SceneDetectionThread;
 import framework.Thread.ThumbnailThread;
 import framework.Util.InferenceOverlayView;
 import framework.Util.Util;
 
-public class InferenceManager extends HandlerThread implements ImageReader.OnImageAvailableListener, ObjectDetectionThread.Callback, AutoEditThread.Callback {
+public class InferenceManager extends HandlerThread implements ImageReader.OnImageAvailableListener, ImageConvertThread.CallBack, ObjectDetectionThread.Callback, AutoEditThread.Callback {
     private static final int INPUT_SIZE = 300;
     private static final String MODEL_FILE = "travelmode.tflite";
     private static final String LABELS_FILE = "file:///android_asset/travelmode.txt";
@@ -42,6 +45,8 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
     private Context context;
     private InferenceOverlayView inferenceOverlayView;
     private EngineObserver engineObserver;
+
+    private ImageConvertThread imageConvertThread;
 
     private Classifier classifier;
     private Classifier dailyClassifier;
@@ -70,8 +75,9 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
     private boolean isRecord = false;
     private boolean isLiving = false;
 
-    private RecordSpeed recordSpeed = RecordSpeed.RESUME;
+    private boolean isImageProc = false;
 
+    private RecordSpeed recordSpeed = RecordSpeed.RESUME;
     private Mode mode = Mode.TRAVEL;
 
     public InferenceManager(Context context, InferenceOverlayView inferenceOverlayView, EngineObserver engineObserver) {
@@ -128,11 +134,11 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                             jsonResult = null;
 
                             if (autoEditThread != null) {
+                                engineObserver.onCompleteScoreFile(autoEditThread.getScoreFile());
 
                                 autoEditThread.stop();
                                 autoEditThread = null;
                             }
-
                         }
 
                         return true;
@@ -164,136 +170,147 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
             image = reader.acquireNextImage();
                 if (image != null) {
 
-                    int yRowStride = image.getPlanes()[0].getRowStride();
-                    int uvRowStride = image.getPlanes()[1].getRowStride();
-                    int uvPixelStride = image.getPlanes()[1].getPixelStride();
-                    byte[][] bytes = Util.convertImageToBytes(image.getPlanes());
+                    if (isImageProc == false) {
+                        int yRowStride = image.getPlanes()[0].getRowStride();
+                        int uvRowStride = image.getPlanes()[1].getRowStride();
+                        int uvPixelStride = image.getPlanes()[1].getPixelStride();
+                        byte[][] bytes = Util.convertImageToBytes(image.getPlanes());
 
-                    if (isLiving == true) {
-                        if (mode == Mode.LIVE) {
-                            if (isTNDone == true) {
-                                if ((frameIdx % 300) == 0) {
+                        image.close();
 
-                                    if (thumbnailThread == null) {
-                                        thumbnailThread = new ThumbnailThread();
-
-                                        thumbnailThread.setInfo(orientation, previewSize, bytes, yRowStride, uvRowStride, uvPixelStride);
-                                        thumbnailThread.setCallback(new ThumbnailThread.Callback() {
-                                            @Override
-                                            public void onDone() {
-                                                isTNDone = true;
-                                                thumbnailThread = null;
-                                            }
-                                        });
-
-                                        Thread t = new Thread(thumbnailThread);
-                                        t.start();
-                                        isTNDone = false;
-                                    }
-                                }
-                            }
+                        if (imageConvertThread == null) {
+                            imageConvertThread = new ImageConvertThread(previewSize.getWidth(), previewSize.getHeight(), yRowStride, uvRowStride, uvPixelStride, bytes, this);
+                            imageConvertThread.start();
                         }
                     }
-
-                    if ((isRecord == true) && (recordSpeed == RecordSpeed.RESUME)) {
-                        if (mode != Mode.LIVE) {
-                            if (isSDDone == true) {
-                                if ((sceneDetectionThread == null) && (jsonResult == null)) {
-                                    sceneDetectionThread = new SceneDetectionThread();
-                                    sceneDetectionThread.loadModel(context);
-                                    sceneDetectionThread.setPreviewSize(previewSize);
-                                    sceneDetectionThread.setCallback(new SceneDetectionThread.Callback() {
-                                        @Override
-                                        public void onSceneDetecDone(SceneData sceneData) {
-                                            isSDDone = true;
-
-                                            if (jsonResult != null) {
-                                                jsonResult.inputData(sceneData);
-                                                chunkIdx++;
-                                            }
-                                        }
-                                    });
-
-                                    jsonResult = new JsonResult();
-                                    frameIdx = 0;
-                                    timestamp = 0;
-                                    chunkIdx = 0;
-                                    startTime = System.nanoTime() / 1000000L;
-                                }
-
-                                // TODO : Slow, Fast considering
-                                if ((frameIdx%30) == 0) {
-
-                                    long curTime = System.nanoTime() / 1000000L;
-                                    timestamp = timestamp + (int) (curTime - startTime);
-                                    startTime = curTime;
-
-                                    sceneDetectionThread.setInfo(frameIdx, timestamp, chunkIdx, bytes, yRowStride, uvRowStride, uvPixelStride);
-
-                                    Thread t = new Thread(sceneDetectionThread);
-                                    t.start();
-                                    isSDDone = false;
-                                }
-                            }
-                            if (isAEDone == true) {
-                                long curTS = System.nanoTime() / 1000L;
-
-                                if (autoEditThread == null) {
-                                    autoEditThread = new AutoEditThread();
-
-                                    autoEditThread.loadTFLite(context);
-                                    autoEditThread.setFirstTS(curTS);
-                                    autoEditThread.setPreviewSize(previewSize);
-                                    autoEditThread.setCallback(this);
-                                }
-                                autoEditThread.updateCurrentTS(curTS);
-
-                                if (autoEditThread.isNextImage() == true) {
-
-                                    autoEditThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
-
-                                    Thread t = new Thread(autoEditThread);
-                                    t.start();
-
-                                    isAEDone = false;
-                                }
-                            }
-                        }
-                    }
-
-                    if (mode == Mode.TRAVEL) {
-                        if (isReady == true) {
-                            if (objectDetectionThread != classifier) {
-                                objectDetectionThread.setClassifier(classifier);
-                            }
-                            if (isODDone == true) {
-
-                                objectDetectionThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
-
-                                Thread t = new Thread(objectDetectionThread);
-                                t.start();
-                                isODDone = false;
-
-                            }
-                        }
-                    } else if (mode == Mode.DAILY) {
-                        if (isReady == true) {
-                            if (objectDetectionThread != dailyClassifier) {
-                                objectDetectionThread.setClassifier(dailyClassifier);
-                            }
-                            if (isODDone == true) {
-
-                                objectDetectionThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
-
-                                Thread t = new Thread(objectDetectionThread);
-                                t.start();
-                                isODDone = false;
-
-                            }
-                        }
-                    }
-
                     frameIdx++;
+
+//
+//                    if (isLiving == true) {
+//                        if (mode == Mode.LIVE) {
+//                            if (isTNDone == true) {
+//                                if ((frameIdx % 300) == 0) {
+//
+//                                    if (thumbnailThread == null) {
+//                                        thumbnailThread = new ThumbnailThread();
+//
+//                                        thumbnailThread.setInfo(orientation, previewSize, bytes, yRowStride, uvRowStride, uvPixelStride);
+//                                        thumbnailThread.setCallback(new ThumbnailThread.Callback() {
+//                                            @Override
+//                                            public void onDone() {
+//                                                isTNDone = true;
+//                                                thumbnailThread = null;
+//                                            }
+//                                        });
+//
+//                                        Thread t = new Thread(thumbnailThread);
+//                                        t.start();
+//                                        isTNDone = false;
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//
+//                    if ((isRecord == true) && (recordSpeed == RecordSpeed.RESUME)) {
+//                        if (mode != Mode.LIVE) {
+//                            if (isSDDone == true) {
+//                                if ((sceneDetectionThread == null) && (jsonResult == null)) {
+//                                    sceneDetectionThread = new SceneDetectionThread();
+//                                    sceneDetectionThread.loadModel(context);
+//                                    sceneDetectionThread.setPreviewSize(previewSize);
+//                                    sceneDetectionThread.setCallback(new SceneDetectionThread.Callback() {
+//                                        @Override
+//                                        public void onSceneDetecDone(SceneData sceneData) {
+//                                            isSDDone = true;
+//
+//                                            if (jsonResult != null) {
+//                                                jsonResult.inputData(sceneData);
+//                                                chunkIdx++;
+//                                            }
+//                                        }
+//                                    });
+//
+//                                    jsonResult = new JsonResult();
+//                                    frameIdx = 0;
+//                                    timestamp = 0;
+//                                    chunkIdx = 0;
+//                                    startTime = System.nanoTime() / 1000000L;
+//                                }
+//
+//                                // TODO : Slow, Fast considering
+//                                if ((frameIdx%30) == 0) {
+//
+//                                    long curTime = System.nanoTime() / 1000000L;
+//                                    timestamp = timestamp + (int) (curTime - startTime);
+//                                    startTime = curTime;
+//
+//                                    sceneDetectionThread.setInfo(frameIdx, timestamp, chunkIdx, bytes, yRowStride, uvRowStride, uvPixelStride);
+//
+//                                    Thread t = new Thread(sceneDetectionThread);
+//                                    t.start();
+//                                    isSDDone = false;
+//                                }
+//                            }
+//                            if (isAEDone == true) {
+//                                long curTS = System.nanoTime() / 1000L;
+//
+//                                if (autoEditThread == null) {
+//                                    autoEditThread = new AutoEditThread();
+//
+//                                    autoEditThread.loadTFLite(context);
+//                                    autoEditThread.setFirstTS(curTS);
+//                                    autoEditThread.setPreviewSize(previewSize);
+//                                    autoEditThread.setCallback(this);
+//                                }
+//                                autoEditThread.updateCurrentTS(curTS);
+//
+//                                if (autoEditThread.isNextImage() == true) {
+//
+//                                    autoEditThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
+//
+//                                    Thread t = new Thread(autoEditThread);
+//                                    t.start();
+//
+//                                    isAEDone = false;
+//                                }
+//                            }
+//                        }
+//                    }
+//
+//                    if (mode == Mode.TRAVEL) {
+//                        if (isReady == true) {
+//                            if (objectDetectionThread != classifier) {
+//                                objectDetectionThread.setClassifier(classifier);
+//                            }
+//                            if (isODDone == true) {
+//
+//                                objectDetectionThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
+//
+//                                Thread t = new Thread(objectDetectionThread);
+//                                t.start();
+//                                isODDone = false;
+//
+//                            }
+//                        }
+//                    } else if (mode == Mode.DAILY) {
+//                        if (isReady == true) {
+//                            if (objectDetectionThread != dailyClassifier) {
+//                                objectDetectionThread.setClassifier(dailyClassifier);
+//                            }
+//                            if (isODDone == true) {
+//
+//                                objectDetectionThread.setInfo(bytes, yRowStride, uvRowStride, uvPixelStride);
+//
+//                                Thread t = new Thread(objectDetectionThread);
+//                                t.start();
+//                                isODDone = false;
+//
+//                            }
+//                        }
+//                    }
+//
+//                    frameIdx++;
                 }
         } catch (NullPointerException ne) {
             ne.printStackTrace();
@@ -306,16 +323,146 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
 
     // Override from ObjectDetectionThread.Callback
     @Override
-    public void onComplete() {
+    public void onObjectDetectionDone() {
         inferenceOverlayView.postInvalidate();
 
         isODDone = true;
+        processImageFlag();
     }
 
     // Override from AutoEditThread.Callback
     @Override
-    public void onDone() {
+    public void onAutoEditDone() {
         isAEDone = true;
+        processImageFlag();
+    }
+
+    @Override
+    public void imageProcessDone(int[] rgb) {
+        isImageProc = true;
+
+        if (rgb != null) {
+            // ObjectDetection
+            if ((isReady == true) && (isODDone == true)) {
+                if (mode == Mode.TRAVEL) {
+                    if (objectDetectionThread != classifier) {
+                        objectDetectionThread.setClassifier(classifier);
+                    }
+                    objectDetectionThread.setData(rgb);
+
+                    Thread thread = new Thread(objectDetectionThread);
+                    thread.start();
+
+                    isODDone = false;
+                } else if (mode == Mode.DAILY) {
+                    if (objectDetectionThread != dailyClassifier) {
+                        objectDetectionThread.setClassifier(dailyClassifier);
+                    }
+                    objectDetectionThread.setData(rgb);
+
+                    Thread thread = new Thread(objectDetectionThread);
+                    thread.start();
+
+                    isODDone = false;
+                }
+            }
+
+            if ((isRecord == true) && (recordSpeed == RecordSpeed.RESUME) && (mode != Mode.LIVE)) {
+                // SceneDetection
+                if (isSDDone == true) {
+                    if ((sceneDetectionThread == null) && (jsonResult == null)) {
+                        sceneDetectionThread = new SceneDetectionThread();
+                        sceneDetectionThread.loadModel(context);
+                        sceneDetectionThread.setPreviewSize(previewSize);
+                        sceneDetectionThread.setCallback(new SceneDetectionThread.Callback() {
+                            @Override
+                            public void onSceneDetectionDone(SceneData sceneData) {
+                                if (jsonResult != null) {
+                                    jsonResult.inputData(sceneData);
+                                    chunkIdx++;
+                                }
+
+                                isSDDone = true;
+                                processImageFlag();
+                            }
+                        });
+
+                        jsonResult = new JsonResult();
+                        frameIdx = 0;
+                        timestamp = 0;
+                        chunkIdx = 0;
+                        startTime = System.nanoTime() / 1000000L;
+                    }
+
+                    // TODO : Slow, Fast considering
+                    if ((frameIdx % 30) == 0) {
+                        long curTime = System.nanoTime() / 1000000L;
+
+                        timestamp = timestamp + (int) (curTime - startTime);
+                        startTime = curTime;
+
+                        sceneDetectionThread.setData(frameIdx, timestamp, chunkIdx, rgb);
+
+                        Thread thread = new Thread(sceneDetectionThread);
+                        thread.start();
+
+                        isSDDone = false;
+                    }
+                }
+                // AutoEdit
+                if (isAEDone == true) {
+                    long curTS = System.nanoTime() / 1000L;
+
+                    if (autoEditThread == null) {
+                        autoEditThread = new AutoEditThread();
+
+                        autoEditThread.loadTFLite(context);
+                        autoEditThread.setFirstTS(curTS);
+                        autoEditThread.setPreviewSize(previewSize);
+                        autoEditThread.setCallback(this);
+                    }
+                    autoEditThread.updateCurrentTS(curTS);
+
+                    if (autoEditThread.isNextImage() == true) {
+                        autoEditThread.setData(rgb);
+
+                        Thread thread = new Thread(autoEditThread);
+                        thread.start();
+
+                        isAEDone = false;
+                    }
+                }
+            }
+
+            // Thumbnail
+            if ((isLiving == true) && (mode == Mode.LIVE) && (isTNDone == true)) {
+                if ((frameIdx % 300) == 0) {
+                    if (thumbnailThread == null) {
+                        thumbnailThread = new ThumbnailThread();
+
+                        thumbnailThread.setData(orientation, previewSize, rgb);
+                        thumbnailThread.setCallback(new ThumbnailThread.Callback() {
+                            @Override
+                            public void onThumbnailDone() {
+                                isTNDone = true;
+                                processImageFlag();
+
+                                thumbnailThread = null;
+                            }
+                        });
+
+                        Thread thread = new Thread(thumbnailThread);
+                        thread.start();
+
+                        isTNDone = false;
+                    }
+                }
+            }
+        }
+
+        if (imageConvertThread != null) {
+            imageConvertThread = null;
+        }
     }
 
     public final Handler getHandler() {
@@ -357,5 +504,28 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
     private synchronized void setMode(Mode mode) {
         this.mode = mode;
         inferenceOverlayView.postInvalidate();
+
+        isODDone = true;
+        isAEDone = true;
+        isSDDone = true;
+        isTNDone = true;
+
+        processImageFlag();
+    }
+
+    private void processImageFlag() {
+        if ((mode == Mode.TRAVEL) || (mode == Mode.DAILY)){
+            if ((isODDone == true) || (isAEDone == true) || (isSDDone == true)) {
+                isImageProc = false;
+            }
+        } else if (mode == Mode.EVENT) {
+            if ((isAEDone == true) || (isSDDone == true)) {
+                isImageProc = false;
+            }
+        } else if (mode == Mode.LIVE) {
+            if (isTNDone == true) {
+                isImageProc = false;
+            }
+        }
     }
 }

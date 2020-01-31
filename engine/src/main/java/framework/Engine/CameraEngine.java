@@ -91,6 +91,9 @@ public class CameraEngine {
         this.engineObserver = engineObserver;
     }
 
+    /**
+     *
+     */
     public void startEngine() {
         cameraDeviceManager = new CameraDeviceManager(context, relativeLayout, engineObserver);
         cameraDeviceManager.start();
@@ -100,6 +103,10 @@ public class CameraEngine {
         cameraDeviceManager.quitSafely();
     }
 
+    /**
+     *
+     * @param surfaceView
+     */
     public void startPreview(SurfaceView surfaceView) {
         cameraHandler  = cameraDeviceManager.getEngineHandler();
 
@@ -114,6 +121,10 @@ public class CameraEngine {
         }
     }
 
+    /**
+     *
+     * @param isFlash
+     */
     public void flash(boolean isFlash) {
         if (cameraHandler != null) {
             cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_FLASH, 0, isFlash));
