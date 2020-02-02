@@ -1,5 +1,8 @@
 package framework.Enum;
 
+/**
+ * Exposure Enum : BRIGHT, DARK
+ */
 public enum Exposure {
     BRIGHT(0), DARK(1);
 

@@ -2,6 +2,10 @@ package framework.Enum;
 
 import android.hardware.camera2.CaptureRequest;
 
+/**
+ * Filter Enum : OFF, MONO, NEGATIVE, SOLARIZE, SEPIA, POSTERIZE, WHITEBOARD, BLACKBOARD, AQUA
+ * TBD Enum function
+ */
 public enum Filter {
     OFF(0, CaptureRequest.CONTROL_EFFECT_MODE_OFF),
     MONO(1, CaptureRequest.CONTROL_EFFECT_MODE_MONO),

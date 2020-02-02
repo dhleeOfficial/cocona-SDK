@@ -1,5 +1,8 @@
 package framework.Enum;
 
+/**
+ * TouchType Enum : NOTHANDLE, AREAFOCUS, LOCKFOCUS, EXPOSURECHANGE
+ */
 public enum TouchType {
     // TODO : EXPOSURECHANGE
     NOTHANDLE(0), AREAFOCUS(1), LOCKFOCUS(2), EXPOSURECHANGE(3);
