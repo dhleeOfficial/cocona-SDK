@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Toast;
 
 import com.example.myapplication.R;
 
@@ -39,8 +38,6 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
-    // FragmentActivity override function
-    // request code process function
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch(requestCode) {
