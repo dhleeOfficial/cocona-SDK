@@ -19,6 +19,7 @@ import framework.Engine.EngineObserver;
 import framework.Enum.Mode;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
+import framework.Util.Constant;
 import framework.Util.LiveFileObserver;
 import framework.Util.Util;
 
@@ -32,11 +33,6 @@ public class MuxManager extends HandlerThread {
     private String dstPath;
 
     ArrayList<String> pipeList = new ArrayList<String>();
-
-    // RESOLUTION VALUE
-    private final int VIDEO_1080P = 1080;
-    private final int VIDEO_720P = 720;
-    private final int VIDEO_480P = 480;
 
     // MODE STATUS
     private Mode mode = Mode.TRAVEL;
@@ -70,7 +66,7 @@ public class MuxManager extends HandlerThread {
     private final String SET_LOGLEVEL = "-loglevel warning -y";
     private final String INPUT_OPT = " -vsync 1 -i ";
     private final String MAPPING_INFO = " -map 0:v -map 0:a -map 1:v -map 1:a -map 2:v -map 2:a -var_stream_map \"v:0,a:0 v:1,a:1 v:2,a:2\"";
-    private final String HLS_OPT = " -master_pl_name master.m3u8 -c copy -muxdelay 0 -max_muxing_queue_size 9999 -copyts -vsync 0 -g 15 -flags +cgop -f hls -hls_flags" +
+    private final String HLS_OPT = " -master_pl_name \"master.m3u8\" -c copy -muxdelay 0 -max_muxing_queue_size 9999 -copyts -vsync 0 -g 15 -flags +cgop -f hls -hls_flags" +
             " +independent_segments -hls_time 5 -hls_segment_type fmp4 -hls_list_size 0 -movflags frag_keyframe+faststart -vsync 2 -r 30 -hls_segment_filename ";
 
     public MuxManager(Context context, EngineObserver engineObserver) {
@@ -105,11 +101,11 @@ public class MuxManager extends HandlerThread {
                     case ThreadMessage.MuxMessage.MSG_MUX_VIDEO_END : {
                         int resolution = (int) msg.obj;
 
-                        if (resolution == VIDEO_1080P) {
+                        if (resolution == Constant.Resolution.FHD_WIDTH) {
                             VIDEO_1080_STATUS = 0;
-                        } else if (resolution == VIDEO_720P) {
+                        } else if (resolution == Constant.Resolution.HD_WIDTH) {
                             VIDEO_720_STATUS = 0;
-                        } else if (resolution == VIDEO_480P) {
+                        } else if (resolution == Constant.Resolution.SD_WIDTH) {
                             VIDEO_480_STATUS = 0;
                         }
                         muxCancel();
@@ -132,36 +128,18 @@ public class MuxManager extends HandlerThread {
     }
 
     private void processPipeStatusExecute() {
-//        VIDEO_1080_STATUS = 0;
-//        VIDEO_720_STATUS = 0;
-//        VIDEO_480_STATUS = 0;
-//        AUDIO_STATUS = 0;
-
-//        if (mode != Mode.LIVE) {
-//            VIDEO_1080_STATUS = 1;
-//            AUDIO_STATUS = 1;
-//        } else {
-            VIDEO_1080_STATUS = 1;
-            VIDEO_720_STATUS = 1;
-            VIDEO_480_STATUS = 1;
-            AUDIO_STATUS = 1;
-//        }
+        VIDEO_1080_STATUS = 1;
+        VIDEO_720_STATUS = 1;
+        VIDEO_480_STATUS = 1;
+        AUDIO_STATUS = 1;
     }
 
     private boolean processPipeStatusCancel() {
-//        if (mode != Mode.LIVE) {
-//            if ((VIDEO_1080_STATUS | AUDIO_STATUS) == 0) {
-//                return true;
-//            } else {
-//                return false;
-//            }
-//        } else {
-            if ((VIDEO_1080_STATUS | VIDEO_720_STATUS | VIDEO_480_STATUS | AUDIO_STATUS) == 0) {
-                return true;
-            } else {
-                return false;
-            }
-//        }
+        if ((VIDEO_1080_STATUS | VIDEO_720_STATUS | VIDEO_480_STATUS | AUDIO_STATUS) == 0) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public String requestPipe() {
@@ -249,7 +227,7 @@ public class MuxManager extends HandlerThread {
     private void convertArchiveFormat(MessageObject.TransformObject transformObject) {
         srcFileName = transformObject.getSrcFileName();
 
-        File file = new File(Util.getOutputVODFolder("1080").getPath() + File.separator + srcFileName);
+        File file = new File(Util.getOutputVODFolder(Constant.Resolution.HD).getPath() + File.separator + srcFileName);
 
         if (file.exists() != true) {
             return;
@@ -295,23 +273,19 @@ public class MuxManager extends HandlerThread {
             String command;
 
             if (isConvert == true) {
-                String input1 = Util.getOutputVODFolder("1080") + "/" + srcFileName;
-                String input2 = Util.getOutputVODFolder("720") + "/" + srcFileName;
-                String input3 = Util.getOutputVODFolder("480") + "/" + srcFileName;
+                String input = Util.getOutputVODFolder(Constant.Resolution.HD) + "/" + srcFileName;
+                String input1 = Util.getOutputVODFolder(Constant.Resolution.SD) + "/" + srcFileName;
 
-                command = SET_LOGLEVEL + INPUT_OPT + input1 + INPUT_OPT + input2 + INPUT_OPT + input3 +
-                        MAPPING_INFO + HLS_OPT + dstPath + "/sec%v_%d.mp4 " + dstPath + "/sec%v.m3u8";
-
-                Log.e("Command : ", command);
+                command = SET_LOGLEVEL + INPUT_OPT + input + INPUT_OPT + input + INPUT_OPT + input1 +
+                        MAPPING_INFO + HLS_OPT + "\"" + dstPath + "/sec%v_%d.mp4\" " + dstPath + "/sec%v.m3u8";
 
                 FFmpeg.execute(command);
             } else {
                 if (mode != Mode.LIVE) {
-                    VODFile = Util.getOutputVODFile("1080");
-                    VODFile1 = Util.getOutputVODFile("720");
-                    VODFile2 = Util.getOutputVODFile("480");
+                    VODFile = Util.getOutputVODFile(Constant.Resolution.FHD);
+                    VODFile1 = Util.getOutputVODFile(Constant.Resolution.HD);
+                    VODFile2 = Util.getOutputVODFile(Constant.Resolution.SD);
 
-                    //command = INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(0) + INPUT_AUDIO_OPT + INPUT_AUDIO + pipeList.get(1) + " -map 0:v -map 1:a" + OUTPUT + VODFile;
                     command = INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(0) + " " + INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(1) +
                             " " + INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(2) + INPUT_AUDIO_OPT + INPUT_AUDIO + pipeList.get(3) + " -map 0:v -map 3:a -map 1:v -map 3:a -map 2:v -map 3:a" +
                             OUTPUT + VODFile + OUTPUT + VODFile1 + OUTPUT + VODFile2;

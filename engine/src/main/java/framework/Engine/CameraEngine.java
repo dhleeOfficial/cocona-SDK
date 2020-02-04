@@ -37,8 +37,6 @@ public class CameraEngine {
     public static class Util {
         public Util() {}
 
-        // Using Double TouchEvent
-
         /**
          * Handle double touch event
          * Calculation function required for 'Zoom'
@@ -51,8 +49,6 @@ public class CameraEngine {
 
             return (float) Math.sqrt((x * x) +  (y * y));
         }
-
-        // Using Single TouchEvent
 
         /**
          * Handler single touch event

@@ -26,5 +26,9 @@ public class Constant {
         public static final int SD_HEIGHT = 854;
         public static final int SD_WIDTH = 480;
         public static final int SD_BITRATE = 1000000;
+
+        public static final String FHD = "1080";
+        public static final String HD = "720";
+        public static final String SD = "480";
     }
 }
