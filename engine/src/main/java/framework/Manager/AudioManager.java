@@ -39,6 +39,7 @@ public class AudioManager extends HandlerThread {
     private static final int BIT_RATE = 128000;
     private static final int HEADER_SIZE = 7;
     private static final int TIMEOUT_USEC = 10000;
+    private static final int SAMPLES_PER_FRAME = 4096;
 
     private AudioThread audioThread = null;
 
@@ -143,6 +144,7 @@ public class AudioManager extends HandlerThread {
         audioFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
         audioFormat.setInteger(MediaFormat.KEY_CHANNEL_MASK, AudioFormat.CHANNEL_IN_MONO);
         audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
+        audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, SAMPLES_PER_FRAME);
     }
 
     private MediaCodecInfo getMediaCodecInfo() {
@@ -232,7 +234,6 @@ public class AudioManager extends HandlerThread {
     private class AudioThread extends Thread {
         private final int CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO;
         private final int AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
-        private static final int SAMPLES_PER_FRAME = 4096;
 
         private AudioRecord audioRecord;
 
@@ -251,6 +252,9 @@ public class AudioManager extends HandlerThread {
                 final int readByte = audioRecord.read(rawBuffer, 0, SAMPLES_PER_FRAME);
 
                 if (readByte > 0) {
+                    if (isPause){
+                        continue;
+                    }
                     if (recordSpeed == RecordSpeed.NORMAL) {
                         encode(rawBuffer, 0, isEOS);
                     } else if (recordSpeed == RecordSpeed.SLOW) {
@@ -405,12 +409,12 @@ public class AudioManager extends HandlerThread {
                         final MuxData data = muxList.take();
 
                         if (data != null) {
-                            if (isPause == false) {
+//                            if (isPause == false) {
                                 if (data.getBuffer() != null) {
                                     bufferedOutputStream.write(data.getBuffer());
                                     bufferedOutputStream.flush();
                                 }
-                            }
+//                            }
                         }
                         if (data.getIsEOS() == true) {
                             muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_AUDIO_END, 0,null));

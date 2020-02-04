@@ -285,10 +285,10 @@ public class VideoManager extends HandlerThread {
                         final MuxData data = muxList.take();
 
                         if (data != null) {
-                            if (isPause == false) {
+//                            if (isPause == false) {
                                 bufferedOutputStream.write(data.getBuffer());
                                 bufferedOutputStream.flush();
-                            }
+//                            }
                             if (data.getIsEOS() == true) {
                                 int resolution = (videoWidth > videoHeight) ? videoHeight : videoWidth;
 

@@ -159,6 +159,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private OrientationEventListener orientationEventListener;
 
     private int orientation;
+    private int count=0;
 
     private class FrameHandler extends Handler {
         public static final int MSG_FRAME_AVAILABLE = 1;
@@ -194,33 +195,112 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         }
 
         if ((isRecording == true) || (isLiving == true)) {
-            if (videoSurface != null) {
-                videoSurface.makeCurrent();
+            Util.rotateMatrix(orientation, tmpMatrix);
 
-                Util.rotateMatrix(orientation, tmpMatrix);
-                GLES20.glViewport(0, 0, videoWidth, videoHeight);
-                fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                videoManager.reFrame();
-                videoSurface.setPresentationTime(cameraTexture.getTimestamp());
-                videoSurface.swapBuffers();
+            if (recordSpeed == RecordSpeed.PAUSE){
+                return;
             }
+            if (recordSpeed == RecordSpeed.NORMAL) {
+                if (videoSurface != null) {
+                    videoSurface.makeCurrent();
 
-            if (videoSurface1 != null) {
-                videoSurface1.makeCurrent();
-                GLES20.glViewport(0, 0, videoWidth1, videoHeight1);
-                fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                videoManager1.reFrame();
-                videoSurface1.setPresentationTime(cameraTexture.getTimestamp());
-                videoSurface1.swapBuffers();
-            }
+                    GLES20.glViewport(0, 0, videoWidth, videoHeight);
+                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
+                    videoManager.reFrame();
+                    videoSurface.swapBuffers();
+                }
 
-            if (videoSurface2 != null) {
-                videoSurface2.makeCurrent();
-                GLES20.glViewport(0, 0, videoWidth2, videoHeight2);
-                fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                videoManager2.reFrame();
-                videoSurface2.setPresentationTime(cameraTexture.getTimestamp());
-                videoSurface2.swapBuffers();
+                if (videoSurface1 != null) {
+                    videoSurface1.makeCurrent();
+
+                    GLES20.glViewport(0, 0, videoWidth1, videoHeight1);
+                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
+                    videoManager1.reFrame();
+                    videoSurface1.swapBuffers();
+                }
+
+                if (videoSurface2 != null) {
+                    videoSurface2.makeCurrent();
+
+                    GLES20.glViewport(0, 0, videoWidth2, videoHeight2);
+                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
+                    videoManager2.reFrame();
+                    videoSurface2.swapBuffers();
+                }
+            } else if (recordSpeed == RecordSpeed.SLOW) {
+                if (videoSurface != null) {
+                    videoSurface.makeCurrent();
+
+                    GLES20.glViewport(0, 0, videoWidth, videoHeight);
+                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
+                    videoManager.reFrame();
+                    videoSurface.swapBuffers();
+
+                    videoSurface.makeCurrent();
+                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
+                    videoManager.reFrame();
+                    videoSurface.swapBuffers();
+                }
+
+                if (videoSurface1 != null) {
+                    videoSurface1.makeCurrent();
+
+                    GLES20.glViewport(0, 0, videoWidth1, videoHeight1);
+                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
+                    videoManager1.reFrame();
+                    videoSurface1.swapBuffers();
+
+                    videoSurface1.makeCurrent();
+                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
+                    videoManager1.reFrame();
+                    videoSurface1.swapBuffers();
+                }
+
+                if (videoSurface2 != null) {
+                    videoSurface2.makeCurrent();
+
+                    GLES20.glViewport(0, 0, videoWidth2, videoHeight2);
+                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
+                    videoManager2.reFrame();
+                    videoSurface2.swapBuffers();
+
+                    videoSurface2.makeCurrent();
+                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
+                    videoManager2.reFrame();
+                    videoSurface2.swapBuffers();
+                }
+            } else if (recordSpeed == RecordSpeed.FAST) {
+                if (count == 0 ) {
+                    if (videoSurface != null) {
+                        videoSurface.makeCurrent();
+
+                        GLES20.glViewport(0, 0, videoWidth, videoHeight);
+                        fullFrameBlit.drawFrame(textureId, tmpMatrix);
+                        videoManager.reFrame();
+                        videoSurface.swapBuffers();
+                    }
+
+                    if (videoSurface1 != null) {
+                        videoSurface1.makeCurrent();
+
+                        GLES20.glViewport(0, 0, videoWidth1, videoHeight1);
+                        fullFrameBlit.drawFrame(textureId, tmpMatrix);
+                        videoManager1.reFrame();
+                        videoSurface1.swapBuffers();
+                    }
+
+                    if (videoSurface2 != null) {
+                        videoSurface2.makeCurrent();
+
+                        GLES20.glViewport(0, 0, videoWidth2, videoHeight2);
+                        fullFrameBlit.drawFrame(textureId, tmpMatrix);
+                        videoManager2.reFrame();
+                        videoSurface2.swapBuffers();
+                    }
+                    count = 1;
+                } else {
+                    count = 0;
+                }
             }
         }
     }
@@ -269,7 +349,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         public void onConfigured(@NonNull CameraCaptureSession session) {
             cameraCaptureSession = session;
 
-            speedRecord(recordSpeed);
+            //speedRecord(recordSpeed);
             captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
 
             try {
@@ -486,9 +566,13 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_LIVE : {
                         live((MessageObject.LiveObject) msg.obj);
+
+                        return true;
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_CONVERT_FORMAT : {
                         convertArchiveFormat((MessageObject.TransformObject) msg.obj);
+
+                        return true;
                     }
                 }
                 return false;
@@ -656,6 +740,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
 
             isRecording = false;
+            recordSpeed = RecordSpeed.NORMAL;
         }
 
         inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.InferenceMessage.MSG_INFERENCE_SETRECORD, 0, isRecord));
@@ -833,40 +918,53 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     }
 
     private void speedRecord(RecordSpeed recordSpeed) {
+        this.recordSpeed = recordSpeed;
+
         Handler videoHandler = videoManager.getHandler();
+        Handler videoHandler1 = videoManager1.getHandler();
+        Handler videoHandler2 = videoManager2.getHandler();
+
         Handler audioHandler = audioManager.getHandler();
         Handler inferenceHandler = inferenceManager.getHandler();
 
         if ((videoHandler != null) && (audioHandler != null)) {
             if (recordSpeed == RecordSpeed.PAUSE) {
                 videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+                videoHandler1.sendMessage(videoHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+                videoHandler2.sendMessage(videoHandler2.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+
                 inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.InferenceMessage.MSG_INFERENCE_SETPAUSE, 0, recordSpeed));
 
                 return;
             } else if (recordSpeed == RecordSpeed.RESUME) {
                 videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+                videoHandler1.sendMessage(videoHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+                videoHandler2.sendMessage(videoHandler2.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+
                 inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.InferenceMessage.MSG_INFERENCE_SETPAUSE, 0, recordSpeed));
 
                 return;
             } else if (recordSpeed == RecordSpeed.SLOW) {
-                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(Constant.Camera.SLOW_FPS, Constant.Camera.SLOW_FPS));
+                //captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(Constant.Camera.NORMAL_FPS, Constant.Camera.NORMAL_FPS));
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_SLOW, 0, null));
             } else if (recordSpeed == RecordSpeed.NORMAL) {
-                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(Constant.Camera.NORMAL_FPS, Constant.Camera.NORMAL_FPS));
+                //captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(Constant.Camera.NORMAL_FPS, Constant.Camera.NORMAL_FPS));
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_NORMAL, 0, null));
             } else if (recordSpeed == RecordSpeed.FAST) {
-                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(Constant.Camera.FAST_FPS, Constant.Camera.FAST_FPS));
+                //captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(Constant.Camera.NORMAL_FPS, Constant.Camera.NORMAL_FPS));
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_FAST, 0, null));
             }
 
-            try {
-                cameraCaptureSession.stopRepeating();
-                cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
-            } catch (CameraAccessException ce) {
-                ce.printStackTrace();
-            }
+//            try {
+//                cameraCaptureSession.stopRepeating();
+//                cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
+//            } catch (CameraAccessException ce) {
+//                ce.printStackTrace();
+//            }
         }
     }
 
