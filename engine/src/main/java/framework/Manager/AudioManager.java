@@ -232,7 +232,7 @@ public class AudioManager extends HandlerThread {
     private class AudioThread extends Thread {
         private final int CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO;
         private final int AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
-        private static final int SAMPLES_PER_FRAME = 2048;
+        private static final int SAMPLES_PER_FRAME = 4096;
 
         private AudioRecord audioRecord;
 

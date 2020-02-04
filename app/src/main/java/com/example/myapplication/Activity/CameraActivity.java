@@ -29,6 +29,7 @@ import framework.Enum.LensFacing;
 import framework.Enum.Mode;
 import framework.Enum.RecordSpeed;
 import framework.Enum.TouchType;
+import framework.Util.Util;
 
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.auth.BasicSessionCredentials;
@@ -42,6 +43,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.S3ClientOptions;
 import com.example.myapplication.R;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class CameraActivity extends AppCompatActivity {
@@ -58,6 +60,7 @@ public class CameraActivity extends AppCompatActivity {
     private Button dark;
     private Button filter;
     private Button mode;
+    private Button convert;
 
     private RadioGroup radioGroup;
     private RadioGroup radioGroup2;
@@ -73,8 +76,8 @@ public class CameraActivity extends AppCompatActivity {
 
     private EngineObserver engineObserver = new EngineObserver() {
         @Override
-        public void onCompleteVODFile(String vodPath) {
-            Log.e("VOD file", vodPath);
+        public void onCompleteVODFile(ArrayList<String> output) {
+            Log.e("VOD file", output.toString());
         }
 
         @Override
@@ -127,6 +130,7 @@ public class CameraActivity extends AppCompatActivity {
         live = findViewById(R.id.liveBtn);
         filter = findViewById(R.id.filterBtn);
         mode = findViewById(R.id.modeBtn);
+        convert = findViewById(R.id.convertBtn);
 
         CompoundButton.OnCheckedChangeListener checkListener = new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -243,6 +247,8 @@ public class CameraActivity extends AppCompatActivity {
                     engine.exposure(Exposure.BRIGHT);
                 } else if (v == dark) {
                     engine.exposure(Exposure.DARK);
+                } else if (v == convert) {
+                    engine.convertArchiveFormatToLiveFormat("20200203_172645.mp4", Util.getOutputHLSDir().getPath());
                 } else if (v == filter) {
                     PopupMenu popupMenu = new PopupMenu(CameraActivity.this, filter);
                     popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
@@ -357,6 +363,7 @@ public class CameraActivity extends AppCompatActivity {
         dark.setOnClickListener(clickListener);
         filter.setOnClickListener(clickListener);
         mode.setOnClickListener(clickListener);
+        convert.setOnClickListener(clickListener);
     }
 
     @Override

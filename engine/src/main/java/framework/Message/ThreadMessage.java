@@ -15,6 +15,7 @@ public class ThreadMessage {
         public static final int MSG_ENGINE_SPEED_RECORD = 10;
         public static final int MSG_ENGINE_MODE = 11;
         public static final int MSG_ENGINE_LIVE = 12;
+        public static final int MSG_ENGINE_CONVERT_FORMAT = 13;
     }
 
     public class InferenceMessage {
@@ -41,5 +42,6 @@ public class ThreadMessage {
         public static final int MSG_MUX_LIVE_START = 1;
         public static final int MSG_MUX_VIDEO_END = 2;
         public static final int MSG_MUX_AUDIO_END = 3;
+        public static final int MSG_MUX_CONVERT_FORMAT = 4;
     }
 }

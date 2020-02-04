@@ -198,15 +198,29 @@ public class Util {
         return data;
     }
 
-    public static File getOutputVODFile() {
+    public static File getOutputVODFolder(String folder) {
         File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
-                "CubiDir" + File.separator + "VOD");
+                "CubiDir" + File.separator + "VOD" + folder);
 
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
                 return null;
             }
         }
+
+        return mediaStorageDir;
+    }
+
+    public static File getOutputVODFile(String folder) {
+        File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
+                "CubiDir" + File.separator + "VOD" + folder);
+
+        if (!mediaStorageDir.exists()) {
+            if (!mediaStorageDir.mkdirs()) {
+                return null;
+            }
+        }
+
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss",
                 Locale.getDefault()).format(new Date());
         File mediaFile;
@@ -220,6 +234,19 @@ public class Util {
     public static File getOutputLIVEDir() {
         File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
                 "CubiDir" + File.separator + "LIVE");
+
+        if (!mediaStorageDir.exists()) {
+            if (!mediaStorageDir.mkdirs()) {
+                return null;
+            }
+        }
+
+        return mediaStorageDir;
+    }
+
+    public static File getOutputHLSDir() {
+        File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
+                "CubiDir" + File.separator + "HLS");
 
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {

@@ -3,9 +3,12 @@ package framework.Engine;
 import android.content.Context;
 import android.graphics.PointF;
 import android.os.Handler;
+import android.os.Message;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
+
+import java.io.File;
 
 import framework.Enum.Exposure;
 import framework.Enum.Filter;
@@ -272,6 +275,18 @@ public class CameraEngine {
         if (cameraHandler != null) {
             MessageObject.LiveObject liveObject = new MessageObject.LiveObject(isStart, liveStreamingData);
             cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_LIVE, 0, liveObject));
+        }
+    }
+
+    /**
+     * convert VOD file to HLS format
+     * @param srcFile VOD file name
+     * @param dstPath destination of HLS file
+     */
+    public void convertArchiveFormatToLiveFormat(String srcFile, String dstPath) {
+        if (cameraHandler != null) {
+            MessageObject.TransformObject transformObject = new MessageObject.TransformObject(srcFile, dstPath);
+            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_CONVERT_FORMAT, 0, transformObject));
         }
     }
 

@@ -30,7 +30,7 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.appcompat:appcompat:1.1.0'
-    implementation 'com.arthenica:mobile-ffmpeg-full-gpl:4.3'
+    implementation 'com.arthenica:mobile-ffmpeg-min:4.3.1'
     implementation 'org.tensorflow:tensorflow-lite:0.0.0-nightly'
     implementation 'com.quickbirdstudios:opencv:3.4.5'
     testImplementation 'junit:junit:4.12'

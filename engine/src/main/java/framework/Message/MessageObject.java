@@ -119,4 +119,22 @@ public class MessageObject {
             return orientation;
         }
     }
+
+    public static class TransformObject {
+        private final String srcFileName;
+        private final String dstPath;
+
+        public TransformObject(String srcFileName, String dstPath) {
+            this.srcFileName = srcFileName;
+            this.dstPath = dstPath;
+        }
+
+        public String getSrcFileName() {
+            return srcFileName;
+        }
+
+        public String getDstPath() {
+            return dstPath;
+        }
+    }
 }
