@@ -18,6 +18,7 @@ import java.nio.Buffer;
 import framework.Engine.EngineObserver;
 import framework.Enum.Mode;
 import framework.Enum.RecordSpeed;
+import framework.Enum.RecordState;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
 import framework.ObjectDetection.BoxDrawer;
@@ -77,7 +78,6 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
 
     private boolean isImageProc = false;
 
-    private RecordSpeed recordSpeed = RecordSpeed.RESUME;
     private Mode mode = Mode.TRAVEL;
 
     public InferenceManager(Context context, InferenceOverlayView inferenceOverlayView, EngineObserver engineObserver) {
@@ -125,7 +125,11 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                         return true;
                     }
                     case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETRECORD : {
-                        isRecord = (boolean) msg.obj;
+                        if ( msg.obj == RecordState.START || msg.obj == RecordState.RESUME) {
+                            isRecord = true;
+                        } else {
+                            isRecord = false;
+                        }
 
                         if (isRecord == false) {
                             engineObserver.onCompleteLabelFile(jsonResult.createJSONFile());
@@ -152,9 +156,6 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                         }
 
                         return true;
-                    }
-                    case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETPAUSE : {
-                        recordSpeed = ((RecordSpeed) msg.obj);
                     }
                 }
                 return false;
@@ -240,7 +241,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                 }
             }
 
-            if ((isRecord == true) && (recordSpeed == RecordSpeed.RESUME) && (mode != Mode.LIVE)) {
+            if ((isRecord == true) && (mode != Mode.LIVE)) {
                 // SceneDetection
                 if (isSDDone == true) {
                     if ((sceneDetectionThread == null) && (jsonResult == null)) {

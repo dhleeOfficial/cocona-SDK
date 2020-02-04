@@ -15,6 +15,7 @@ import framework.Enum.Filter;
 import framework.Enum.LensFacing;
 import framework.Enum.Mode;
 import framework.Enum.RecordSpeed;
+import framework.Enum.RecordState;
 import framework.Enum.TouchType;
 import framework.Manager.CameraDeviceManager;
 import framework.Message.MessageObject;
@@ -185,9 +186,9 @@ public class CameraEngine {
      * Start or stop recording function
      * @param isRecord record start : true / record stop : false
      */
-    public void record(boolean isRecord) {
+    public void record(RecordState recordState) {
         if (cameraHandler != null) {
-            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_RECORD, 0, isRecord));
+            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_RECORD, 0, recordState));
         }
     }
 

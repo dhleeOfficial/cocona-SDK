@@ -409,12 +409,10 @@ public class AudioManager extends HandlerThread {
                         final MuxData data = muxList.take();
 
                         if (data != null) {
-//                            if (isPause == false) {
-                                if (data.getBuffer() != null) {
-                                    bufferedOutputStream.write(data.getBuffer());
-                                    bufferedOutputStream.flush();
-                                }
-//                            }
+                            if (data.getBuffer() != null) {
+                                bufferedOutputStream.write(data.getBuffer());
+                                bufferedOutputStream.flush();
+                            }
                         }
                         if (data.getIsEOS() == true) {
                             muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_AUDIO_END, 0,null));

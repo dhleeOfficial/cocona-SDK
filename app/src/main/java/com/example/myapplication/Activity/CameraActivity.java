@@ -28,6 +28,7 @@ import framework.Enum.Filter;
 import framework.Enum.LensFacing;
 import framework.Enum.Mode;
 import framework.Enum.RecordSpeed;
+import framework.Enum.RecordState;
 import framework.Enum.TouchType;
 import framework.Util.Util;
 
@@ -150,15 +151,15 @@ public class CameraActivity extends AppCompatActivity {
                                 radioGroup.setVisibility(View.VISIBLE);
                                 radioGroup2.setVisibility(View.VISIBLE);
                             }
+                            engine.record(RecordState.START);
                         } else {
                             radioGroup.check(R.id.normalBtn);
                             radioGroup.setVisibility(View.INVISIBLE);
 
                             radioGroup2.check(R.id.resumeBtn);
                             radioGroup2.setVisibility(View.INVISIBLE);
+                            engine.record(RecordState.STOP);
                         }
-
-                        engine.record(isChecked);
                     } else if (buttonView == live) {
                         if (isChecked == true) {
                             logins = new HashMap<String, String>();
@@ -224,9 +225,9 @@ public class CameraActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
                 if (checkedId == R.id.pauseBtn) {
-                    engine.recordSpeed(RecordSpeed.PAUSE);
+                    engine.record(RecordState.PAUSE);
                 } else if (checkedId == R.id.resumeBtn) {
-                    engine.recordSpeed(RecordSpeed.RESUME);
+                    engine.record(RecordState.RESUME);
                 }
             }
         };

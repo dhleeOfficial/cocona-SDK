@@ -4,7 +4,7 @@ package framework.Enum;
  * RecordSpeed Enum : SLOW, NORMAL, FAST, PAUSE, RESUME
  */
 public enum RecordSpeed {
-    SLOW(0), NORMAL(1), FAST(2), PAUSE(3), RESUME(4);
+    SLOW(0), NORMAL(1), FAST(2);
 
     private final int value;
 

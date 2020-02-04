@@ -46,6 +46,7 @@ import framework.Enum.Filter;
 import framework.Enum.LensFacing;
 import framework.Enum.Mode;
 import framework.Enum.RecordSpeed;
+import framework.Enum.RecordState;
 import framework.GLES.EglCore;
 import framework.GLES.FullFrameRect;
 import framework.GLES.Texture2dProgram;
@@ -197,9 +198,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         if ((isRecording == true) || (isLiving == true)) {
             Util.rotateMatrix(orientation, tmpMatrix);
 
-            if (recordSpeed == RecordSpeed.PAUSE){
-                return;
-            }
             if (recordSpeed == RecordSpeed.NORMAL) {
                 if (videoSurface != null) {
                     videoSurface.makeCurrent();
@@ -349,7 +347,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         public void onConfigured(@NonNull CameraCaptureSession session) {
             cameraCaptureSession = session;
 
-            //speedRecord(recordSpeed);
             captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
 
             try {
@@ -520,7 +517,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                         return true;
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_RECORD : {
-                        record((boolean) msg.obj);
+                        record((RecordState) msg.obj);
 
                         return true;
                     }
@@ -705,7 +702,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         initCamera(previewSize.getWidth(), previewSize.getHeight());
     }
 
-    private void record(boolean isRecord) {
+    private void record(RecordState recordState) {
         Handler audioHandler = audioManager.getHandler();
         Handler muxHandler = muxManager.getHandler();
         Handler videoHandler = videoManager.getHandler();
@@ -715,7 +712,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
         Handler inferenceHandler = inferenceManager.getHandler();
 
-        if (isRecord == true) {
+        if (recordState == RecordState.START) {
+
             muxManager.resetPipeList();
 
             MessageObject.VideoObject videoObj = new MessageObject.VideoObject(videoWidth, videoHeight, muxManager.requestPipe(), muxHandler);
@@ -731,7 +729,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, audioObj));
 
             muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_START, 0, this.mode));
-        } else {
+
+        } else if (recordState == RecordState.STOP) {
+
             videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
 
             videoHandler1.sendMessage(videoHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
@@ -741,9 +741,26 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
             isRecording = false;
             recordSpeed = RecordSpeed.NORMAL;
+
+        } else if (recordState == RecordState.PAUSE) {
+
+            videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+            videoHandler1.sendMessage(videoHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+            videoHandler2.sendMessage(videoHandler2.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+
+            audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+            isRecording = false;
+
+        } else if (recordState == RecordState.RESUME) {
+            videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+            videoHandler1.sendMessage(videoHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+            videoHandler2.sendMessage(videoHandler2.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+
+            audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+            isRecording = true;
         }
 
-        inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.InferenceMessage.MSG_INFERENCE_SETRECORD, 0, isRecord));
+        inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.InferenceMessage.MSG_INFERENCE_SETRECORD, 0, recordState));
     }
 
     private void zoom(float spacing) {
@@ -919,52 +936,16 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     private void speedRecord(RecordSpeed recordSpeed) {
         this.recordSpeed = recordSpeed;
-
-        Handler videoHandler = videoManager.getHandler();
-        Handler videoHandler1 = videoManager1.getHandler();
-        Handler videoHandler2 = videoManager2.getHandler();
-
         Handler audioHandler = audioManager.getHandler();
-        Handler inferenceHandler = inferenceManager.getHandler();
 
-        if ((videoHandler != null) && (audioHandler != null)) {
-            if (recordSpeed == RecordSpeed.PAUSE) {
-                videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
-                videoHandler1.sendMessage(videoHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
-                videoHandler2.sendMessage(videoHandler2.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
-
-                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
-
-                inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.InferenceMessage.MSG_INFERENCE_SETPAUSE, 0, recordSpeed));
-
-                return;
-            } else if (recordSpeed == RecordSpeed.RESUME) {
-                videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
-                videoHandler1.sendMessage(videoHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
-                videoHandler2.sendMessage(videoHandler2.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
-
-                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
-
-                inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.InferenceMessage.MSG_INFERENCE_SETPAUSE, 0, recordSpeed));
-
-                return;
-            } else if (recordSpeed == RecordSpeed.SLOW) {
-                //captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(Constant.Camera.NORMAL_FPS, Constant.Camera.NORMAL_FPS));
+        if (audioHandler != null) {
+            if (recordSpeed == RecordSpeed.SLOW) {
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_SLOW, 0, null));
             } else if (recordSpeed == RecordSpeed.NORMAL) {
-                //captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(Constant.Camera.NORMAL_FPS, Constant.Camera.NORMAL_FPS));
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_NORMAL, 0, null));
             } else if (recordSpeed == RecordSpeed.FAST) {
-                //captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range.create(Constant.Camera.NORMAL_FPS, Constant.Camera.NORMAL_FPS));
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_FAST, 0, null));
             }
-
-//            try {
-//                cameraCaptureSession.stopRepeating();
-//                cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
-//            } catch (CameraAccessException ce) {
-//                ce.printStackTrace();
-//            }
         }
     }
 
