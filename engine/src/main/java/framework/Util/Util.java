@@ -1,18 +1,15 @@
 package framework.Util;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.ImageFormat;
 import android.graphics.Matrix;
-import android.graphics.Rect;
-import android.graphics.YuvImage;
+
 import android.media.Image;
 import android.os.Environment;
 import android.util.Size;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
@@ -257,5 +254,32 @@ public class Util {
         } catch (final Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static File getMasterM3u8(String path) {
+        File file = new File(path+"/master.m3u8");
+        FileWriter fileWriter = null;
+
+        try {
+            fileWriter = new FileWriter(file);
+
+            fileWriter.write("#EXTM3U\n#EXT-X-VERSION:7\n\n");
+
+            fileWriter.write("#EXT-X-STREAM-INF:BANDWIDTH="+Constant.BitRate.FHD_BITRATE+",RESOLUTION=1080x1920\n");
+            fileWriter.write("1080/1920x1080.m3u8\n\n");
+
+            fileWriter.write("#EXT-X-STREAM-INF:BANDWIDTH="+Constant.BitRate.HD_BITRATE+",RESOLUTION=720x1280\n");
+            fileWriter.write("720/1280x720.m3u8\n\n");
+
+            fileWriter.write("#EXT-X-STREAM-INF:BANDWIDTH="+Constant.BitRate.SD_BITRATE+",RESOLUTION=480x854\n");
+            fileWriter.write("480/854x480.m3u8");
+
+            fileWriter.flush();
+            fileWriter.close();
+        } catch(IOException ie) {
+            ie.printStackTrace();
+        }
+
+        return file;
     }
 }

@@ -20,6 +20,7 @@ import framework.Enum.TouchType;
 import framework.Manager.CameraDeviceManager;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
+import framework.Util.Util;
 
 /**
  * Camera Engine class
@@ -129,6 +130,7 @@ public class CameraEngine {
     public void startEngine() {
         cameraDeviceManager = new CameraDeviceManager(context, relativeLayout, engineObserver);
         cameraDeviceManager.start();
+        framework.Util.Util.getMasterM3u8(framework.Util.Util.getOutputLIVEDir().getPath());
     }
 
     /**
@@ -184,7 +186,7 @@ public class CameraEngine {
 
     /**
      * Start or stop recording function
-     * @param isRecord record start : true / record stop : false
+     * @param //isRecord record start : true / record stop : false
      */
     public void record(RecordState recordState) {
         if (cameraHandler != null) {

@@ -8,10 +8,6 @@ public class Constant {
         public static final double EXPOSURE_DELTA = 0.1;
 
         public static final int AREA_FOCUS_SIZE = 200;
-
-        public static final int SLOW_FPS = 60;
-        public static final int NORMAL_FPS = 30;
-        public static final int FAST_FPS = 15;
     }
 
     public static class Resolution {
@@ -30,5 +26,11 @@ public class Constant {
         public static final String FHD = "1080";
         public static final String HD = "720";
         public static final String SD = "480";
+    }
+
+    public static class BitRate{
+        public static final int FHD_BITRATE = 6000*1024;
+        public static final int HD_BITRATE = 2500*1024;
+        public static final int SD_BITRATE = 1000*1024;
     }
 }
