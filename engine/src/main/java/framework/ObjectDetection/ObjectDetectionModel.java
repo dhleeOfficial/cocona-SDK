@@ -6,7 +6,6 @@ import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 import android.os.Trace;
-import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -24,6 +23,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.gpu.GpuDelegate;
 
 public class ObjectDetectionModel implements Classifier {
     private static final int NUM_DETECTIONS = 10;
@@ -82,7 +82,9 @@ public class ObjectDetectionModel implements Classifier {
             bufferedReader.close();
 
             objectDetectionModel.inputSize = inputSize;
-            objectDetectionModel.tfLite = new Interpreter(loadModelFile(assetManager, modelFileName));
+            GpuDelegate delegate = new GpuDelegate();
+            Interpreter.Options options = (new Interpreter.Options()).addDelegate(delegate);
+            objectDetectionModel.tfLite = new Interpreter(loadModelFile(assetManager, modelFileName),options);
             objectDetectionModel.isModelQuantized = isModelQuantized;
 
             int numBytesPerChannel = (isModelQuantized == true) ? 1 : 4;

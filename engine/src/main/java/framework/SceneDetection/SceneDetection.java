@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.util.Pair;
 
 import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.gpu.GpuDelegate;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -35,7 +36,9 @@ public class SceneDetection {
 
     public static void loadTFLite(Context context) {
         try {
-            tfLite = new Interpreter(loadModelFile(context, MODEL_FILE));
+            GpuDelegate delegate = new GpuDelegate();
+            Interpreter.Options options = (new Interpreter.Options()).addDelegate(delegate);
+            tfLite = new Interpreter(loadModelFile(context, MODEL_FILE), options);
         } catch (IOException ie) {
             ie.printStackTrace();
         }

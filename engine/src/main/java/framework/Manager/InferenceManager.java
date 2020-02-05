@@ -26,6 +26,7 @@ import framework.ObjectDetection.Classifier;
 import framework.ObjectDetection.ObjectDetectionModel;
 import framework.SceneDetection.JsonResult;
 import framework.SceneDetection.SceneData;
+import framework.SceneDetection.SceneDetection;
 import framework.Thread.AutoEditThread;
 import framework.Thread.ImageConvertThread;
 import framework.Thread.ObjectDetectionThread;
@@ -116,6 +117,9 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                         }
 
                         setUpOD((MessageObject.Box) msg.obj);
+
+                        SceneDetection.loadTFLite(context);
+                        SceneDetection.readLabels(context);
 
                         return true;
                     }
@@ -246,7 +250,6 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                 if (isSDDone == true) {
                     if ((sceneDetectionThread == null) && (jsonResult == null)) {
                         sceneDetectionThread = new SceneDetectionThread();
-                        sceneDetectionThread.loadModel(context);
                         sceneDetectionThread.setPreviewSize(previewSize);
                         sceneDetectionThread.setCallback(new SceneDetectionThread.Callback() {
                             @Override
