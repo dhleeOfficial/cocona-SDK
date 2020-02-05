@@ -23,6 +23,7 @@ public class ThreadMessage {
         public static final int MSG_INFERENCE_SETMODE = 1;
         public static final int MSG_INFERENCE_SETRECORD = 2;
         public static final int MSG_INFERENCE_SETLIVE = 3;
+        public static final int MSG_INFERENCE_SETSPEED = 4;
     }
 
     public class RecordMessage {

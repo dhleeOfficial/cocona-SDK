@@ -15,6 +15,7 @@ import androidx.annotation.NonNull;
 
 import java.nio.Buffer;
 
+import framework.AutoEdit.AutoEdit;
 import framework.Engine.EngineObserver;
 import framework.Enum.Mode;
 import framework.Enum.RecordSpeed;
@@ -80,6 +81,8 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
     private boolean isImageProc = false;
 
     private Mode mode = Mode.TRAVEL;
+    private RecordSpeed recordSpeed = RecordSpeed.NORMAL;
+
 
     public InferenceManager(Context context, InferenceOverlayView inferenceOverlayView, EngineObserver engineObserver) {
         super("InferenceManager");
@@ -118,6 +121,8 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
 
                         setUpOD((MessageObject.Box) msg.obj);
 
+
+                        AutoEdit.loadTFLite(context);
                         SceneDetection.loadTFLite(context);
                         SceneDetection.readLabels(context);
 
@@ -160,6 +165,10 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                         }
 
                         return true;
+                    }
+
+                    case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETSPEED : {
+                        recordSpeed = ((RecordSpeed) msg.obj);
                     }
                 }
                 return false;
@@ -284,6 +293,8 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                         thread.start();
 
                         isSDDone = false;
+                    } else {
+                        isImageProc = false;
                     }
                 }
                 // AutoEdit
@@ -333,7 +344,11 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
 
                         isTNDone = false;
                     }
+                } else {
+                    isImageProc = false;
                 }
+            } else {
+                isImageProc = false;
             }
         }
 
