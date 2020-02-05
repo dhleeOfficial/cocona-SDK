@@ -36,9 +36,7 @@ public class SceneDetection {
 
     public static void loadTFLite(Context context) {
         try {
-            GpuDelegate delegate = new GpuDelegate();
-            Interpreter.Options options = (new Interpreter.Options()).addDelegate(delegate);
-            tfLite = new Interpreter(loadModelFile(context, MODEL_FILE), options);
+            tfLite = new Interpreter(loadModelFile(context, MODEL_FILE));
         } catch (IOException ie) {
             ie.printStackTrace();
         }

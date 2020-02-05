@@ -82,9 +82,7 @@ public class ObjectDetectionModel implements Classifier {
             bufferedReader.close();
 
             objectDetectionModel.inputSize = inputSize;
-            GpuDelegate delegate = new GpuDelegate();
-            Interpreter.Options options = (new Interpreter.Options()).addDelegate(delegate);
-            objectDetectionModel.tfLite = new Interpreter(loadModelFile(assetManager, modelFileName),options);
+            objectDetectionModel.tfLite = new Interpreter(loadModelFile(assetManager, modelFileName));
             objectDetectionModel.isModelQuantized = isModelQuantized;
 
             int numBytesPerChannel = (isModelQuantized == true) ? 1 : 4;

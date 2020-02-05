@@ -11,6 +11,7 @@ import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 
 import java.io.File;
 import java.util.concurrent.BlockingQueue;
@@ -22,12 +23,12 @@ import framework.Engine.LiveStreamingData;
 public class LiveFileObserver extends FileObserver {
     private static final int mask = (FileObserver.CREATE | FileObserver.MODIFY | FileObserver.CLOSE_WRITE);
 
-    private Context context;
     private File observerFile;
+    private String parseKey;
     private EngineObserver engineObserver;
 
     private String observerPath;
-    private String writeDonePath = "thumbnail.jpeg";
+    private String writeDonePath;
 
     private TransferUtility transferUtility = null;
     private String bucketName;
@@ -37,9 +38,8 @@ public class LiveFileObserver extends FileObserver {
     private BlockingQueue<String> fileList = new LinkedBlockingDeque<String>();
     private boolean signalClose = false;
 
-    public LiveFileObserver(Context context, File file, LiveStreamingData liveStreamingData, EngineObserver engineObserver) {
+    public LiveFileObserver(File file, String parseKey, LiveStreamingData liveStreamingData, EngineObserver engineObserver) {
         super(file.getPath(), mask);
-        this.context = context;
 
         if (liveStreamingData != null) {
             this.transferUtility = liveStreamingData.getTransferUtility();
@@ -47,7 +47,9 @@ public class LiveFileObserver extends FileObserver {
             this.fileKey = processFileKey(liveStreamingData.getUploadKey());
         }
 
+        this.parseKey = parseKey;
         this.engineObserver = engineObserver;
+
 
         String tempPath = file.getPath();
         if (!tempPath.endsWith(File.separator)) {
@@ -62,16 +64,19 @@ public class LiveFileObserver extends FileObserver {
         uploadFileManager.start();
     }
 
+    private boolean skip = false;
+
     @Override
     public void onEvent(int event, @Nullable String path) {
         switch (event) {
             case FileObserver.CREATE : {
                 if (writeDonePath != path) {
-                    String replace = writeDonePath.replace(".tmp", "");
+                    String replace;
 
-                    Log.e("CREATE", path);
-                    fileList.add(replace);
-
+                    if (writeDonePath != null) {
+                        replace = writeDonePath.replace(".tmp", "");
+                        fileList.add(replace);
+                    }
                     writeDonePath = path;
                 }
             }
@@ -157,9 +162,15 @@ public class LiveFileObserver extends FileObserver {
 
             if (file != null) {
                 if (transferUtility != null) {
-                    final TransferObserver observer = transferUtility.upload(bucketName, fileKey + "/" + file.getName(), file);
+                    TransferObserver transferObserver;
 
-                    observer.setTransferListener(new TransferListener() {
+                    if (parseKey != null) {
+                        transferObserver = transferUtility.upload(bucketName, fileKey + "/" + parseKey + "/" + file.getName(), file, CannedAccessControlList.PublicRead);
+                    } else {
+                        transferObserver = transferUtility.upload(bucketName, fileKey + "/" + file.getName(), file, CannedAccessControlList.PublicRead);
+                    }
+
+                    transferObserver.setTransferListener(new TransferListener() {
                         @Override
                         public void onStateChanged(int id, TransferState state) {
                             if (TransferState.COMPLETED == state) {

@@ -28,9 +28,13 @@ public class Constant {
         public static final String SD = "480";
     }
 
-    public static class BitRate{
-        public static final int FHD_BITRATE = 6000*1024;
-        public static final int HD_BITRATE = 2500*1024;
-        public static final int SD_BITRATE = 1000*1024;
+    public static class BitRate {
+        public static final int FHD_BITRATE = 6000 * 1024;
+        public static final int HD_BITRATE = 2500 * 1024;
+        public static final int SD_BITRATE = 1000 * 1024;
+    }
+
+    public static class Live {
+        public static final String THUMBNAIL_FILE = "thumbnail.jpeg";
     }
 }

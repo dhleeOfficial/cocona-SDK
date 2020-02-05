@@ -43,7 +43,11 @@ public class MuxManager extends HandlerThread {
     private int AUDIO_STATUS = 0;
 
     private FFMPEGThread ffmpeg;
+
     private LiveFileObserver liveFileObserver;
+    private LiveFileObserver liveFileObserver1;
+    private LiveFileObserver liveFileObserver2;
+    private LiveFileObserver liveFileObserver3;
 
     // VOD FFMPEG COMMAND SET
     private final String INPUT_VIDEO_OPT = "-thread_queue_size 1024";
@@ -52,15 +56,15 @@ public class MuxManager extends HandlerThread {
     private final String INPUT_AUDIO = " -f aac -i ";
     private final String OUTPUT = " -muxdelay 0 -vsync 1 -max_muxing_queue_size 9999 -c copy -f mp4 ";
 
-    // LIVE FFMPEG COMMAND SET
-    private final String INPUT_LIVE_VIDEO_OPT = "-thread_queue_size 1024";
-    private final String INPUT_LIVE_VIDEO = " -f h264 -r 24 -i ";
-    private final String INPUT_LIVE_AUDIO_OPT = " -thread_queue_size 2048";
-    private final String INPUT_LIVE_AUDIO = " -f aac -i ";
-    private final String MAP_LIVE_COMMAND = " -map 0:v -map 3:a -map 1:v -map 3:a -map 2:v -map 3:a -b:v:0 5000k -b:v:1 2000k -b:v:2 1500k -var_stream_map \"v:0,a:0 v:1,a:1 v:2,a:2\"";
-    private final String MUXING_LIVE_OPT = " -muxdelay 0 -max_muxing_queue_size 9999 -flags +cgop -vsync 1 -shortest -g 24 -c copy -bsf:a aac_adtstoasc -f hls -hls_list_size 0 -hls_time 2 -hls_flags " +
-            "independent_segments+omit_endlist -hls_allow_cache 0 -hls_segment_type fmp4 -movflags frag_keyframe+faststart -master_pl_publish_rate 999999999 -master_pl_name master.m3u8 -hls_fmp4_init_filename init.mp4 " +
-            "-hls_segment_filename " + Util.getOutputLIVEDir().getPath() + "/sec%v_%d.mp4 " + Util.getOutputLIVEDir().getPath() + "/sec%v.m3u8";
+    // LIVE TEST
+    private final String INV = "-thread_queue_size 1024 -f h264 -r 24 -i ";
+    private final String INA = " -thread_queue_size 2048 -f aac -i ";
+    private final String VIDEO1080 = " -map 0:v -map 3:a -b:v:0 6000k -muxdelay 0 -flags +cgop -shortest -g 24 -c copy -bsf:a aac_adtstoasc -f hls -hls_list_size 0 -hls_time 5 -hls_allow_cache 1" +
+            " -hls_segment_type fmp4 -movflags faststart -master_pl_publish_rate 999999999 -hls_fmp4_init_filename 1920x1080_init.mp4 -hls_segment_filename " + Util.getOutputLiveDirByResolution(Constant.Resolution.FHD) + "/1920x1080_%d.mp4 " + Util.getOutputLiveDirByResolution(Constant.Resolution.FHD) + "/1920x1080.m3u8";
+    private final String VIDEO720 = " -map 1:v -map 3:a -b:v:1 2500k -muxdelay 0 -flags +cgop -shortest -g 24 -c copy -bsf:a aac_adtstoasc -f hls -hls_list_size 0 -hls_time 5 -hls_allow_cache 1" +
+            " -hls_segment_type fmp4 -movflags faststart -master_pl_publish_rate 999999999 -hls_fmp4_init_filename 1280x720_init.mp4 -hls_segment_filename " + Util.getOutputLiveDirByResolution(Constant.Resolution.HD) + "/1280x720_%d.mp4 " + Util.getOutputLiveDirByResolution(Constant.Resolution.HD) + "/1280x720.m3u8";
+    private final String VIDEO480 = " -map 2:v -map 3:a -b:v:2 1000k -muxdelay 0 -flags +cgop -shortest -g 24 -c copy -bsf:a aac_adtstoasc -f hls -hls_list_size 0 -hls_time 5 -hls_allow_cache 1" +
+            " -hls_segment_type fmp4 -movflags faststart -master_pl_publish_rate 999999999 -hls_fmp4_init_filename 854x480_init.mp4 -hls_segment_filename " + Util.getOutputLiveDirByResolution(Constant.Resolution.SD) + "/854x480_%d.mp4 " + Util.getOutputLiveDirByResolution(Constant.Resolution.SD) + "/854x480.m3u8";
 
     // CONVERT HLS FORMAT FROM VOD FILE
     private final String SET_LOGLEVEL = "-loglevel warning -y";
@@ -180,10 +184,8 @@ public class MuxManager extends HandlerThread {
         processPipeStatusExecute();
         isConvert = false;
 
-        if (liveFileObserver == null) {
-            liveFileObserver = new LiveFileObserver(context, Util.getOutputLIVEDir(), liveObject.getLiveStreamingData(), engineObserver);
-            liveFileObserver.startWatching();
-        }
+        initLiveFileObserver(liveObject);
+        Util.getMasterM3u8(Util.getOutputLiveDir().getPath());
 
         if (ffmpeg != null) {
             ffmpeg = null;
@@ -220,6 +222,21 @@ public class MuxManager extends HandlerThread {
                 liveFileObserver = null;
             }
 
+            if (liveFileObserver1 != null) {
+                liveFileObserver1.close();
+                liveFileObserver1 = null;
+            }
+
+            if (liveFileObserver2 != null) {
+                liveFileObserver2.close();
+                liveFileObserver2 = null;
+            }
+
+            if (liveFileObserver2 != null) {
+                liveFileObserver2.close();
+                liveFileObserver2 = null;
+            }
+
             pipeList.clear();
         }
     }
@@ -243,6 +260,28 @@ public class MuxManager extends HandlerThread {
         if (ffmpeg == null) {
             ffmpeg = new FFMPEGThread();
             ffmpeg.start();
+        }
+    }
+
+    private void initLiveFileObserver(MessageObject.LiveObject liveObject) {
+        if (liveFileObserver == null) {
+            liveFileObserver = new LiveFileObserver(Util.getOutputLiveDir(), null, liveObject.getLiveStreamingData(), engineObserver);
+            liveFileObserver.startWatching();
+        }
+
+        if (liveFileObserver1 == null) {
+            liveFileObserver1 = new LiveFileObserver(Util.getOutputLiveDirByResolution(Constant.Resolution.FHD), Constant.Resolution.FHD, liveObject.getLiveStreamingData(), engineObserver);
+            liveFileObserver1.startWatching();
+        }
+
+        if (liveFileObserver2 == null) {
+            liveFileObserver2 = new LiveFileObserver(Util.getOutputLiveDirByResolution(Constant.Resolution.HD), Constant.Resolution.HD, liveObject.getLiveStreamingData(), engineObserver);
+            liveFileObserver2.startWatching();
+        }
+
+        if (liveFileObserver3 == null) {
+            liveFileObserver3 = new LiveFileObserver(Util.getOutputLiveDirByResolution(Constant.Resolution.SD), Constant.Resolution.SD, liveObject.getLiveStreamingData(), engineObserver);
+            liveFileObserver3.startWatching();
         }
     }
 
@@ -292,8 +331,7 @@ public class MuxManager extends HandlerThread {
 
                     FFmpeg.execute(command);
                 } else {
-                    command = INPUT_LIVE_VIDEO_OPT + INPUT_LIVE_VIDEO + pipeList.get(0) + " " + INPUT_LIVE_VIDEO_OPT + INPUT_LIVE_VIDEO + pipeList.get(1) + " " + INPUT_LIVE_VIDEO_OPT + INPUT_LIVE_VIDEO + pipeList.get(2) + INPUT_LIVE_AUDIO_OPT +
-                            INPUT_LIVE_AUDIO + pipeList.get(3) + MAP_LIVE_COMMAND + MUXING_LIVE_OPT;
+                    command = INV + pipeList.get(0) + " " + INV + pipeList.get(1) + " " + INV + pipeList.get(2) + INA + pipeList.get(3) + VIDEO1080 + VIDEO720 + VIDEO480;
 
                     FFmpeg.execute(command);
                 }

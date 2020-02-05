@@ -161,9 +161,22 @@ public class Util {
         return mediaFile;
     }
 
-    public static File getOutputLIVEDir() {
+    public static File getOutputLiveDir() {
         File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
                 "CubiDir" + File.separator + "LIVE");
+
+        if (!mediaStorageDir.exists()) {
+            if (!mediaStorageDir.mkdirs()) {
+                return null;
+            }
+        }
+
+        return mediaStorageDir;
+    }
+
+    public static File getOutputLiveDirByResolution(String resolution) {
+        File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
+                "CubiDir" + File.separator + "LIVE" + File.separator + resolution);
 
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {

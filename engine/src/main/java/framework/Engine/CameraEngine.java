@@ -3,12 +3,9 @@ package framework.Engine;
 import android.content.Context;
 import android.graphics.PointF;
 import android.os.Handler;
-import android.os.Message;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
-
-import java.io.File;
 
 import framework.Enum.Exposure;
 import framework.Enum.Filter;
@@ -20,7 +17,6 @@ import framework.Enum.TouchType;
 import framework.Manager.CameraDeviceManager;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
-import framework.Util.Util;
 
 /**
  * Camera Engine class
@@ -130,7 +126,6 @@ public class CameraEngine {
     public void startEngine() {
         cameraDeviceManager = new CameraDeviceManager(context, relativeLayout, engineObserver);
         cameraDeviceManager.start();
-        framework.Util.Util.getMasterM3u8(framework.Util.Util.getOutputLIVEDir().getPath());
     }
 
     /**
@@ -185,8 +180,8 @@ public class CameraEngine {
     }
 
     /**
-     * Start or stop recording function
-     * @param //isRecord record start : true / record stop : false
+     * Start or stop, pause, resume record function
+     * @param recordState start : RecordState::START / stop : RecordState::STOP / pause : RecordState::PAUSE / resume : RecordState::RESUME
      */
     public void record(RecordState recordState) {
         if (cameraHandler != null) {

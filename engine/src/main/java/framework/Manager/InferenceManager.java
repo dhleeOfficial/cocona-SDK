@@ -121,7 +121,6 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
 
                         setUpOD((MessageObject.Box) msg.obj);
 
-
                         AutoEdit.loadTFLite(context);
                         SceneDetection.loadTFLite(context);
                         SceneDetection.readLabels(context);
@@ -166,7 +165,6 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
 
                         return true;
                     }
-
                     case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETSPEED : {
                         recordSpeed = ((RecordSpeed) msg.obj);
                     }

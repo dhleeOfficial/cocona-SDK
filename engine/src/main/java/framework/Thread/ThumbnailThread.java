@@ -5,6 +5,8 @@ import android.graphics.Matrix;
 import android.util.Size;
 
 import java.io.File;
+
+import framework.Util.Constant;
 import framework.Util.Util;
 
 public class ThumbnailThread implements Runnable {
@@ -21,7 +23,7 @@ public class ThumbnailThread implements Runnable {
         void onThumbnailDone();
     }
 
-    final File file = new File(Util.getOutputLIVEDir().getPath(),"thumbnail.jpeg");
+    final File file = new File(Util.getOutputLiveDir().getPath(), Constant.Live.THUMBNAIL_FILE);
 
     public void setData(int orientation, Size previewSize, int[] rgbBytes) {
         this.orientation = orientation;
