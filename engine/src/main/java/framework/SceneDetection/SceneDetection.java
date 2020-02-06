@@ -6,7 +6,7 @@ import android.graphics.Bitmap;
 import android.util.Pair;
 
 import org.tensorflow.lite.Interpreter;
-import org.tensorflow.lite.gpu.GpuDelegate;
+//import org.tensorflow.lite.gpu.GpuDelegate;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -19,24 +19,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Vector;
 
+import framework.Util.Constant;
+
 public class SceneDetection {
-    private static String LABELS_FILE = "labels.txt";
-    private static final String MODEL_FILE = "scene.tflite";
-    private static final float MINIMUM_CONFIDENCE = 0.5f;
-    private static int INPUT_SIZE = 224;
 
     private static Interpreter tfLite;
     private static String[] labels;
 
     private static Bitmap cropBitmap;
-    private static float [][][][] inputValues = new float[1][INPUT_SIZE][INPUT_SIZE][3];
+    private static float [][][][] inputValues = new float[1][Constant.Inference.SCENE_INPUT_SIZE][Constant.Inference.SCENE_INPUT_SIZE][3];
 
     public SceneDetection () {
     }
 
     public static void loadTFLite(Context context) {
         try {
-            tfLite = new Interpreter(loadModelFile(context, MODEL_FILE));
+            tfLite = new Interpreter(loadModelFile(context, Constant.Inference.SCENE_MODEL_FILE));
         } catch (IOException ie) {
             ie.printStackTrace();
         }
@@ -55,7 +53,7 @@ public class SceneDetection {
 
     public static void readLabels(Context context) {
         try {
-            InputStream labelsInput = context.getAssets().open(LABELS_FILE);
+            InputStream labelsInput = context.getAssets().open(Constant.Inference.SCENE_LABELS_FILE);
             BufferedReader br = new BufferedReader(new InputStreamReader(labelsInput));
             String line;
             Vector<String> lines = new Vector<String>();
@@ -77,7 +75,7 @@ public class SceneDetection {
         tfLite.run(inputValues, outputValues);
         ArrayList<Pair<String, Float>> results = new ArrayList<>();
         for (int i=0;i<labels.length;i++) {
-            if (outputValues[0][i] > MINIMUM_CONFIDENCE) {
+            if (outputValues[0][i] > Constant.Inference.MIN_CONFIDENCE) {
                 results.add(new Pair<String, Float>(labels[i],outputValues[0][i]));
             }
         }
@@ -86,18 +84,18 @@ public class SceneDetection {
 
     private static void convertImage(Bitmap bitmap) {
 
-        cropBitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true);
+        cropBitmap = Bitmap.createScaledBitmap(bitmap, Constant.Inference.SCENE_INPUT_SIZE, Constant.Inference.SCENE_INPUT_SIZE, true);
 
-        int[] intValues = new int[INPUT_SIZE * INPUT_SIZE];
+        int[] intValues = new int[Constant.Inference.SCENE_INPUT_SIZE * Constant.Inference.SCENE_INPUT_SIZE];
 
         int width = cropBitmap.getWidth();
         int height = cropBitmap.getHeight();
 
         cropBitmap.getPixels(intValues, 0, width, 0, 0, width, height);
 
-        for (int i = 0; i < INPUT_SIZE; ++i) {
-            for (int j = 0; j < INPUT_SIZE; ++j) {
-                int pixelValue = intValues[i * INPUT_SIZE + j];
+        for (int i = 0; i < Constant.Inference.SCENE_INPUT_SIZE; ++i) {
+            for (int j = 0; j < Constant.Inference.SCENE_INPUT_SIZE; ++j) {
+                int pixelValue = intValues[i * Constant.Inference.SCENE_INPUT_SIZE + j];
 
                 inputValues[0][i][j][0] = (float) ((((pixelValue >> 16) & 0xFF)) / 255.0);
                 inputValues[0][i][j][1] = (float) ((((pixelValue >> 8) & 0xFF)) / 255.0);

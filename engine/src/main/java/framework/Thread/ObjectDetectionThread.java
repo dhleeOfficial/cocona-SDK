@@ -11,9 +11,10 @@ import java.util.List;
 import framework.Enum.LensFacing;
 import framework.ObjectDetection.BoxDrawer;
 import framework.ObjectDetection.Classifier;
+import framework.Util.Constant;
 
 public class ObjectDetectionThread implements Runnable {
-    private static final float MINIMUM_CONFIDENCE = 0.5f;
+    private static final float MINIMUM_CONFIDENCE = Constant.Inference.MIN_CONFIDENCE;
     private static int INPUT_SIZE;
 
     private Size previewSize;

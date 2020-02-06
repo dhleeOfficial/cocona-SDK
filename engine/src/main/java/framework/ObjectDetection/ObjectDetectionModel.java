@@ -23,14 +23,11 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.tensorflow.lite.Interpreter;
-import org.tensorflow.lite.gpu.GpuDelegate;
+//import org.tensorflow.lite.gpu.GpuDelegate;
+
+import framework.Util.Constant;
 
 public class ObjectDetectionModel implements Classifier {
-    private static final int NUM_DETECTIONS = 10;
-    private static final float IMAGE_MEAN = 128.0f;
-    private static final float IMAGE_STD = 128.0f;
-    private static final int NUM_THREADS = 4;
-
     private boolean isModelQuantized;
 
     private int inputSize;
@@ -91,10 +88,10 @@ public class ObjectDetectionModel implements Classifier {
                     ByteBuffer.allocateDirect(1 * objectDetectionModel.inputSize * objectDetectionModel.inputSize * 3 * numBytesPerChannel);
             objectDetectionModel.imageData.order(ByteOrder.nativeOrder());
             objectDetectionModel.intValues = new int[objectDetectionModel.inputSize * objectDetectionModel.inputSize];
-            objectDetectionModel.tfLite.setNumThreads(NUM_THREADS);
-            objectDetectionModel.outputLocations = new float[1][NUM_DETECTIONS][4];
-            objectDetectionModel.outputClasses = new float[1][NUM_DETECTIONS];
-            objectDetectionModel.outputScores = new float[1][NUM_DETECTIONS];
+            objectDetectionModel.tfLite.setNumThreads(Constant.Inference.OD_NUM_THREADS);
+            objectDetectionModel.outputLocations = new float[1][Constant.Inference.OD_NUM_DETECTIONS][4];
+            objectDetectionModel.outputClasses = new float[1][Constant.Inference.OD_NUM_DETECTIONS];
+            objectDetectionModel.outputScores = new float[1][Constant.Inference.OD_NUM_DETECTIONS];
             objectDetectionModel.numDetections = new float[1];
 
         } catch (IOException e) {
@@ -120,9 +117,9 @@ public class ObjectDetectionModel implements Classifier {
                     imageData.put((byte) ((pixelValue >> 8) & 0xFF));
                     imageData.put((byte) (pixelValue & 0xFF));
                 } else { // Float model
-                    imageData.putFloat((((pixelValue >> 16) & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
-                    imageData.putFloat((((pixelValue >> 8) & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
-                    imageData.putFloat(((pixelValue & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
+                    imageData.putFloat((((pixelValue >> 16) & 0xFF) - Constant.Inference.OD_IMAGE_MEAN) / Constant.Inference.OD_IMAGE_STD);
+                    imageData.putFloat((((pixelValue >> 8) & 0xFF) - Constant.Inference.OD_IMAGE_MEAN) / Constant.Inference.OD_IMAGE_STD);
+                    imageData.putFloat(((pixelValue & 0xFF) - Constant.Inference.OD_IMAGE_MEAN) / Constant.Inference.OD_IMAGE_STD);
                 }
             }
         }
@@ -130,9 +127,9 @@ public class ObjectDetectionModel implements Classifier {
 
         // Copy the input data into TensorFlow.
         Trace.beginSection("feed");
-        outputLocations = new float[1][NUM_DETECTIONS][4];
-        outputClasses = new float[1][NUM_DETECTIONS];
-        outputScores = new float[1][NUM_DETECTIONS];
+        outputLocations = new float[1][Constant.Inference.OD_NUM_DETECTIONS][4];
+        outputClasses = new float[1][Constant.Inference.OD_NUM_DETECTIONS];
+        outputScores = new float[1][Constant.Inference.OD_NUM_DETECTIONS];
         numDetections = new float[1];
 
         Object[] inputArray = {imageData};
@@ -151,8 +148,8 @@ public class ObjectDetectionModel implements Classifier {
         // Show the best detections.
         // after scaling them back to the input size.
 
-        final ArrayList<Recognition> recognitions = new ArrayList<>(NUM_DETECTIONS);
-        for (int i = 0; i < NUM_DETECTIONS; ++i) {
+        final ArrayList<Recognition> recognitions = new ArrayList<>(Constant.Inference.OD_NUM_DETECTIONS);
+        for (int i = 0; i < Constant.Inference.OD_NUM_DETECTIONS; ++i) {
             final RectF detection =
                     new RectF(
                             outputLocations[0][i][1] * inputSize,

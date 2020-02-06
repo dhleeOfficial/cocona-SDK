@@ -33,16 +33,11 @@ import framework.Thread.ImageConvertThread;
 import framework.Thread.ObjectDetectionThread;
 import framework.Thread.SceneDetectionThread;
 import framework.Thread.ThumbnailThread;
+import framework.Util.Constant;
 import framework.Util.InferenceOverlayView;
 import framework.Util.Util;
 
 public class InferenceManager extends HandlerThread implements ImageReader.OnImageAvailableListener, ImageConvertThread.CallBack, ObjectDetectionThread.Callback, AutoEditThread.Callback {
-    private static final int INPUT_SIZE = 300;
-    private static final String MODEL_FILE = "travelmode.tflite";
-    private static final String LABELS_FILE = "file:///android_asset/travelmode.txt";
-
-    private static final String DAILY_MODEL_FILE = "dailymode.tflite";
-    private static final String DAILY_LABELS_FILE = "file:///android_asset/dailymode.txt";
 
     private Handler myHandler;
     private Context context;
@@ -64,7 +59,6 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
     private int frameIdx=0;
     private int timestamp;
     private int chunkIdx;
-    private long startTime;
     private int orientation;
     private Size previewSize;
 
@@ -81,8 +75,8 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
     private boolean isImageProc = false;
 
     private int lastAEframe = 0;
-    private int lastSDframe = -40;
-    private int lastTNframe = -400;
+    private int lastSDframe = -2 * Constant.Inference.SCENE_INTERVAL;
+    private int lastTNframe = -2 * Constant.Inference.THUMBNAIL_INTERVAL;
 
     private boolean fastCount = true;
 
@@ -119,11 +113,11 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                 switch (msg.arg1) {
                     case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETUP : {
                         if (classifier == null) {
-                            classifier = ObjectDetectionModel.create(context.getAssets(), context, MODEL_FILE, LABELS_FILE, INPUT_SIZE, true);
-                            objectDetectionThread = new ObjectDetectionThread(classifier, INPUT_SIZE);
+                            classifier = ObjectDetectionModel.create(context.getAssets(), context, Constant.Inference.TRAVEL_MODEL_FILE, Constant.Inference.TRAVEL_LABELS_FILE, Constant.Inference.OD_INPUT_SIZE, Constant.Inference.TRAVEL_IS_QUANTIZED);
+                            objectDetectionThread = new ObjectDetectionThread(classifier, Constant.Inference.OD_INPUT_SIZE);
                         }
                         if (dailyClassifier == null) {
-                            dailyClassifier = ObjectDetectionModel.create(context.getAssets(), context, DAILY_MODEL_FILE, DAILY_LABELS_FILE, INPUT_SIZE, true);
+                            dailyClassifier = ObjectDetectionModel.create(context.getAssets(), context, Constant.Inference.DAILY_MODEL_FILE, Constant.Inference.DAILY_LABELS_FILE, Constant.Inference.OD_INPUT_SIZE, Constant.Inference.DAILY_IS_QUANTIZED);
                         }
 
                         setUpOD((MessageObject.Box) msg.obj);
@@ -150,8 +144,8 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                         if (recordState == RecordState.STOP) {
                             frameIdx = 0;
                             lastAEframe = 0;
-                            lastSDframe = -40;
-                            lastTNframe = -400;
+                            lastSDframe = -2 * Constant.Inference.SCENE_INTERVAL;
+                            lastTNframe = -2 * Constant.Inference.THUMBNAIL_INTERVAL;
                             engineObserver.onCompleteLabelFile(jsonResult.createJSONFile());
 
                             sceneDetectionThread = null;
@@ -173,13 +167,14 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
 
                         if (isLiving == true) {
                             frameIdx = 0;
-                            lastTNframe = -400;
+                            lastTNframe = -2 * Constant.Inference.THUMBNAIL_INTERVAL;
                         }
 
                         return true;
                     }
                     case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETSPEED : {
                         recordSpeed = ((RecordSpeed) msg.obj);
+                        fastCount = true;
                     }
                 }
                 return false;
@@ -300,12 +295,11 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                         jsonResult = new JsonResult();
                         timestamp = 0;
                         chunkIdx = 0;
-                        startTime = System.nanoTime() / 1000000L;
                     }
 
-                    if (frameIdx - lastSDframe >= 30) {
+                    if (frameIdx - lastSDframe >= Constant.Inference.SCENE_INTERVAL) {
                         lastSDframe = frameIdx;
-                        timestamp = (frameIdx * 1000) / 30;
+                        timestamp = (frameIdx * Constant.Inference.CONVERT_MILLISECONDS) / Constant.Inference.FPS;
 
                         sceneDetectionThread.setData(frameIdx, timestamp, chunkIdx, rgb);
 
@@ -319,7 +313,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                 }
                 // AutoEdit
                 if (isAEDone == true) {
-                    long curTS = System.nanoTime() / 1000L;
+                    long curTS = System.nanoTime() / Constant.Inference.CONVERT_MILLISECONDS;
 
                     if (autoEditThread == null) {
                         autoEditThread = new AutoEditThread();
@@ -329,7 +323,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                         autoEditThread.setCallback(this);
                     }
 
-                    if (frameIdx - lastAEframe >= 30) {
+                    if (frameIdx - lastAEframe >= Constant.Inference.EVENT_INTERVAL) {
                         lastAEframe = frameIdx;
                         autoEditThread.setData(rgb);
 
@@ -345,7 +339,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
 
             // Thumbnail
             if ((isLiving == true) && (mode == Mode.LIVE) && (isTNDone == true)) {
-                if (frameIdx - lastTNframe >= 300) {
+                if (frameIdx - lastTNframe >= Constant.Inference.THUMBNAIL_INTERVAL) {
                     if (thumbnailThread == null) {
                         thumbnailThread = new ThumbnailThread();
 
@@ -391,7 +385,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
             DisplayMetrics metrics = context.getResources().getDisplayMetrics();
             float ratio = (float) metrics.heightPixels / (float) metrics.widthPixels;
             Matrix transFrameToCrop = Util.getTransformationMatrix(new Size(previewSize.getWidth(), (int) (previewSize.getWidth() * ratio)),
-                    new Size(INPUT_SIZE, INPUT_SIZE), 0, false);
+                    new Size(Constant.Inference.OD_INPUT_SIZE, Constant.Inference.OD_INPUT_SIZE), 0, false);
 
             transCropToFrame = new Matrix();
             transFrameToCrop.invert(transCropToFrame);

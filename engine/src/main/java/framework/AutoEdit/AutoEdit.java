@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
+import framework.Util.Constant;
 import framework.Util.Util;
 
 public class AutoEdit {
@@ -35,9 +36,7 @@ public class AutoEdit {
     private MatOfDouble mean;
     private MatOfDouble dev;
 
-    private int SKIP_COUNT = 5;
     private int CHANNEL = 3;
-    private int INPUT_SIZE = 80;
 
     private float[][][][] inputValue;
     private float[][] outputValue;
@@ -45,7 +44,6 @@ public class AutoEdit {
     private long firstTS;
 
     private static Interpreter tfLite;
-    private static String model = "video_score.tflite";
 
     private Size size;
     private String scoreList;
@@ -103,11 +101,11 @@ public class AutoEdit {
     public void appendImage(Bitmap bitmap) {
         if (bitmap != null) {
             originBitmap[imageCount] = bitmap;
-            resizeBitmap[imageCount] = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true);
+            resizeBitmap[imageCount] = Bitmap.createScaledBitmap(bitmap, Constant.Inference.EVENT_INPUT_SIZE, Constant.Inference.EVENT_INPUT_SIZE, true);
         }
         imageCount++;
 
-        if (imageCount == 5) {
+        if (imageCount == Constant.Inference.EVENT_NUM_FRAMES) {
             scoreList = String.format("%d, %f, %f", seqCount, getBlurScore(), getEditingScore());
 
             try {
@@ -135,16 +133,16 @@ public class AutoEdit {
         inputValue = null;
         outputValue = null;
 
-        resizeBitmap = new Bitmap[5];
-        originBitmap = new Bitmap[5];
+        resizeBitmap = new Bitmap[Constant.Inference.EVENT_NUM_FRAMES];
+        originBitmap = new Bitmap[Constant.Inference.EVENT_NUM_FRAMES];
 
-        inputValue = new float[SKIP_COUNT][INPUT_SIZE][INPUT_SIZE][CHANNEL];
+        inputValue = new float[Constant.Inference.EVENT_NUM_FRAMES][Constant.Inference.EVENT_INPUT_SIZE][Constant.Inference.EVENT_INPUT_SIZE][CHANNEL];
         outputValue = new float[1][2];
     }
 
     public static void loadTFLite(Context context) {
         try {
-            tfLite = new Interpreter(loadModelFile(context, model));
+            tfLite = new Interpreter(loadModelFile(context, Constant.Inference.EVENT_MODEL_FILE));
         } catch (IOException ie) {
             ie.printStackTrace();
         }
@@ -162,14 +160,14 @@ public class AutoEdit {
     }
 
     private void convertImage() {
-        for (int i = 0; i < SKIP_COUNT; ++i) {
-            int[] intValue = new int[INPUT_SIZE * INPUT_SIZE];
+        for (int i = 0; i < Constant.Inference.EVENT_NUM_FRAMES; ++i) {
+            int[] intValue = new int[Constant.Inference.EVENT_INPUT_SIZE * Constant.Inference.EVENT_INPUT_SIZE];
 
             resizeBitmap[i].getPixels(intValue, 0, resizeBitmap[i].getWidth(), 0, 0, resizeBitmap[i].getWidth(), resizeBitmap[i].getHeight());
 
-            for (int j = 0; j < INPUT_SIZE; ++j) {
-                for (int k = 0; k < INPUT_SIZE; ++k) {
-                    int pixel = intValue[j * INPUT_SIZE + k];
+            for (int j = 0; j < Constant.Inference.EVENT_INPUT_SIZE; ++j) {
+                for (int k = 0; k < Constant.Inference.EVENT_INPUT_SIZE; ++k) {
+                    int pixel = intValue[j * Constant.Inference.EVENT_INPUT_SIZE + k];
 
                     inputValue[i][j][k][0] = (float) (((pixel >> 16) & 0xFF) / 255.0);
                     inputValue[i][j][k][1] = (float) (((pixel >> 8) & 0xFF) / 255.0);
@@ -184,7 +182,7 @@ public class AutoEdit {
 
         double score = 0;
 
-        for (int i = 0; i < SKIP_COUNT; ++i) {
+        for (int i = 0; i < Constant.Inference.EVENT_NUM_FRAMES; ++i) {
             Utils.bitmapToMat(originBitmap[i], originMat);
             Imgproc.cvtColor(originMat, originMat, Imgproc.COLOR_BGR2GRAY);
             Imgproc.Laplacian(originMat, lap, CvType.CV_64F);
@@ -193,7 +191,7 @@ public class AutoEdit {
 
             score += Math.pow(dev.get(0, 0)[0], 2);
         }
-        score /= 5;
+        score /= Constant.Inference.EVENT_NUM_FRAMES;
 
         return score;
     }
