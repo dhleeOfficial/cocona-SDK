@@ -49,10 +49,6 @@ public class AutoEditThread implements Runnable {
         }
     }
 
-    public void loadTFLite(Context context) {
-        AutoEdit.loadTFLite(context);
-    }
-
     public void setCallback(Callback callback) {
         this.callback = callback;
     }
@@ -70,16 +66,6 @@ public class AutoEditThread implements Runnable {
         autoEdit.setFirstTS(startTS);
     }
 
-    public void updateCurrentTS(long currentTS) {
-        autoEdit.updateCurrentTS(currentTS);
-    }
-
-    public boolean isNextImage() {
-        if (autoEdit != null) {
-            return autoEdit.isVerify();
-        }
-        return false;
-    }
 
     public String getScoreFile() {
         if (autoEdit != null) {

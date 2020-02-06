@@ -42,8 +42,6 @@ public class AutoEdit {
     private float[][][][] inputValue;
     private float[][] outputValue;
 
-    private long lastTS;
-    private long currentTS;
     private long firstTS;
 
     private static Interpreter tfLite;
@@ -86,21 +84,6 @@ public class AutoEdit {
         } catch(IOException ie) {
             ie.printStackTrace();
         }
-    }
-
-    public void updateCurrentTS(long currentTS) {
-        this.currentTS = currentTS;
-    }
-
-    public boolean isVerify() {
-        long diff = currentTS - lastTS;
-
-        if (diff >= 1000000L) {
-            lastTS = currentTS;
-
-            return true;
-        }
-        return false;
     }
 
     public String getScoreFile() {

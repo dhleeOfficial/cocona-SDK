@@ -61,7 +61,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
     private SceneDetectionThread sceneDetectionThread;
     private ThumbnailThread thumbnailThread;
     private JsonResult jsonResult;
-    private int frameIdx;
+    private int frameIdx=0;
     private int timestamp;
     private int chunkIdx;
     private long startTime;
@@ -74,12 +74,19 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
     private boolean isSDDone = true;
     private boolean isTNDone = true;
 
-    private boolean isReady = false;
     private boolean isRecord = false;
+    private boolean isReady = false;
     private boolean isLiving = false;
 
     private boolean isImageProc = false;
 
+    private int lastAEframe = 0;
+    private int lastSDframe = -40;
+    private int lastTNframe = -400;
+
+    private boolean fastCount = true;
+
+    private RecordState recordState = RecordState.STOP;
     private Mode mode = Mode.TRAVEL;
     private RecordSpeed recordSpeed = RecordSpeed.NORMAL;
 
@@ -133,13 +140,18 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                         return true;
                     }
                     case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETRECORD : {
-                        if ( msg.obj == RecordState.START || msg.obj == RecordState.RESUME) {
+                        recordState = (RecordState) msg.obj;
+                        if (recordState == RecordState.START || recordState == RecordState.RESUME) {
                             isRecord = true;
                         } else {
                             isRecord = false;
                         }
 
-                        if (isRecord == false) {
+                        if (recordState == RecordState.STOP) {
+                            frameIdx = 0;
+                            lastAEframe = 0;
+                            lastSDframe = -40;
+                            lastTNframe = -400;
                             engineObserver.onCompleteLabelFile(jsonResult.createJSONFile());
 
                             sceneDetectionThread = null;
@@ -161,6 +173,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
 
                         if (isLiving == true) {
                             frameIdx = 0;
+                            lastTNframe = -400;
                         }
 
                         return true;
@@ -195,7 +208,20 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                             imageConvertThread.start();
                         }
                     }
-                    frameIdx++;
+                    if(isRecord == true || isLiving == true) {
+                        if (recordSpeed == RecordSpeed.NORMAL) {
+                            frameIdx++;
+                        } else if (recordSpeed == RecordSpeed.SLOW) {
+                            frameIdx = frameIdx + 2;
+                        } else if (recordSpeed == RecordSpeed.FAST) {
+                            if (fastCount) {
+                                frameIdx = frameIdx + 1;
+                                fastCount = false;
+                            } else {
+                                fastCount = true;
+                            }
+                        }
+                    }
                 }
         } catch (NullPointerException ne) {
             ne.printStackTrace();
@@ -272,18 +298,14 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                         });
 
                         jsonResult = new JsonResult();
-                        frameIdx = 0;
                         timestamp = 0;
                         chunkIdx = 0;
                         startTime = System.nanoTime() / 1000000L;
                     }
 
-                    // TODO : Slow, Fast considering
-                    if ((frameIdx % 30) == 0) {
-                        long curTime = System.nanoTime() / 1000000L;
-
-                        timestamp = timestamp + (int) (curTime - startTime);
-                        startTime = curTime;
+                    if (frameIdx - lastSDframe >= 30) {
+                        lastSDframe = frameIdx;
+                        timestamp = (frameIdx * 1000) / 30;
 
                         sceneDetectionThread.setData(frameIdx, timestamp, chunkIdx, rgb);
 
@@ -302,27 +324,28 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                     if (autoEditThread == null) {
                         autoEditThread = new AutoEditThread();
 
-                        autoEditThread.loadTFLite(context);
                         autoEditThread.setFirstTS(curTS);
                         autoEditThread.setPreviewSize(previewSize);
                         autoEditThread.setCallback(this);
                     }
-                    autoEditThread.updateCurrentTS(curTS);
 
-                    if (autoEditThread.isNextImage() == true) {
+                    if (frameIdx - lastAEframe >= 30) {
+                        lastAEframe = frameIdx;
                         autoEditThread.setData(rgb);
 
                         Thread thread = new Thread(autoEditThread);
                         thread.start();
 
                         isAEDone = false;
+                    } else {
+                        isImageProc = false;
                     }
                 }
             }
 
             // Thumbnail
             if ((isLiving == true) && (mode == Mode.LIVE) && (isTNDone == true)) {
-                if ((frameIdx % 300) == 0) {
+                if (frameIdx - lastTNframe >= 300) {
                     if (thumbnailThread == null) {
                         thumbnailThread = new ThumbnailThread();
 
@@ -336,12 +359,14 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                                 thumbnailThread = null;
                             }
                         });
+                        lastTNframe = frameIdx;
 
                         Thread thread = new Thread(thumbnailThread);
                         thread.start();
 
                         isTNDone = false;
                     }
+
                 } else {
                     isImageProc = false;
                 }

@@ -937,6 +937,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private void speedRecord(RecordSpeed recordSpeed) {
         this.recordSpeed = recordSpeed;
         Handler audioHandler = audioManager.getHandler();
+        Handler inferenceHandler = inferenceManager.getHandler();
 
         if (audioHandler != null) {
             if (recordSpeed == RecordSpeed.SLOW) {
@@ -947,6 +948,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                 audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_FAST, 0, null));
             }
         }
+
+        inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.InferenceMessage.MSG_INFERENCE_SETSPEED, 0, recordSpeed));
     }
 
     private void mode(Mode mode) {
