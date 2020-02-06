@@ -71,6 +71,8 @@ public class CameraEngine {
 
             /**
              * TouchType for single touch event (ex area focus, lock focus)
+             * This function shows whether the function works.
+             * Just an example, just call the function where you want to call the function (areafocus, lockfocus, exposure)
              * @param event Motion event
              * @return Enum TouchType value
              */
