@@ -26,6 +26,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import framework.Enum.RecordSpeed;
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
+import framework.Util.Constant;
 import framework.Util.MuxData;
 
 public class AudioManager extends HandlerThread {
@@ -33,14 +34,7 @@ public class AudioManager extends HandlerThread {
     private Handler muxHandler;
 
     private static final String MIME_TYPE = MediaFormat.MIMETYPE_AUDIO_AAC;
-
-    private static final int SAMPLE_RATE = 44100;
-    private static final int CH_COUNT = 1;
-    private static final int BIT_RATE = 128000;
-    private static final int HEADER_SIZE = 7;
-    private static final int TIMEOUT_USEC = 10000;
-    private static final int SAMPLES_PER_FRAME = 4096;
-
+    
     private AudioThread audioThread = null;
 
     private MediaFormat audioFormat;
@@ -138,13 +132,13 @@ public class AudioManager extends HandlerThread {
     }
 
     private void initMediaFormat() {
-        audioFormat = MediaFormat.createAudioFormat(MIME_TYPE, SAMPLE_RATE, CH_COUNT);
+        audioFormat = MediaFormat.createAudioFormat(MIME_TYPE, Constant.Audio.SAMPLE_RATE, Constant.Audio.CH_COUNT);
 
         audioFormat.setString(MediaFormat.KEY_MIME, MIME_TYPE);
         audioFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
         audioFormat.setInteger(MediaFormat.KEY_CHANNEL_MASK, AudioFormat.CHANNEL_IN_MONO);
-        audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
-        audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, SAMPLES_PER_FRAME);
+        audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, Constant.Audio.BIT_RATE);
+        audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, Constant.Audio.SAMPLES_PER_FRAME);
     }
 
     private MediaCodecInfo getMediaCodecInfo() {
@@ -199,8 +193,8 @@ public class AudioManager extends HandlerThread {
         header[1] = (byte) 0xF9;
         header[2] = (byte) ((MediaCodecInfo.CodecProfileLevel.AACObjectLC - 1) << 6);
         header[2] |= (((byte) sampleIndex) << 2);
-        header[2] |= (((byte) CH_COUNT) >> 2);
-        header[3] = (byte) (((CH_COUNT & 3) << 6) | ((headerLen >> 11) & 0x03));
+        header[2] |= (((byte) Constant.Audio.CH_COUNT) >> 2);
+        header[3] = (byte) (((Constant.Audio.CH_COUNT & 3) << 6) | ((headerLen >> 11) & 0x03));
         header[4] = (byte) ((headerLen >> 3) & 0xFF);
         header[5] = (byte) (((headerLen & 0x07) << 5) | 0x1f);
         header[6] = (byte) 0xFC;
@@ -247,9 +241,9 @@ public class AudioManager extends HandlerThread {
             }
 
             while (isReady) {
-                WeakReference<byte[]> weakReference = new WeakReference<byte[]>(new byte[SAMPLES_PER_FRAME]);
+                WeakReference<byte[]> weakReference = new WeakReference<byte[]>(new byte[Constant.Audio.SAMPLES_PER_FRAME]);
                 rawBuffer = weakReference.get();
-                final int readByte = audioRecord.read(rawBuffer, 0, SAMPLES_PER_FRAME);
+                final int readByte = audioRecord.read(rawBuffer, 0, Constant.Audio.SAMPLES_PER_FRAME);
 
                 if (readByte > 0) {
                     if (isPause){
@@ -285,7 +279,7 @@ public class AudioManager extends HandlerThread {
         }
 
         private AudioRecord createAudioRecord() {
-            final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, SAMPLES_PER_FRAME * 120);
+            final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, Constant.Audio.SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, Constant.Audio.SAMPLES_PER_FRAME * Constant.Audio.SPARE_BUFFER_SIZE);
 
             if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
                 return audioRecord;
@@ -319,7 +313,7 @@ public class AudioManager extends HandlerThread {
 
     private void muxing(boolean isEOS, MediaCodec.BufferInfo bufferInfo) {
         while (true) {
-            int outputBufferIndex = audioCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC);
+            int outputBufferIndex = audioCodec.dequeueOutputBuffer(bufferInfo, Constant.Audio.TIMEOUT_USEC);
 
             if (outputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
                 if (isEOS == false) {
@@ -344,12 +338,12 @@ public class AudioManager extends HandlerThread {
                         out.position(bufferInfo.offset);
                         out.limit(bufferInfo.offset + bufferInfo.size);
 
-                        WeakReference<byte[]> weakReference = new WeakReference<byte[]>(new byte[bufferInfo.size + HEADER_SIZE]);
+                        WeakReference<byte[]> weakReference = new WeakReference<byte[]>(new byte[bufferInfo.size + Constant.Audio.HEADER_SIZE]);
 
                         muxBuffer = weakReference.get();
 
                         addADTSHeader(muxBuffer, muxBuffer.length);
-                        out.get(muxBuffer, HEADER_SIZE, bufferInfo.size);
+                        out.get(muxBuffer, Constant.Audio.HEADER_SIZE, bufferInfo.size);
 
                         if (muxBuffer.length > 0) {
                             MuxData data = new MuxData(muxBuffer, isEOS);

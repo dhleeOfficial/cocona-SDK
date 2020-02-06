@@ -22,6 +22,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import framework.Message.MessageObject;
 import framework.Message.ThreadMessage;
+import framework.Util.Constant;
 import framework.Util.MuxData;
 
 public class VideoManager extends HandlerThread {
@@ -34,8 +35,6 @@ public class VideoManager extends HandlerThread {
     private int bitRate;
 
     private static final String MIME_TYPE = MediaFormat.MIMETYPE_VIDEO_AVC;
-    private static final int FRAME_RATE = 30;
-    private static final float IFRAME_INTERVAL = 0.5f;
 
     private MediaCodecInfo mediaCodecInfo;
     private MediaFormat mediaFormat;
@@ -113,10 +112,10 @@ public class VideoManager extends HandlerThread {
 
         mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);;
         mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
-        mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE);
+        mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, Constant.Video.FRAME_RATE);
         mediaFormat.setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileHigh);
         mediaFormat.setInteger(MediaFormat.KEY_LEVEL, MediaCodecInfo.CodecProfileLevel.AVCLevel51);
-        mediaFormat.setFloat(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL);
+        mediaFormat.setFloat(MediaFormat.KEY_I_FRAME_INTERVAL, Constant.Video.IFRAME_INTERVAL);
 
         mediaCodecInfo = getMediaCodecInfo();
 
