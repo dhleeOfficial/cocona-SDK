@@ -69,7 +69,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private Context context;
     private EngineObserver engineObserver;
     private InferenceOverlayView overlayView;
-    private FocusOverlayView focusView;
+    //private FocusOverlayView focusView;
 
     private Handler engineHandler;
     private FrameHandler frameHandler;
@@ -224,8 +224,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         this.overlayView = new InferenceOverlayView(context);
         ((RelativeLayout) relativeLayout).addView(this.overlayView);
 
-        this.focusView = new FocusOverlayView(context);
-        ((RelativeLayout) relativeLayout).addView(this.focusView);
+//        this.focusView = new FocusOverlayView(context);
+//        ((RelativeLayout) relativeLayout).addView(this.focusView);
 
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         accelerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -385,14 +385,14 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_AREA_FOCUS : {
                         areaFocus((PointF) msg.obj);
-                        drawCircle(true, (PointF) msg.obj);
+                        //drawCircle(true, (PointF) msg.obj);
                         isLocked = false;
 
                         return true;
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_LOCK_FOCUS : {
                         areaFocus((PointF) msg.obj);
-                        drawCircle(false, (PointF) msg.obj);
+                        //drawCircle(false, (PointF) msg.obj);
                         isLocked = true;
 
                         return true;
@@ -752,35 +752,35 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         }
     }
 
-    private void drawCircle(boolean removeCircle, PointF pointF){
-        if (removeCircle) {
-            focusView.setFocus(true, pointF, Color.WHITE);
-
-            new Handler().post(new Runnable() {
-                @Override
-                public void run() {
-                    focusView.postInvalidate();
-                }
-            });
-            new Handler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    focusView.postInvalidate();
-                }
-            }, 300);
-
-        } else {
-
-            focusView.setFocus(true, pointF, Color.YELLOW);
-            new Handler().post(new Runnable() {
-                @Override
-                public void run() {
-                    focusView.postInvalidate();
-                }
-            });
-
-        }
-    }
+//    private void drawCircle(boolean removeCircle, PointF pointF){
+//        if (removeCircle) {
+//            focusView.setFocus(true, pointF, Color.WHITE);
+//
+//            new Handler().post(new Runnable() {
+//                @Override
+//                public void run() {
+//                    focusView.postInvalidate();
+//                }
+//            });
+//            new Handler().postDelayed(new Runnable() {
+//                @Override
+//                public void run() {
+//                    focusView.postInvalidate();
+//                }
+//            }, 300);
+//
+//        } else {
+//
+//            focusView.setFocus(true, pointF, Color.YELLOW);
+//            new Handler().post(new Runnable() {
+//                @Override
+//                public void run() {
+//                    focusView.postInvalidate();
+//                }
+//            });
+//
+//        }
+//    }
 
     private void areaFocus(PointF pointF) {
         try {
