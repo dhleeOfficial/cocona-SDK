@@ -34,7 +34,7 @@ public class AudioManager extends HandlerThread {
     private Handler muxHandler;
 
     private static final String MIME_TYPE = MediaFormat.MIMETYPE_AUDIO_AAC;
-    
+
     private AudioThread audioThread = null;
 
     private MediaFormat audioFormat;

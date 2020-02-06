@@ -473,7 +473,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) { }
 
-    // FIXME
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         stopPreview();
