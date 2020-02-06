@@ -178,65 +178,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         }
     }
 
-    private void drawFrame() {
-        if (eglCore == null) {
-            return;
-        }
-
-        if (isPause == true) {
-            return;
-        }
-        // PREVIEW RENDERING
-        if (displaySurface != null) {
-            displaySurface.makeCurrent();
-            cameraTexture.updateTexImage();
-            cameraTexture.getTransformMatrix(tmpMatrix);
-            GLES20.glViewport(0, 0, surfaceView.getWidth(), surfaceView.getHeight());
-            fullFrameBlit.drawFrame(textureId, tmpMatrix);
-            displaySurface.swapBuffers();
-        }
-
-        if ((isRecording == true) || (isLiving == true)) {
-            Util.rotateMatrix(orientation, tmpMatrix);
-
-            if (recordSpeed == RecordSpeed.NORMAL) {
-                drawSurfaceNormalSpeed();
-            } else if (recordSpeed == RecordSpeed.SLOW) {
-                drawSurfaceSlowSpeed();
-            } else if (recordSpeed == RecordSpeed.FAST) {
-                if (count == 0) {
-                    drawSurfaceNormalSpeed();
-                    count = 1;
-                } else {
-                    count = 0;
-                }
-            }
-        }
-    }
-
-    public void onSensorChanged(SensorEvent event) {
-        if (!isLocked) {
-            if (Math.abs(event.values[0] - motionX) > 1
-                    || Math.abs(event.values[1] - motionY) > 1
-                    || Math.abs(event.values[2] - motionZ) > 1) {
-                try {
-                    if (cameraCaptureSession != null) {
-                        autoFocus();
-                    }
-                    isLocked = true;
-                } catch (RuntimeException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        motionX = event.values[0];
-        motionY = event.values[1];
-        motionZ = event.values[2];
-    }
-
-    public void onAccuracyChanged(Sensor arg0, int arg1) {}
-
     private CameraCaptureSession.CaptureCallback captureCallback =  new CameraCaptureSession.CaptureCallback() {
         @Override
         public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
@@ -487,6 +428,33 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         });
     }
 
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (!isLocked) {
+            if (Math.abs(event.values[0] - motionX) > 1
+                    || Math.abs(event.values[1] - motionY) > 1
+                    || Math.abs(event.values[2] - motionZ) > 1) {
+                try {
+                    if (cameraCaptureSession != null) {
+                        autoFocus();
+                    }
+                    isLocked = true;
+                } catch (RuntimeException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        motionX = event.values[0];
+        motionY = event.values[1];
+        motionZ = event.values[2];
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
+
     // Override from SurfaceHolder.Callback
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
@@ -581,6 +549,42 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             ie.printStackTrace();
         } finally {
             cameraLock.release();
+        }
+    }
+
+    private void drawFrame() {
+        if (eglCore == null) {
+            return;
+        }
+
+        if (isPause == true) {
+            return;
+        }
+        // PREVIEW RENDERING
+        if (displaySurface != null) {
+            displaySurface.makeCurrent();
+            cameraTexture.updateTexImage();
+            cameraTexture.getTransformMatrix(tmpMatrix);
+            GLES20.glViewport(0, 0, surfaceView.getWidth(), surfaceView.getHeight());
+            fullFrameBlit.drawFrame(textureId, tmpMatrix);
+            displaySurface.swapBuffers();
+        }
+
+        if ((isRecording == true) || (isLiving == true)) {
+            Util.rotateMatrix(orientation, tmpMatrix);
+
+            if (recordSpeed == RecordSpeed.NORMAL) {
+                drawSurfaceNormalSpeed();
+            } else if (recordSpeed == RecordSpeed.SLOW) {
+                drawSurfaceSlowSpeed();
+            } else if (recordSpeed == RecordSpeed.FAST) {
+                if (count == 0) {
+                    drawSurfaceNormalSpeed();
+                    count = 1;
+                } else {
+                    count = 0;
+                }
+            }
         }
     }
 
