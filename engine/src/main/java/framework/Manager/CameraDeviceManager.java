@@ -160,7 +160,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private OrientationEventListener orientationEventListener;
 
     private int orientation;
-    private int count=0;
+    private int count = 0;
+    private long frameTimeStamp = -1;
 
     private class FrameHandler extends Handler {
         public static final int MSG_FRAME_AVAILABLE = 1;
@@ -199,102 +200,12 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             Util.rotateMatrix(orientation, tmpMatrix);
 
             if (recordSpeed == RecordSpeed.NORMAL) {
-                if (videoSurface != null) {
-                    videoSurface.makeCurrent();
-
-                    GLES20.glViewport(0, 0, videoWidth, videoHeight);
-                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                    videoManager.reFrame();
-                    videoSurface.swapBuffers();
-                }
-
-                if (videoSurface1 != null) {
-                    videoSurface1.makeCurrent();
-
-                    GLES20.glViewport(0, 0, videoWidth1, videoHeight1);
-                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                    videoManager1.reFrame();
-                    videoSurface1.swapBuffers();
-                }
-
-                if (videoSurface2 != null) {
-                    videoSurface2.makeCurrent();
-
-                    GLES20.glViewport(0, 0, videoWidth2, videoHeight2);
-                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                    videoManager2.reFrame();
-                    videoSurface2.swapBuffers();
-                }
+                drawSurfaceNormalSpeed();
             } else if (recordSpeed == RecordSpeed.SLOW) {
-                if (videoSurface != null) {
-                    videoSurface.makeCurrent();
-
-                    GLES20.glViewport(0, 0, videoWidth, videoHeight);
-                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                    videoManager.reFrame();
-                    videoSurface.swapBuffers();
-
-                    videoSurface.makeCurrent();
-                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                    videoManager.reFrame();
-                    videoSurface.swapBuffers();
-                }
-
-                if (videoSurface1 != null) {
-                    videoSurface1.makeCurrent();
-
-                    GLES20.glViewport(0, 0, videoWidth1, videoHeight1);
-                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                    videoManager1.reFrame();
-                    videoSurface1.swapBuffers();
-
-                    videoSurface1.makeCurrent();
-                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                    videoManager1.reFrame();
-                    videoSurface1.swapBuffers();
-                }
-
-                if (videoSurface2 != null) {
-                    videoSurface2.makeCurrent();
-
-                    GLES20.glViewport(0, 0, videoWidth2, videoHeight2);
-                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                    videoManager2.reFrame();
-                    videoSurface2.swapBuffers();
-
-                    videoSurface2.makeCurrent();
-                    fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                    videoManager2.reFrame();
-                    videoSurface2.swapBuffers();
-                }
+                drawSurfaceSlowSpeed();
             } else if (recordSpeed == RecordSpeed.FAST) {
-                if (count == 0 ) {
-                    if (videoSurface != null) {
-                        videoSurface.makeCurrent();
-
-                        GLES20.glViewport(0, 0, videoWidth, videoHeight);
-                        fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                        videoManager.reFrame();
-                        videoSurface.swapBuffers();
-                    }
-
-                    if (videoSurface1 != null) {
-                        videoSurface1.makeCurrent();
-
-                        GLES20.glViewport(0, 0, videoWidth1, videoHeight1);
-                        fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                        videoManager1.reFrame();
-                        videoSurface1.swapBuffers();
-                    }
-
-                    if (videoSurface2 != null) {
-                        videoSurface2.makeCurrent();
-
-                        GLES20.glViewport(0, 0, videoWidth2, videoHeight2);
-                        fullFrameBlit.drawFrame(textureId, tmpMatrix);
-                        videoManager2.reFrame();
-                        videoSurface2.swapBuffers();
-                    }
+                if (count == 0) {
+                    drawSurfaceNormalSpeed();
                     count = 1;
                 } else {
                     count = 0;
@@ -540,7 +451,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_LOCK_FOCUS : {
                         areaFocus((PointF) msg.obj);
-                        Log.i(TAG, "Focus Locked");
                         drawCircle(false, (PointF) msg.obj);
                         isLocked = true;
 
@@ -593,9 +503,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     }
 
     @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-
-    }
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) { }
 
     // FIXME
     @Override
@@ -604,9 +512,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     }
 
     // Override from SurfaceTexture.onFrameAvailable
-
-    private long frameTimeStamp = -1;
-
     @Override
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
         long timeStamp = surfaceTexture.getTimestamp();
@@ -1016,7 +921,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             enableCameraId = getCameraIdByLensFacing(lensFacing);
             CameraCharacteristics cc = cameraManager.getCameraCharacteristics(enableCameraId);
 
-            /* Camera Info */
             hasFlash = cc.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
             exposureLevel = 0.0;
             recordSpeed = RecordSpeed.NORMAL;
@@ -1024,8 +928,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             mode(this.mode);
 
             StreamConfigurationMap scMap = cc.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-
-            /* Preview Size Setting */
 
             if ((width <= 0) || (height <= 0)) {
                 previewSize = scMap.getOutputSizes(SurfaceTexture.class)[0];
@@ -1113,6 +1015,77 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             cameraDevice.createCaptureSession(Arrays.asList(sf, inferenceImageReader.getSurface()), captureStateCallback, backgroundHandler);
         } catch (CameraAccessException ce) {
             ce.printStackTrace();
+        }
+    }
+
+    private void drawSurfaceNormalSpeed() {
+        if (videoSurface != null) {
+            videoSurface.makeCurrent();
+
+            GLES20.glViewport(0, 0, videoWidth, videoHeight);
+            fullFrameBlit.drawFrame(textureId, tmpMatrix);
+            videoManager.reFrame();
+            videoSurface.swapBuffers();
+        }
+
+        if (videoSurface1 != null) {
+            videoSurface1.makeCurrent();
+
+            GLES20.glViewport(0, 0, videoWidth1, videoHeight1);
+            fullFrameBlit.drawFrame(textureId, tmpMatrix);
+            videoManager1.reFrame();
+            videoSurface1.swapBuffers();
+        }
+
+        if (videoSurface2 != null) {
+            videoSurface2.makeCurrent();
+
+            GLES20.glViewport(0, 0, videoWidth2, videoHeight2);
+            fullFrameBlit.drawFrame(textureId, tmpMatrix);
+            videoManager2.reFrame();
+            videoSurface2.swapBuffers();
+        }
+    }
+
+    private void drawSurfaceSlowSpeed() {
+        if (videoSurface != null) {
+            videoSurface.makeCurrent();
+            GLES20.glViewport(0, 0, videoWidth, videoHeight);
+            fullFrameBlit.drawFrame(textureId, tmpMatrix);
+            videoManager.reFrame();
+            videoSurface.swapBuffers();
+
+            videoSurface.makeCurrent();
+            fullFrameBlit.drawFrame(textureId, tmpMatrix);
+            videoManager.reFrame();
+            videoSurface.swapBuffers();
+        }
+
+        if (videoSurface1 != null) {
+            videoSurface1.makeCurrent();
+            GLES20.glViewport(0, 0, videoWidth1, videoHeight1);
+            fullFrameBlit.drawFrame(textureId, tmpMatrix);
+            videoManager1.reFrame();
+            videoSurface1.swapBuffers();
+
+            videoSurface1.makeCurrent();
+            fullFrameBlit.drawFrame(textureId, tmpMatrix);
+            videoManager1.reFrame();
+            videoSurface1.swapBuffers();
+        }
+
+        if (videoSurface2 != null) {
+            videoSurface2.makeCurrent();
+
+            GLES20.glViewport(0, 0, videoWidth2, videoHeight2);
+            fullFrameBlit.drawFrame(textureId, tmpMatrix);
+            videoManager2.reFrame();
+            videoSurface2.swapBuffers();
+
+            videoSurface2.makeCurrent();
+            fullFrameBlit.drawFrame(textureId, tmpMatrix);
+            videoManager2.reFrame();
+            videoSurface2.swapBuffers();
         }
     }
 
