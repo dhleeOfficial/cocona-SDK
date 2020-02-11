@@ -23,7 +23,7 @@ import android.widget.ToggleButton;
 import framework.Engine.CameraEngine;
 import framework.Engine.LiveStreamingData;
 import framework.Engine.EngineObserver;
-import framework.Enum.Exposure;
+import framework.Enum.DeviceOrientation;
 import framework.Enum.Filter;
 import framework.Enum.LensFacing;
 import framework.Enum.Mode;
@@ -76,6 +76,16 @@ public class CameraActivity extends AppCompatActivity {
     private HashMap<String, String> logins = new HashMap<String, String>();
 
     private EngineObserver engineObserver = new EngineObserver() {
+        @Override
+        public void onChangeOrientation(DeviceOrientation deviceOrientation) {
+            Log.e("Device Orientation changed : ", deviceOrientation.toString());
+        }
+
+        @Override
+        public void onCheckFlashSupport(boolean isSupport) {
+            Log.e("Flash Support : ", String.valueOf(isSupport));
+        }
+
         @Override
         public void onCompleteVODFile(ArrayList<String> output) {
             Log.e("VOD file", output.toString());
@@ -245,11 +255,21 @@ public class CameraActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (v == zoom) {
-                    // handle onTouchEvent function
+                    float currentZoomLevel = engine.getCurrentZoomLevel();
+
+                    Log.e("Current Zoom level : ", Float.toString(currentZoomLevel));
                 } else if (v == bright) {
-                    engine.exposure(Exposure.BRIGHT);
+                    engine.exposure(-0.1);
+
+                    double exposure = engine.getCurrentExposureValue();
+
+                    Log.e("Current Exposure value : ", Double.toString(exposure));
                 } else if (v == dark) {
-                    engine.exposure(Exposure.DARK);
+                    engine.exposure(0.1);
+
+                    double exposure = engine.getCurrentExposureValue();
+
+                    Log.e("Current Exposure value : ", Double.toString(exposure));
                 } else if (v == convert) {
                     engine.convertArchiveFormatToLiveFormat("VOD_FILE_NAME", Util.getOutputHLSDir().getPath());
                 } else if (v == filter) {

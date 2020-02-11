@@ -2,9 +2,7 @@ package framework.Manager;
 
 import android.content.Context;
 
-import android.graphics.Color;
 import android.graphics.ImageFormat;
-import android.graphics.PixelFormat;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
@@ -17,6 +15,7 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
@@ -40,7 +39,7 @@ import android.widget.RelativeLayout;
 import androidx.annotation.NonNull;
 
 import framework.Engine.EngineObserver;
-import framework.Enum.Exposure;
+import framework.Enum.DeviceOrientation;
 
 import framework.Enum.Filter;
 import framework.Enum.LensFacing;
@@ -59,7 +58,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import framework.Util.Constant;
-import framework.Util.FocusOverlayView;
 import framework.Util.InferenceOverlayView;
 import framework.Util.Util;
 
@@ -118,7 +116,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private Rect zoomRect;
 
     // EXPOSURE
-    private double exposureLevel;
+    private double exposureLevel = 0.0;
+    private double exposureValue = 0.0;
 
     // CURRENT STATUS FLAGS
     private boolean isLocked = true;
@@ -159,9 +158,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     private OrientationEventListener orientationEventListener;
 
-    private int orientation;
+    private DeviceOrientation orientation = DeviceOrientation.INIT;
     private int count = 0;
-    private long frameTimeStamp = -1;
 
     private class FrameHandler extends Handler {
         public static final int MSG_FRAME_AVAILABLE = 1;
@@ -186,7 +184,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             if (request.getTag() == "FOCUS") {
                 captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, null);
                 try {
-                    cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, null);
+                    captureRequestBuilder.setTag("FOCUSDONE");
+                    cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), captureCallback, null);
+
                 } catch (CameraAccessException ce) {
                     ce.printStackTrace();
                 }
@@ -379,7 +379,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                         return true;
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_EXPOSURE : {
-                        exposure((Exposure) msg.obj);
+                        exposure((double) msg.obj);
 
                         return true;
                     }
@@ -481,11 +481,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     // Override from SurfaceTexture.onFrameAvailable
     @Override
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-        long timeStamp = surfaceTexture.getTimestamp();
-        if (frameTimeStamp != timeStamp) {
-            frameTimeStamp = timeStamp;
-            frameHandler.sendEmptyMessage(frameHandler.MSG_FRAME_AVAILABLE);
-        }
+        frameHandler.sendEmptyMessage(frameHandler.MSG_FRAME_AVAILABLE);
     }
 
     public void startBackgroundThread() {
@@ -500,6 +496,14 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     public final Mode getMode() {
         return mode;
+    }
+
+    public final float getCurrentZoomLevel() {
+        return zoomLevel;
+    }
+
+    public final double getCurrentExposureValue() {
+        return exposureValue;
     }
 
     private synchronized void setUpPreview(final SurfaceView surfaceView) {
@@ -570,7 +574,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         }
 
         if ((isRecording == true) || (isLiving == true)) {
-            Util.rotateMatrix(orientation, tmpMatrix);
+            Util.rotateMatrix(orientation.getValue(), tmpMatrix);
 
             if (recordSpeed == RecordSpeed.NORMAL) {
                 drawSurfaceNormalSpeed();
@@ -716,18 +720,11 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         }
     }
 
-    private void exposure(Exposure exposure) {
+    private void exposure(double delta) {
         if ((captureRequestBuilder == null) && (cameraCaptureSession == null)) {
             return;
         }
 
-        double delta = Constant.Camera.EXPOSURE_DELTA;
-
-        if (exposure == Exposure.BRIGHT) {
-            exposureLevel -= delta;
-        } else if (exposure == Exposure.DARK) {
-            exposureLevel += delta;
-        }
 
         try {
             CameraCharacteristics cc = cameraManager.getCameraCharacteristics(enableCameraId);
@@ -736,12 +733,18 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             int maxExposure = range.getUpper();
 
             if ((minExposure != 0) || (maxExposure != 0)) {
-                if ((exposureLevel < minExposure) || (exposureLevel > maxExposure)) {
+                if (exposureValue < minExposure) {
+                    exposureValue = minExposure;
+
+                    return;
+                } else if (exposureValue > maxExposure) {
+                    exposureValue = maxExposure;
+
                     return;
                 }
 
-                float exposureValue = (exposureLevel >= 0) ?
-                        (float) (minExposure * exposureLevel) : (float) (-maxExposure * exposureLevel);
+                exposureValue += (delta >= 0) ?
+                        (float) (minExposure * delta) : (float) (-maxExposure * delta);
 
                 cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
                 captureRequestBuilder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, (int) exposureValue);
@@ -872,7 +875,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     private void live(MessageObject.LiveObject liveObject) {
         boolean isLive = liveObject.getIsLive();
-        MessageObject.ThumbnailObject thumbnailObj = new MessageObject.ThumbnailObject(isLive, orientation);
+        MessageObject.ThumbnailObject thumbnailObj = new MessageObject.ThumbnailObject(isLive, orientation.getValue());
 
         Handler audioHandler = audioManager.getHandler();
         Handler muxHandler = muxManager.getHandler();
@@ -925,7 +928,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             CameraCharacteristics cc = cameraManager.getCameraCharacteristics(enableCameraId);
 
             hasFlash = cc.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
-            exposureLevel = 0.0;
+            engineObserver.onCheckFlashSupport(hasFlash);
+
             recordSpeed = RecordSpeed.NORMAL;
             isPause = false;
             mode(this.mode);
@@ -1096,22 +1100,30 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         orientationEventListener = new OrientationEventListener(context) {
             @Override
             public void onOrientationChanged(int ori) {
+                DeviceOrientation tempOrientation;
+
                 if (!isRecording && !isLiving) {
                     if (ori > 340 || ori < 20) {
-                        orientation = 0;
+                        tempOrientation = DeviceOrientation.PORTRAIT;
                     } else if (ori > 70 && ori < 110) {
-                        orientation = 1;
+                        tempOrientation = DeviceOrientation.LANDSCAPE_RIGHT;
                     } else if (ori > 160 && ori < 200) {
-                        orientation = 2;
+                        tempOrientation = DeviceOrientation.PORTRAIT_UPSIDEDOWN;
                     } else if (ori > 250 && ori < 290) {
-                        orientation = 3;
+                        tempOrientation = DeviceOrientation.LANDSCAPE_LEFT;
                     } else {
                         return;
                     }
                 } else {
                     return;
                 }
-                if ((orientation%2) == 0) {
+
+                if (orientation != tempOrientation) {
+                    orientation = tempOrientation;
+                    engineObserver.onChangeOrientation(orientation);
+                }
+
+                if ((orientation.getValue() % 2) == 0) {
                     videoWidth = Constant.Resolution.FHD_WIDTH;
                     videoHeight = Constant.Resolution.FHD_HEIGHT;
 

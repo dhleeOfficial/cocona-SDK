@@ -7,7 +7,6 @@ import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
 
-import framework.Enum.Exposure;
 import framework.Enum.Filter;
 import framework.Enum.LensFacing;
 import framework.Enum.Mode;
@@ -202,12 +201,12 @@ public class CameraEngine {
     }
 
     /**
-     * Set camera brightness
-     * @param exposure brightness : Exposure::BRIGHT / darkness : Exposure::DARK
+     * Adjust brightness
+     * @param delta Brightness change value
      */
-    public void exposure(Exposure exposure) {
+    public void exposure(double delta) {
         if (cameraHandler != null) {
-            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_EXPOSURE, 0, exposure));
+            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_EXPOSURE, 0, delta));
         }
     }
 
@@ -292,5 +291,21 @@ public class CameraEngine {
      */
     public final Mode getMode() {
         return cameraDeviceManager.getMode();
+    }
+
+    /**
+     * Return current zoom level
+     * @return float type current zoom level
+     */
+    public final float getCurrentZoomLevel() {
+        return cameraDeviceManager.getCurrentZoomLevel();
+    }
+
+    /**
+     * Return current Exposure value
+     * @return double type current exposure value
+     */
+    public final double getCurrentExposureValue() {
+        return cameraDeviceManager.getCurrentExposureValue();
     }
 }

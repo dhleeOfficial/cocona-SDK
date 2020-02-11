@@ -251,7 +251,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
             // ObjectDetection
             if ((isReady == true) && (isODDone == true)) {
                 if (mode == Mode.TRAVEL) {
-                    if (objectDetectionThread != classifier) {
+                    if (objectDetectionThread.getClassifier() != classifier) {
                         objectDetectionThread.setClassifier(classifier);
                     }
                     objectDetectionThread.setData(rgb);
@@ -261,7 +261,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
 
                     isODDone = false;
                 } else if (mode == Mode.DAILY) {
-                    if (objectDetectionThread != dailyClassifier) {
+                    if (objectDetectionThread.getClassifier() != dailyClassifier) {
                         objectDetectionThread.setClassifier(dailyClassifier);
                     }
                     objectDetectionThread.setData(rgb);

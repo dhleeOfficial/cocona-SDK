@@ -65,6 +65,10 @@ public class ObjectDetectionThread implements Runnable {
 
     public void setClassifier(Classifier classifier) { this.classifier = classifier; }
 
+    public final Classifier getClassifier() {
+        return this.classifier;
+    }
+
     @Override
     public void run() {
         if (rgbBytes != null) {

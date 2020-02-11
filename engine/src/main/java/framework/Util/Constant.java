@@ -4,7 +4,6 @@ public class Constant {
     public static class Camera {
         public static final float INIT_ZOOM_LEVEL = 1.0f;
         public static final float ZOOM_DELTA = 0.05f;
-        public static final double EXPOSURE_DELTA = 0.1;
         public static final int AREA_FOCUS_SIZE = 200;
     }
 
@@ -32,7 +31,7 @@ public class Constant {
         public static final int OD_NUM_DETECTIONS = 10;
         public static final float OD_IMAGE_MEAN = 128.0f;
         public static final float OD_IMAGE_STD = 128.0f;
-        public static final int OD_NUM_THREADS = 4;
+        public static final int OD_NUM_THREADS = 1;
 
         public static final boolean TRAVEL_IS_QUANTIZED = true;
         public static final String TRAVEL_MODEL_FILE = "travelmode.tflite";
