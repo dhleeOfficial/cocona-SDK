@@ -124,6 +124,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private boolean isRecording = false;
     private boolean isLiving = false;
     private boolean isPause = false;
+    private boolean lensSwitching = false;
 
     private LensFacing lensFacing;
     private RecordSpeed recordSpeed;
@@ -160,6 +161,11 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     private DeviceOrientation orientation = DeviceOrientation.INIT;
     private int count = 0;
+
+    private int vm_status = 0;
+    private int vm1_status = 0;
+    private int vm2_status = 0;
+    private int am_status = 0;
 
     private class FrameHandler extends Handler {
         public static final int MSG_FRAME_AVAILABLE = 1;
@@ -241,6 +247,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             @Override
             public void initDone() {
                 videoSurface = new WindowSurface(eglCore, videoManager.getSurface(), true);
+
+                vm_status = 0;
+                processCodecStatus();
             }
         });
 
@@ -248,6 +257,9 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             @Override
             public void initDone() {
                 videoSurface1 = new WindowSurface(eglCore, videoManager1.getSurface(), true);
+
+                vm1_status = 0;
+                processCodecStatus();
             }
         });
 
@@ -256,15 +268,18 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             public void initDone() {
                 videoSurface2 = new WindowSurface(eglCore, videoManager2.getSurface(), true);
 
-                if (mode == Mode.LIVE) {
-                    isLiving = true;
-                } else {
-                    isRecording = true;
-                }
+                vm2_status = 0;
+                processCodecStatus();
             }
         });
 
-        audioManager = new AudioManager();
+        audioManager = new AudioManager(new AudioManager.CallBack() {
+            @Override
+            public void initDone() {
+                am_status = 0;
+                processCodecStatus();
+            }
+        });
         muxManager = new MuxManager(context, engineObserver);
 
         audioManager.start();
@@ -482,6 +497,12 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     @Override
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
         frameHandler.sendEmptyMessage(frameHandler.MSG_FRAME_AVAILABLE);
+        if (lensSwitching){
+            Handler audioHandler = audioManager.getHandler();
+            audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+
+            lensSwitching = false;
+        }
     }
 
     public void startBackgroundThread() {
@@ -543,6 +564,10 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                 cameraDevice.close();
                 cameraDevice = null;
             }
+            if (lensSwitching) {
+                Handler audioHandler = audioManager.getHandler();
+                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+            }
             if (cameraCaptureSession != null) {
                 cameraCaptureSession.close();
                 cameraCaptureSession = null;
@@ -552,6 +577,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             ie.printStackTrace();
         } finally {
             cameraLock.release();
+
         }
     }
 
@@ -608,6 +634,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     }
 
     private void lensFacing(LensFacing lensFacing) {
+        lensSwitching = true;
         this.lensFacing = lensFacing;
 
         sessionClose();
@@ -615,6 +642,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     }
 
     private void record(RecordState recordState) {
+        initCodecStatus();
+
         Handler audioHandler = audioManager.getHandler();
         Handler muxHandler = muxManager.getHandler();
         Handler videoHandler = videoManager.getHandler();
@@ -655,19 +684,10 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             recordSpeed = RecordSpeed.NORMAL;
 
         } else if (recordState == RecordState.PAUSE) {
-
-            videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
-            videoHandler1.sendMessage(videoHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
-            videoHandler2.sendMessage(videoHandler2.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
-
             audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
             isRecording = false;
 
         } else if (recordState == RecordState.RESUME) {
-            videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
-            videoHandler1.sendMessage(videoHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
-            videoHandler2.sendMessage(videoHandler2.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
-
             audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
             isRecording = true;
         }
@@ -874,6 +894,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     }
 
     private void live(MessageObject.LiveObject liveObject) {
+        initCodecStatus();
+
         boolean isLive = liveObject.getIsLive();
         MessageObject.ThumbnailObject thumbnailObj = new MessageObject.ThumbnailObject(isLive, orientation.getValue());
 
@@ -1020,6 +1042,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             captureRequestBuilder.addTarget(inferenceImageReader.getSurface());
 
             cameraDevice.createCaptureSession(Arrays.asList(sf, inferenceImageReader.getSurface()), captureStateCallback, backgroundHandler);
+
+
         } catch (CameraAccessException ce) {
             ce.printStackTrace();
         }
@@ -1152,4 +1176,22 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             Log.e(TAG,"ORIENTATION LISTENER ERROR");
         }
     }
+
+    private void initCodecStatus() {
+        vm_status = 1;
+        vm1_status = 1;
+        vm2_status = 1;
+        am_status = 1;
+    }
+
+    private void processCodecStatus() {
+        if ((vm_status | vm1_status | vm2_status | am_status) == 0) {
+            if (mode == Mode.LIVE) {
+                isLiving = true;
+            } else {
+                isRecording = true;
+            }
+        }
+    }
+
 }

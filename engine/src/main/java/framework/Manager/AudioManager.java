@@ -30,6 +30,7 @@ import framework.Util.Constant;
 import framework.Util.MuxData;
 
 public class AudioManager extends HandlerThread {
+    private CallBack callBack;
     private Handler myHandler;
     private Handler muxHandler;
 
@@ -59,8 +60,14 @@ public class AudioManager extends HandlerThread {
     private byte[] muteBuffer;
     private byte[] muxBuffer;
 
-    public AudioManager() {
+    public interface CallBack {
+        void initDone();
+    }
+
+    public AudioManager(CallBack callBack) {
         super("AudioManager");
+
+        this.callBack = callBack;
     }
 
     @Override
@@ -276,6 +283,8 @@ public class AudioManager extends HandlerThread {
 
             audioRecord.stop();
             audioRecord.release();
+
+            callBack.initDone();
         }
 
         private AudioRecord createAudioRecord() {
