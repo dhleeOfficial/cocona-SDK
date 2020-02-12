@@ -104,15 +104,15 @@ public class ObjectDetectionThread implements Runnable {
             }
         }
 
-        if (imageRGBBitmap != null) {
-            imageRGBBitmap.recycle();
-            imageRGBBitmap = null;
-        }
-
-        if (cropBitmap != null) {
-            cropBitmap.recycle();
-            cropBitmap = null;
-        }
+//        if (imageRGBBitmap != null) {
+//            imageRGBBitmap.recycle();
+//            imageRGBBitmap = null;
+//        }
+//
+//        if (cropBitmap != null) {
+//            cropBitmap.recycle();
+//            cropBitmap = null;
+//        }
 
         if (callback != null) {
             callback.onObjectDetectionDone();
