@@ -73,6 +73,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
     private boolean isLiving = false;
 
     private boolean isImageProc = false;
+    private boolean isRemainBox = false;
 
     private int lastAEframe = 0;
     private int lastSDframe = -2 * Constant.Inference.SCENE_INTERVAL;
@@ -217,6 +218,11 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                             }
                         }
                     }
+                    if (isRemainBox == true && mode != Mode.TRAVEL && mode != Mode.DAILY) {
+                        boxDrawer.clearBoxDrawer();
+                        inferenceOverlayView.postInvalidate();
+                        isRemainBox = false;
+                    }
                 }
         } catch (NullPointerException ne) {
             ne.printStackTrace();
@@ -271,6 +277,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
 
                     isODDone = false;
                 }
+                isRemainBox = true;
             }
 
             if ((isRecord == true) && (mode != Mode.LIVE)) {
@@ -412,7 +419,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
 
     private synchronized void setMode(Mode mode) {
         this.mode = mode;
-        inferenceOverlayView.postInvalidate();
+//        inferenceOverlayView.postInvalidate();
 
         isODDone = true;
         isAEDone = true;
