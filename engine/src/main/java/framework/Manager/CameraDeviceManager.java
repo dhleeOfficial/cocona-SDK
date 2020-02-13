@@ -424,6 +424,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_MODE : {
                         mode((Mode) msg.obj);
+                        autoFocus();
 
                         return true;
                     }
