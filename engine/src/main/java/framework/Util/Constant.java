@@ -76,7 +76,7 @@ public class Constant {
         public static final int BIT_RATE = 128000;
         public static final int HEADER_SIZE = 7;
         public static final int TIMEOUT_USEC = 10000;
-        public static final int SAMPLES_PER_FRAME = 1470;
+        public static final int SAMPLES_PER_FRAME = 2940;
         public static final int SPARE_BUFFER_SIZE = 120;
     }
 

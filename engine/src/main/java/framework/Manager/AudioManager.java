@@ -265,10 +265,13 @@ public class AudioManager extends HandlerThread {
 
                         if (isEOS == false) {
                             encode(muteBuffer, 0, isEOS);
-                            encode(muteBuffer, 0, isEOS);
+
                         } else {
                             encode(muteBuffer, 0, false);
-                            encode(muteBuffer, 0, isEOS);
+
+                        }
+                        if (recordSpeed == RecordSpeed.SLOW){
+                            encode(muteBuffer,0,isEOS);
                         }
                         muteBuffer = null;
                     } else if (recordSpeed == RecordSpeed.FAST) {
