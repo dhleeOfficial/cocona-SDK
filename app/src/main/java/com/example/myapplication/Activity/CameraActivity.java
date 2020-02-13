@@ -106,6 +106,12 @@ public class CameraActivity extends AppCompatActivity {
             Log.e("UPLOAD", "complete");
             // APP invoke platform api - live end
         }
+
+        @Override
+        public void onRecordStart() { Log.e("Record", "started"); }
+
+        @Override
+        public void onError() { Log.e("Error", "occurred"); }
     };
 
     private final Activity myActivity = this;

@@ -996,6 +996,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                 @Override
                 public void onError(@NonNull CameraDevice camera, int error) {
                     Log.e(TAG, "onError()");
+                    engineObserver.onError();
 
                     cameraLock.release();
                     cameraDevice.close();
@@ -1192,6 +1193,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             } else {
                 isRecording = true;
             }
+            engineObserver.onRecordStart();
         }
     }
 

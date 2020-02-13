@@ -13,6 +13,7 @@ import framework.Enum.DeviceOrientation;
 public interface EngineObserver {
     void onChangeOrientation(DeviceOrientation deviceOrientation);
     void onCheckFlashSupport(boolean isSupport);
+    void onRecordStart();
 
     void onCompleteVODFile(ArrayList<String> pathArray);
     void onCompleteScoreFile(String scorePath);
@@ -20,4 +21,5 @@ public interface EngineObserver {
 
     void onCompleteLiveUpload();
 
+    void onError();
 }

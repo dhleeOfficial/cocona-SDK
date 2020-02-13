@@ -136,6 +136,7 @@ public class AudioManager extends HandlerThread {
 
         isReady = true;
         initAudioRecord();
+        callBack.initDone();
     }
 
     private void initMediaFormat() {
@@ -284,7 +285,7 @@ public class AudioManager extends HandlerThread {
             audioRecord.stop();
             audioRecord.release();
 
-            callBack.initDone();
+
         }
 
         private AudioRecord createAudioRecord() {
