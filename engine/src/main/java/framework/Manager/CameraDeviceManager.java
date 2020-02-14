@@ -167,6 +167,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     private int vm2_status = 0;
     private int am_status = 0;
 
+    private int[] availableAFMode;
+
     private class FrameHandler extends Handler {
         public static final int MSG_FRAME_AVAILABLE = 1;
 
@@ -846,9 +848,15 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
     private void autoFocus() {
         try {
-            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO);
-            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-            cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), captureCallback, backgroundHandler);
+            if (Arrays.asList(availableAFMode).contains(CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO)) {
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO);
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+                cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
+            } else if (Arrays.asList(availableAFMode).contains(CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)) {
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+                captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+                cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
+            }
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -952,6 +960,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
 
             hasFlash = cc.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
             engineObserver.onCheckFlashSupport(hasFlash);
+
+            availableAFMode = cc.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
 
             recordSpeed = RecordSpeed.NORMAL;
             isPause = false;

@@ -124,6 +124,8 @@ public class MuxManager extends HandlerThread {
                     }
                     case ThreadMessage.MuxMessage.MSG_MUX_CONVERT_FORMAT : {
                         convertArchiveFormat((MessageObject.TransformObject) msg.obj);
+
+                        return true;
                     }
                 }
                 return false;
@@ -232,9 +234,9 @@ public class MuxManager extends HandlerThread {
                 liveFileObserver2 = null;
             }
 
-            if (liveFileObserver2 != null) {
-                liveFileObserver2.close();
-                liveFileObserver2 = null;
+            if (liveFileObserver3 != null) {
+                liveFileObserver3.close();
+                liveFileObserver3 = null;
             }
 
             pipeList.clear();
@@ -325,9 +327,16 @@ public class MuxManager extends HandlerThread {
                     VODFile1 = Util.getOutputVODFile(Constant.Resolution.HD);
                     VODFile2 = Util.getOutputVODFile(Constant.Resolution.SD);
 
+                    String input = " -map 0:v -map 3:a -s 1920x1080 -b:v 6000k -maxrate 8000k -bufsize 6000k" + OUTPUT + VODFile;
+                    String input1 = " -map 1:v -map 3:a -s 1280x720 -b:v 3000k -maxrate 3750k -bufsize 3000k" + OUTPUT + VODFile1;
+                    String input2 = " -map 2:v -map 3:a -s 854x480 -b:v 1000k -maxrate 1250k -bufsize 1000k" + OUTPUT + VODFile2;
+
+//                    command = INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(0) + " " + INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(1) +
+//                            " " + INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(2) + INPUT_AUDIO_OPT + INPUT_AUDIO + pipeList.get(3) + " -map 0:v -map 3:a -map 1:v -map 3:a -map 2:v -map 3:a" +
+//                            OUTPUT + VODFile + OUTPUT + VODFile1 + OUTPUT + VODFile2;
+
                     command = INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(0) + " " + INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(1) +
-                            " " + INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(2) + INPUT_AUDIO_OPT + INPUT_AUDIO + pipeList.get(3) + " -map 0:v -map 3:a -map 1:v -map 3:a -map 2:v -map 3:a" +
-                            OUTPUT + VODFile + OUTPUT + VODFile1 + OUTPUT + VODFile2;
+                            " " + INPUT_VIDEO_OPT + INPUT_VIDEO + pipeList.get(2) + INPUT_AUDIO_OPT + INPUT_AUDIO + pipeList.get(3) + input + input1 + input2;
 
                     FFmpeg.execute(command);
                 } else {
