@@ -567,10 +567,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                 cameraDevice.close();
                 cameraDevice = null;
             }
-            if (lensSwitching) {
-                Handler audioHandler = audioManager.getHandler();
-                audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
-            }
             if (cameraCaptureSession != null) {
                 cameraCaptureSession.close();
                 cameraCaptureSession = null;
@@ -637,10 +633,18 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
     }
 
     private void lensFacing(LensFacing lensFacing) {
-        lensSwitching = true;
+
         this.lensFacing = lensFacing;
 
+        Handler audioHandler = audioManager.getHandler();
+        audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_PAUSE, 0, null));
+        isRecording=false;
+
         sessionClose();
+
+        lensSwitching = true;
+        isRecording = true;
+
         initCamera(previewSize.getWidth(), previewSize.getHeight());
     }
 
@@ -753,7 +757,6 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         if ((captureRequestBuilder == null) && (cameraCaptureSession == null)) {
             return;
         }
-
 
         try {
             CameraCharacteristics cc = cameraManager.getCameraCharacteristics(enableCameraId);
