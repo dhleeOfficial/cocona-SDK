@@ -675,6 +675,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_START, 0, this.mode));
 
         } else if (recordState == RecordState.STOP) {
+            audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
+            isRecording = true;
 
             videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
 

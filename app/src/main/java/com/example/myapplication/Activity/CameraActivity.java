@@ -172,7 +172,6 @@ public class CameraActivity extends AppCompatActivity {
                             radioGroup.check(R.id.normalBtn);
                             radioGroup.setVisibility(View.INVISIBLE);
 
-                            radioGroup2.check(R.id.resumeBtn);
                             radioGroup2.setVisibility(View.INVISIBLE);
                             engine.record(RecordState.STOP);
                         }
