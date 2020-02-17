@@ -19,16 +19,22 @@ public class ThumbnailThread implements Runnable {
 
     private Callback callback;
 
+    private String srcDir = "CubiDir";
+
     public interface Callback {
         void onThumbnailDone();
     }
 
-    final File file = new File(Util.getOutputLiveDir().getPath(), Constant.Live.THUMBNAIL_FILE);
+    final File file = new File(Util.getOutputLiveDir(srcDir).getPath(), Constant.Live.THUMBNAIL_FILE);
 
     public void setData(int orientation, Size previewSize, int[] rgbBytes) {
         this.orientation = orientation;
         this.previewSize = previewSize;
         this.rgbBytes = rgbBytes;
+    }
+
+    public void setPath(String srcDir){
+        this.srcDir = srcDir;
     }
 
     public void setCallback(Callback callback) {

@@ -85,6 +85,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
     private Mode mode = Mode.TRAVEL;
     private RecordSpeed recordSpeed = RecordSpeed.NORMAL;
 
+    private String srcDir = "CubiDir";
 
     public InferenceManager(Context context, InferenceOverlayView inferenceOverlayView, EngineObserver engineObserver) {
         super("InferenceManager");
@@ -176,6 +177,9 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                     case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETSPEED : {
                         recordSpeed = ((RecordSpeed) msg.obj);
                         fastCount = true;
+                    }
+                    case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETPATH : {
+                        srcDir = ((String) msg.obj);
                     }
                 }
                 return false;
@@ -299,7 +303,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                             }
                         });
 
-                        jsonResult = new JsonResult();
+                        jsonResult = new JsonResult(srcDir);
                         timestamp = 0;
                         chunkIdx = 0;
                     }
@@ -324,6 +328,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
 
                     if (autoEditThread == null) {
                         autoEditThread = new AutoEditThread();
+                        autoEditThread.setPath(srcDir);
 
                         autoEditThread.setFirstTS(curTS);
                         autoEditThread.setPreviewSize(previewSize);
@@ -350,6 +355,7 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                     if (thumbnailThread == null) {
                         thumbnailThread = new ThumbnailThread();
 
+                        thumbnailThread.setPath(srcDir);
                         thumbnailThread.setData(orientation, previewSize, rgb);
                         thumbnailThread.setCallback(new ThumbnailThread.Callback() {
                             @Override

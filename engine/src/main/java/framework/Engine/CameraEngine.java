@@ -184,9 +184,17 @@ public class CameraEngine {
      * Start or stop, pause, resume record function
      * @param recordState start : RecordState::START / stop : RecordState::STOP / pause : RecordState::PAUSE / resume : RecordState::RESUME
      */
+    public void record(RecordState recordState, String srcDir) {
+        if (cameraHandler != null) {
+            MessageObject.RecordObject recordObject = new MessageObject.RecordObject(recordState, srcDir);
+            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_RECORD, 0, recordObject));
+        }
+    }
+
     public void record(RecordState recordState) {
         if (cameraHandler != null) {
-            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_RECORD, 0, recordState));
+            MessageObject.RecordObject recordObject = new MessageObject.RecordObject(recordState, "CubiDir");
+            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_RECORD, 0, recordObject));
         }
     }
 
@@ -266,9 +274,16 @@ public class CameraEngine {
      * @param isStart start : true / stop : false
      * @param liveStreamingData LiveStreamingData instance or null (live stop)
      */
+    public void live(boolean isStart, LiveStreamingData liveStreamingData, String srcDir) {
+        if (cameraHandler != null) {
+            MessageObject.LiveObject liveObject = new MessageObject.LiveObject(isStart, liveStreamingData, srcDir);
+            cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_LIVE, 0, liveObject));
+        }
+    }
+
     public void live(boolean isStart, LiveStreamingData liveStreamingData) {
         if (cameraHandler != null) {
-            MessageObject.LiveObject liveObject = new MessageObject.LiveObject(isStart, liveStreamingData);
+            MessageObject.LiveObject liveObject = new MessageObject.LiveObject(isStart, liveStreamingData, "CubiDir");
             cameraHandler.sendMessage(cameraHandler.obtainMessage(0, ThreadMessage.EngineMessage.MSG_ENGINE_LIVE, 0, liveObject));
         }
     }

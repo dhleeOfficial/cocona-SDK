@@ -84,6 +84,7 @@ public class AudioManager extends HandlerThread {
                         return true;
                     }
                     case ThreadMessage.RecordMessage.MSG_RECORD_STOP : {
+                        isPause = false;
                         isEOS = true;
 
                         return true;

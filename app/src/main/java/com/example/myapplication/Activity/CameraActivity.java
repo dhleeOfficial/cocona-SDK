@@ -167,7 +167,8 @@ public class CameraActivity extends AppCompatActivity {
                                 radioGroup.setVisibility(View.VISIBLE);
                                 radioGroup2.setVisibility(View.VISIBLE);
                             }
-                            engine.record(RecordState.START);
+//                            engine.record(RecordState.START);
+                            engine.record(RecordState.START,"CubiDir2");
                         } else {
                             radioGroup.check(R.id.normalBtn);
                             radioGroup.setVisibility(View.INVISIBLE);
@@ -217,7 +218,8 @@ public class CameraActivity extends AppCompatActivity {
                             String uploadKey = "Insert path after live_videos platform api call";
                             LiveStreamingData liveStreamingData = new LiveStreamingData(bucketName, uploadKey, transferUtility);
 
-                            engine.live(true, liveStreamingData);
+//                            engine.live(true, liveStreamingData);
+                            engine.live(true, liveStreamingData, "CubiDir2");
                         } else {
                             engine.live(false, null);
                         }

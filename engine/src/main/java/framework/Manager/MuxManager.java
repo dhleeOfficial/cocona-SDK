@@ -49,6 +49,8 @@ public class MuxManager extends HandlerThread {
     private LiveFileObserver liveFileObserver2;
     private LiveFileObserver liveFileObserver3;
 
+    private String srcDir;
+
     // VOD FFMPEG COMMAND SET
     private final String INPUT_VIDEO_OPT = "-thread_queue_size 1024";
     private final String INPUT_AUDIO_OPT = " -thread_queue_size 2048";
@@ -91,7 +93,9 @@ public class MuxManager extends HandlerThread {
             public boolean handleMessage(@NonNull Message msg) {
                 switch (msg.arg1) {
                     case ThreadMessage.MuxMessage.MSG_MUX_START : {
-                        mode = ((Mode) msg.obj);
+                        MessageObject.MuxObject muxObj = (MessageObject.MuxObject) msg.obj;
+                        mode = muxObj.getMode();
+                        srcDir = muxObj.getSrcDir();
                         muxExecute();
 
                         return true;
@@ -187,7 +191,7 @@ public class MuxManager extends HandlerThread {
         isConvert = false;
 
         initLiveFileObserver(liveObject);
-        Util.getMasterM3u8(Util.getOutputLiveDir().getPath());
+        Util.getMasterM3u8(Util.getOutputLiveDir(srcDir).getPath());
 
         if (ffmpeg != null) {
             ffmpeg = null;
@@ -267,7 +271,7 @@ public class MuxManager extends HandlerThread {
 
     private void initLiveFileObserver(MessageObject.LiveObject liveObject) {
         if (liveFileObserver == null) {
-            liveFileObserver = new LiveFileObserver(Util.getOutputLiveDir(), null, liveObject.getLiveStreamingData(), engineObserver);
+            liveFileObserver = new LiveFileObserver(Util.getOutputLiveDir(srcDir), null, liveObject.getLiveStreamingData(), engineObserver);
             liveFileObserver.startWatching();
         }
 
@@ -323,9 +327,10 @@ public class MuxManager extends HandlerThread {
                 FFmpeg.execute(command);
             } else {
                 if (mode != Mode.LIVE) {
-                    VODFile = Util.getOutputVODFile(Constant.Resolution.FHD);
-                    VODFile1 = Util.getOutputVODFile(Constant.Resolution.HD);
-                    VODFile2 = Util.getOutputVODFile(Constant.Resolution.SD);
+                    ArrayList<File> fileList = Util.getOutputVODFile(srcDir);
+                    VODFile = fileList.get(0);
+                    VODFile1 = fileList.get(1);
+                    VODFile2 = fileList.get(2);
 
                     String input = " -map 0:v -map 3:a -s 1920x1080 -b:v 6000k -maxrate 8000k -bufsize 6000k" + OUTPUT + VODFile;
                     String input1 = " -map 1:v -map 3:a -s 1280x720 -b:v 3000k -maxrate 3750k -bufsize 3000k" + OUTPUT + VODFile1;

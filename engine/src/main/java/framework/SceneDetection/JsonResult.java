@@ -18,8 +18,8 @@ public class JsonResult {
     private File file = null;
     private FileWriter fileWriter = null;
 
-    public JsonResult() {
-        init();
+    public JsonResult(String srcDir) {
+        init(srcDir);
     }
 
     public void inputData(SceneData sceneData) {
@@ -74,11 +74,11 @@ public class JsonResult {
         return file.getPath();
     }
 
-    private void init() {
+    private void init(String srcDir) {
         obj = new JSONObject();
         objArray = new JSONArray();
         try {
-            file = Util.getOutputLabelFile();
+            file = Util.getOutputLabelFile(srcDir);
             fileWriter = new FileWriter(file);
         } catch (IOException ie) {
             ie.printStackTrace();

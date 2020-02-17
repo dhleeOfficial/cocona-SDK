@@ -386,7 +386,7 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
                         return true;
                     }
                     case ThreadMessage.EngineMessage.MSG_ENGINE_RECORD : {
-                        record((RecordState) msg.obj);
+                        record((MessageObject.RecordObject) msg.obj);
 
                         return true;
                     }
@@ -644,7 +644,10 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         initCamera(previewSize.getWidth(), previewSize.getHeight());
     }
 
-    private void record(RecordState recordState) {
+    private void record(MessageObject.RecordObject recordObject) {
+        RecordState recordState = recordObject.getRecordState();
+        String srcDir = recordObject.getSrcDir();
+
         initCodecStatus();
 
         Handler audioHandler = audioManager.getHandler();
@@ -672,11 +675,12 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             MessageObject.AudioRecord audioObj = new MessageObject.AudioRecord(muxManager.requestPipe(), muxHandler);
             audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, audioObj));
 
-            muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_START, 0, this.mode));
+            MessageObject.MuxObject muxObj = new MessageObject.MuxObject(this.mode, srcDir);
+            muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_START, 0, muxObj));
+
+            inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.InferenceMessage.MSG_INFERENCE_SETPATH, 0, srcDir));
 
         } else if (recordState == RecordState.STOP) {
-            audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_RESUME, 0, null));
-            isRecording = true;
 
             videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
 
@@ -908,7 +912,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
         initCodecStatus();
 
         boolean isLive = liveObject.getIsLive();
-        MessageObject.ThumbnailObject thumbnailObj = new MessageObject.ThumbnailObject(isLive, orientation.getValue());
+        String srcDir = liveObject.getSrcDir();
+        MessageObject.ThumbnailObject thumbnailObj = new MessageObject.ThumbnailObject(isLive, orientation.getValue(), srcDir);
 
         Handler audioHandler = audioManager.getHandler();
         Handler muxHandler = muxManager.getHandler();
@@ -933,6 +938,8 @@ public class CameraDeviceManager extends HandlerThread implements SensorEventLis
             audioHandler.sendMessage(audioHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_START, 0, audioObj));
 
             muxHandler.sendMessage(muxHandler.obtainMessage(0, ThreadMessage.MuxMessage.MSG_MUX_LIVE_START, 0, liveObject));
+
+            inferenceHandler.sendMessage(inferenceHandler.obtainMessage(0, ThreadMessage.InferenceMessage.MSG_INFERENCE_SETPATH, 0, srcDir));
         } else {
             videoHandler.sendMessage(videoHandler.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));
             videoHandler1.sendMessage(videoHandler1.obtainMessage(0, ThreadMessage.RecordMessage.MSG_RECORD_STOP, 0, null));

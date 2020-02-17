@@ -13,6 +13,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -141,29 +142,43 @@ public class Util {
         return mediaStorageDir;
     }
 
-    public static File getOutputVODFile(String folder) {
-        File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
-                "CubiDir" + File.separator + "VOD" + folder);
 
-        if (!mediaStorageDir.exists()) {
-            if (!mediaStorageDir.mkdirs()) {
-                return null;
+    public static ArrayList<File> getOutputVODFile(String srcDir) {
+        ArrayList<String> resolutionList = new ArrayList<String>();
+
+        resolutionList.add(Constant.Resolution.FHD);
+        resolutionList.add(Constant.Resolution.HD);
+        resolutionList.add(Constant.Resolution.SD);
+
+        ArrayList<File> fileArrayList = new ArrayList<File>();
+        int size = resolutionList.size();
+
+        for (int i = 0; i < size; ++i) {
+            File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),srcDir + File.separator + "VOD" + resolutionList.get(i));
+
+            if (!mediaStorageDir.exists()) {
+                if (!mediaStorageDir.mkdirs()) {
+                    return null;
+                }
             }
+
+            String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss",
+                    Locale.getDefault()).format(new Date());
+
+            File mediaFile;
+
+            mediaFile = new File(mediaStorageDir.getPath() + File.separator
+                    + timeStamp + ".mp4");
+
+            fileArrayList.add(mediaFile);
         }
 
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss",
-                Locale.getDefault()).format(new Date());
-        File mediaFile;
-
-        mediaFile = new File(mediaStorageDir.getPath() + File.separator
-                + timeStamp + ".mp4");
-
-        return mediaFile;
+        return fileArrayList;
     }
 
-    public static File getOutputLiveDir() {
+    public static File getOutputLiveDir(String srcDir) {
         File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
-                "CubiDir" + File.separator + "LIVE");
+                 srcDir + File.separator + "LIVE");
 
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
@@ -200,9 +215,9 @@ public class Util {
         return mediaStorageDir;
     }
 
-    public static File getOutputScoreFile() {
+    public static File getOutputScoreFile(String srcDir) {
         File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
-                "CubiDir" + File.separator + "SCORE");
+                srcDir + File.separator + "SCORE");
 
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
@@ -219,9 +234,9 @@ public class Util {
         return mediaFile;
     }
 
-    public static File getOutputLabelFile() {
+    public static File getOutputLabelFile(String srcDir) {
         File mediaStorageDir = new File(Environment.getExternalStorageDirectory(),
-                "CubiDir" + File.separator + "LABEL");
+                srcDir + File.separator + "LABEL");
 
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {

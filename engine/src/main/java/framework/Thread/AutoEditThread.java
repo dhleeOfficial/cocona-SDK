@@ -18,6 +18,8 @@ public class AutoEditThread implements Runnable {
 
     private Callback callback;
 
+    private String srcDir = "CubiDir";
+
     public interface Callback {
         void onAutoEditDone();
     }
@@ -56,13 +58,15 @@ public class AutoEditThread implements Runnable {
         this.rgbBytes = rgbBytes;
     }
 
+    public void setPath(String srcDir){ this.srcDir = srcDir; }
+
     public void setPreviewSize(Size size) {
         this.previewSize = size;
         autoEdit.setImageSize(size);
     }
 
     public void setFirstTS(long startTS) {
-        autoEdit.setFirstTS(startTS);
+        autoEdit.setFirstTS(startTS, srcDir);
     }
 
 

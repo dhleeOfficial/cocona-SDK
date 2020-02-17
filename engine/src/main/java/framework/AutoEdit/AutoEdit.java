@@ -66,14 +66,14 @@ public class AutoEdit {
         this.size = size;
     }
 
-    public void setFirstTS(long firstTS) {
+    public void setFirstTS(long firstTS, String srcDir) {
         initVariable();
         this.firstTS = firstTS;
 
 
         try {
             if (fileWriter == null) {
-                outFile = Util.getOutputScoreFile();
+                outFile = Util.getOutputScoreFile(srcDir);
                 fileWriter = new FileWriter(outFile);
 
                 fileWriter.write(String.format("start_time : %d", this.firstTS) + System.getProperty("line.separator"));

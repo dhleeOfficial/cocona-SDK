@@ -10,6 +10,7 @@ import java.io.BufferedOutputStream;
 import framework.Engine.LiveStreamingData;
 import framework.Enum.LensFacing;
 import framework.Enum.Mode;
+import framework.Enum.RecordState;
 
 public class MessageObject {
     public static class Box {
@@ -87,10 +88,12 @@ public class MessageObject {
     public static class LiveObject {
         private final boolean isLive;
         private final LiveStreamingData liveStreamingData;
+        private final String srcDir;
 
-        public LiveObject(boolean isLive, LiveStreamingData liveStreamingData) {
+        public LiveObject(boolean isLive, LiveStreamingData liveStreamingData, String srcDir) {
             this.isLive = isLive;
             this.liveStreamingData = liveStreamingData;
+            this.srcDir = srcDir;
         }
 
         public boolean getIsLive() {
@@ -100,15 +103,21 @@ public class MessageObject {
         public LiveStreamingData getLiveStreamingData() {
             return liveStreamingData;
         }
+
+        public String getSrcDir() {
+            return srcDir;
+        }
     }
 
     public static class ThumbnailObject {
         private final boolean isLive;
         private final int orientation;
+        private final String srcDir;
 
-        public ThumbnailObject(boolean isLive, int orientation) {
+        public ThumbnailObject(boolean isLive, int orientation, String srcDir) {
             this.isLive = isLive;
             this.orientation = orientation;
+            this.srcDir = srcDir;
         }
 
         public boolean getIsLive() {
@@ -117,6 +126,10 @@ public class MessageObject {
 
         public int getOrientation() {
             return orientation;
+        }
+
+        public String getSrcDir() {
+            return srcDir;
         }
     }
 
@@ -135,6 +148,42 @@ public class MessageObject {
 
         public String getDstPath() {
             return dstPath;
+        }
+    }
+
+    public static class RecordObject {
+        private final RecordState recordState;
+        private final String srcDir;
+
+        public RecordObject(RecordState recordState, String srcDir) {
+            this.recordState = recordState;
+            this.srcDir = srcDir;
+        }
+
+        public final RecordState getRecordState() {
+            return recordState;
+        }
+
+        public final String getSrcDir() {
+            return srcDir;
+        }
+    }
+
+    public static class MuxObject {
+        private final Mode mode;
+        private final String srcDir;
+
+        public MuxObject(Mode mode, String srcDir) {
+            this.mode = mode;
+            this.srcDir = srcDir;
+        }
+
+        public final Mode getMode() {
+            return mode;
+        }
+
+        public final String getSrcDir() {
+            return srcDir;
         }
     }
 }
