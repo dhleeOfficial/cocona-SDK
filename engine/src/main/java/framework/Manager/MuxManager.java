@@ -27,6 +27,7 @@ public class MuxManager extends HandlerThread {
     private Context context;
     private Handler myHandler;
     private EngineObserver engineObserver;
+    private CancelHandler cancelHandler;
 
     private boolean isConvert = false;
     private String srcFileName;
@@ -80,8 +81,24 @@ public class MuxManager extends HandlerThread {
 
         this.context = context;
         this.engineObserver = engineObserver;
+        cancelHandler = new CancelHandler();
 
         Config.setLogLevel(Level.AV_LOG_INFO);
+    }
+
+    private class CancelHandler extends Handler {
+        public static final int MSG_MUX_CANCEL = 1;
+
+        public CancelHandler() {}
+
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            switch (msg.what) {
+                case MSG_MUX_CANCEL : {
+                    muxCancel();
+                }
+            }
+        }
     }
 
     @Override
@@ -116,13 +133,13 @@ public class MuxManager extends HandlerThread {
                         } else if (resolution == Constant.Resolution.SD_WIDTH) {
                             VIDEO_480_STATUS = 0;
                         }
-                        muxCancel();
+                        checkStatus();
 
                         return true;
                     }
                     case ThreadMessage.MuxMessage.MSG_MUX_AUDIO_END : {
                         AUDIO_STATUS = 0;
-                        muxCancel();
+                        checkStatus();
 
                         return true;
                     }
@@ -203,48 +220,53 @@ public class MuxManager extends HandlerThread {
         }
     }
 
-    private void muxCancel() {
+    private void checkStatus() {
         boolean isCancel = processPipeStatusCancel();
 
         if (isCancel == true) {
-            for (final String pipe : pipeList) {
-                Config.closeFFmpegPipe(pipe);
-            }
+            cancelHandler.sendEmptyMessageDelayed(cancelHandler.MSG_MUX_CANCEL,100);
 
-            if (ffmpeg != null) {
-                ffmpeg.quitThread();
-                ArrayList<String> output = ffmpeg.getVODFile();
-
-                if (output != null) {
-                    engineObserver.onCompleteVODFile(output);
-                }
-
-                ffmpeg.interrupt();
-                ffmpeg = null;
-            }
-
-            if (liveFileObserver != null) {
-                liveFileObserver.close();
-                liveFileObserver = null;
-            }
-
-            if (liveFileObserver1 != null) {
-                liveFileObserver1.close();
-                liveFileObserver1 = null;
-            }
-
-            if (liveFileObserver2 != null) {
-                liveFileObserver2.close();
-                liveFileObserver2 = null;
-            }
-
-            if (liveFileObserver3 != null) {
-                liveFileObserver3.close();
-                liveFileObserver3 = null;
-            }
-
-            pipeList.clear();
         }
+    }
+
+    private void muxCancel(){
+        for (final String pipe : pipeList) {
+            Config.closeFFmpegPipe(pipe);
+        }
+
+        if (ffmpeg != null) {
+            ffmpeg.quitThread();
+            ArrayList<String> output = ffmpeg.getVODFile();
+
+            if (output != null) {
+                engineObserver.onCompleteVODFile(output);
+            }
+
+            ffmpeg.interrupt();
+            ffmpeg = null;
+        }
+
+        if (liveFileObserver != null) {
+            liveFileObserver.close();
+            liveFileObserver = null;
+        }
+
+        if (liveFileObserver1 != null) {
+            liveFileObserver1.close();
+            liveFileObserver1 = null;
+        }
+
+        if (liveFileObserver2 != null) {
+            liveFileObserver2.close();
+            liveFileObserver2 = null;
+        }
+
+        if (liveFileObserver3 != null) {
+            liveFileObserver3.close();
+            liveFileObserver3 = null;
+        }
+
+        pipeList.clear();
     }
 
     private void convertArchiveFormat(MessageObject.TransformObject transformObject) {

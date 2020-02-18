@@ -53,7 +53,8 @@ public class Constant {
         public static final float MIN_CONFIDENCE = 0.5f;
 
         public static final int FPS = 30;
-        public static final int SCENE_INTERVAL = 30;
+        public static final int OD_INTERVAL = 15;
+        public static final int SCENE_INTERVAL = 60;
         public static final int EVENT_INTERVAL = 30;
         public static final int THUMBNAIL_INTERVAL = 300;
         public static final int CONVERT_MILLISECONDS = 1000;

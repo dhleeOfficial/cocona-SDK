@@ -75,8 +75,9 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
     private boolean isImageProc = false;
     private boolean isRemainBox = false;
 
+    private int frameIdxOD = Constant.Inference.OD_INTERVAL / 2;;
     private int lastAEframe = 0;
-    private int lastSDframe = -2 * Constant.Inference.SCENE_INTERVAL;
+    private int lastSDframe = -Constant.Inference.SCENE_INTERVAL / 4;
     private int lastTNframe = -2 * Constant.Inference.THUMBNAIL_INTERVAL;
 
     private boolean fastCount = true;
@@ -145,8 +146,9 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
 
                         if (recordState == RecordState.STOP) {
                             frameIdx = 0;
+                            frameIdxOD = Constant.Inference.OD_INTERVAL / 2;
                             lastAEframe = 0;
-                            lastSDframe = -2 * Constant.Inference.SCENE_INTERVAL;
+                            lastSDframe = -Constant.Inference.SCENE_INTERVAL / 4;
                             lastTNframe = -2 * Constant.Inference.THUMBNAIL_INTERVAL;
                             engineObserver.onCompleteLabelFile(jsonResult.createJSONFile());
 
@@ -177,9 +179,13 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
                     case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETSPEED : {
                         recordSpeed = ((RecordSpeed) msg.obj);
                         fastCount = true;
+
+                        return true;
                     }
                     case ThreadMessage.InferenceMessage.MSG_INFERENCE_SETPATH : {
                         srcDir = ((String) msg.obj);
+
+                        return true;
                     }
                 }
                 return false;
@@ -256,10 +262,13 @@ public class InferenceManager extends HandlerThread implements ImageReader.OnIma
     @Override
     public void imageProcessDone(int[] rgb) {
         isImageProc = true;
+        if (isRecord == true || isLiving ==true) {
+            frameIdxOD++;
+        }
 
         if (rgb != null) {
             // ObjectDetection
-            if ((isReady == true) && (isODDone == true)) {
+            if ((isReady == true) && (isODDone == true) && frameIdxOD % Constant.Inference.OD_INTERVAL == (Constant.Inference.OD_INTERVAL / 2)) {
                 if (mode == Mode.TRAVEL) {
                     if (objectDetectionThread.getClassifier() != classifier) {
                         objectDetectionThread.setClassifier(classifier);
